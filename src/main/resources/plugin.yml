@@ -1,0 +1,15 @@
+name: Havoc
+version: '${project.version}'
+main: com.kartersanamo.havoc.Havoc
+author: kartersanamo
+depend: [Factions]
+softdepend: [WorldEdit]
+commands:
+  havoc:
+    description: Havoc salvage shop and admin tools
+    usage: /<command> [shop|salvage|admin ...]
+
+permissions:
+  havoc.admin:
+    description: Spawn bases and reload Havoc
+    default: op

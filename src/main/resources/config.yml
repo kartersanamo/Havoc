@@ -1,0 +1,73 @@
+# World where bases exist and where /havoc admin spawn places them
+world-name: world
+
+# SaberFactions tag (usually 4 letters; set to match your server "Havoc" system faction)
+havoc-faction-tag: Havoc
+
+# World border is centered at 0,0 with total edge length = 2 * border-half-size (default 5000 => +/- 2500)
+border-half-size: 2500
+
+# How many active bases to keep per difficulty (respawns after one is fully restored)
+bases-per-difficulty:
+  EASY: 3
+  MEDIUM: 2
+  HARD: 1
+
+# Minimum chunk distance between base centers (3x3 footprints still need gap)
+min-center-separation-chunks: 20
+
+# Chunks around each base (Manhattan radius from each base chunk) snapshotted at breach for later reset
+watch-chunk-radius: 5
+
+# Wall breach: TNT/explosion or break must touch these materials in the CENTER chunk column (middle of 3x3)
+breach-materials:
+  - OBSIDIAN
+  - STATIONARY_WATER
+  - WATER
+
+# Seconds until base blocks are fully restored and satellite chunks reset / unclaimed
+restore-seconds: 1800
+
+# Y level where schematic floor is pasted (schematic min corner sits here)
+paste-floor-y: 0
+
+# Folder under the plugin data folder containing .schematic files
+schematics-folder: schematics
+
+easy-schematic: EasyBase.schematic
+medium-schematic: MediumBase.schematic
+hard-schematic: HardBase.schematic
+
+salvage-reward:
+  EASY_MIN: 15
+  EASY_MAX: 45
+  MEDIUM_MIN: 40
+  MEDIUM_MAX: 120
+  HARD_MIN: 100
+  HARD_MAX: 300
+
+# Players within this radius (blocks) of the breach block get rewards / progression
+reward-radius: 32
+
+# Where raiders inside the 3x3 Havoc claim get sent
+spawn:
+  world: world
+  x: 0.5
+  y: 64.0
+  z: 0.5
+
+shop:
+  rows: 3
+  items:
+    - slot: 11
+      material: GOLDEN_APPLE
+      data: 0
+      amount: 1
+      price: 50
+      display-name: "&6Golden Apple"
+    - slot: 15
+      material: ENDER_PEARL
+      data: 0
+      amount: 4
+      price: 80
+      display-name: "&dPearl x4"
