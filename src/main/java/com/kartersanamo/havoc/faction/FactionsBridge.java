@@ -24,7 +24,7 @@ public final class FactionsBridge {
     private Method factionsGetByTag;
     private Method factionsGetWilderness;
     private Method factionIsWilderness;
-    private Method factionEquals;
+    private Method factionGetId;
     private Object fPlayersInstance;
     private Method fPlayersGetByPlayer;
     private Method fPlayerGetFaction;
@@ -53,7 +53,8 @@ public final class FactionsBridge {
 
             Class<?> factionClass = Class.forName("com.massivecraft.factions.Faction");
             factionIsWilderness = factionClass.getMethod("isWilderness");
-            factionEquals = factionClass.getMethod("equals", Object.class);
+            // Do not reflect Object.equals — Faction is often an interface; use stable string ids instead.
+            factionGetId = factionClass.getMethod("getId");
 
             Class<?> fPlayersClass = Class.forName("com.massivecraft.factions.FPlayers");
             fPlayersInstance = fPlayersClass.getMethod("getInstance").invoke(null);
@@ -114,7 +115,9 @@ public final class FactionsBridge {
         if (a == null || b == null) {
             return false;
         }
-        return (Boolean) factionEquals.invoke(a, b);
+        String idA = (String) factionGetId.invoke(a);
+        String idB = (String) factionGetId.invoke(b);
+        return idA != null && idA.equals(idB);
     }
 
     public Object getPlayerFaction(Player player) throws Exception {
