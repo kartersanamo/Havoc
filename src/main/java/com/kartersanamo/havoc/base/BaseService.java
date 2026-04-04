@@ -22,6 +22,8 @@ import org.bukkit.scheduler.BukkitRunnable;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -112,6 +114,28 @@ public final class BaseService {
             return null;
         }
         return basesById.get(id);
+    }
+
+    /**
+     * All tracked bases (active and restoring), sorted by world then center chunk.
+     */
+    public List<ActiveHavocBase> listAllBasesSorted() {
+        List<ActiveHavocBase> list = new ArrayList<ActiveHavocBase>(basesById.values());
+        Collections.sort(list, new Comparator<ActiveHavocBase>() {
+            @Override
+            public int compare(ActiveHavocBase a, ActiveHavocBase b) {
+                int w = a.worldName.compareTo(b.worldName);
+                if (w != 0) {
+                    return w;
+                }
+                int cx = Integer.compare(a.centerChunkX, b.centerChunkX);
+                if (cx != 0) {
+                    return cx;
+                }
+                return Integer.compare(a.centerChunkZ, b.centerChunkZ);
+            }
+        });
+        return list;
     }
 
     public boolean tryBreachBlock(Block block, Player progressionCredit) {
