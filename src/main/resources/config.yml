@@ -13,8 +13,11 @@ bases-per-difficulty:
   MEDIUM: 2
   HARD: 1
 
-# Minimum chunk distance between base centers (3x3 footprints still need gap)
+# Minimum chunk Chebyshev distance between center chunks, plus each base's schematic chunk radius
 min-center-separation-chunks: 20
+
+# Broadcast [Havoc] ... to the whole server for spawn/breach/restore/disable (very noisy on purpose)
+debug-broadcast-game: true
 
 # Chunks around each base (Manhattan radius from each base chunk) snapshotted at breach for later reset
 watch-chunk-radius: 5
@@ -28,8 +31,16 @@ breach-materials:
 # Seconds until base blocks are fully restored and satellite chunks reset / unclaimed
 restore-seconds: 1800
 
-# Y level where schematic floor is pasted (schematic min corner sits here)
-paste-floor-y: 0
+# World Y of the 1x1 obsidian column center block (must match your schematic layout)
+# Falls back to paste-floor-y in older configs if unset
+paste-center-world-y: 64
+
+# From schematic minimum corner (clipboard 0,0,0) to the obsidian column center block (dx,dy,dz).
+# Tune per file if //copy origin differed (prevents cutting under bedrock / above world when combined with paste-center-world-y)
+schematic-center-from-min:
+  EASY: "8,0,8"
+  MEDIUM: "8,0,8"
+  HARD: "8,0,8"
 
 # Folder under the plugin data folder containing .schematic files
 schematics-folder: schematics

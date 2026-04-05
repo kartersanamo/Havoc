@@ -2,22 +2,22 @@ package com.kartersanamo.havoc.base;
 
 import com.kartersanamo.havoc.Havoc;
 import com.kartersanamo.havoc.config.HavocConfig;
+import com.kartersanamo.havoc.debug.HavocDebug;
 import com.kartersanamo.havoc.faction.FactionsBridge;
 import com.kartersanamo.havoc.storage.ProgressionStore;
 import com.kartersanamo.havoc.storage.SalvageStore;
 import com.kartersanamo.havoc.world.ColumnBoxSnapshot;
 import com.kartersanamo.havoc.world.SchematicService;
+import com.sk89q.worldedit.CuboidClipboard;
 import com.sk89q.worldedit.MaxChangedBlocksException;
 import com.sk89q.worldedit.data.DataException;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.File;
 import java.io.IOException;
@@ -30,7 +30,6 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.BiConsumer;
 
 public final class BaseService {
 
@@ -56,9 +55,13 @@ public final class BaseService {
             havocFaction = fb.getHavocFaction(cfg.getHavocFactionTag());
             if (havocFaction == null || fb.isWilderness(havocFaction)) {
                 plugin.getLogger().severe("No Havoc faction with tag \"" + cfg.getHavocFactionTag() + "\". Create it in SaberFactions first.");
+                HavocDebug.announce(plugin, "Havoc faction missing or wilderness — bases will not spawn.");
+            } else {
+                HavocDebug.announce(plugin, "Hooked Havoc faction tag \"" + cfg.getHavocFactionTag() + "\".");
             }
         } catch (Exception e) {
             plugin.getLogger().severe("Could not resolve Havoc faction: " + e.getMessage());
+            HavocDebug.announce(plugin, "Faction resolve error: " + e.getMessage());
         }
         maintainerTaskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin, new Runnable() {
             @Override
@@ -72,15 +75,63 @@ public final class BaseService {
                 tickRestores();
             }
         }, 1L, 1L);
+        HavocDebug.announce(plugin, "Base maintainer + restore tickers started.");
     }
 
     public void shutdown() {
+        cancelTimers();
+    }
+
+    /**
+     * Cancels timers, pending satellite jobs, restores snapshots, unclaims all Havoc base chunks, and clears registry.
+     */
+    public void shutdownFull() {
+        HavocDebug.announce(plugin, "Plugin disable: cleaning up all Havoc bases (" + basesById.size() + ") …");
+        cancelTimers();
+        for (ActiveHavocBase b : new ArrayList<ActiveHavocBase>(basesById.values())) {
+            if (b.satelliteTaskId != -1) {
+                Bukkit.getScheduler().cancelTask(b.satelliteTaskId);
+                b.satelliteTaskId = -1;
+                HavocDebug.announce(plugin, "Cancelled satellite timer for base " + shortId(b.id));
+            }
+            World w = Bukkit.getWorld(b.worldName);
+            if (w != null && b.terrainSnapshot != null) {
+                HavocDebug.announce(plugin, "Restoring pre-base terrain for " + shortId(b.id) + " (" + b.difficulty + ") …");
+                b.terrainSnapshot.applyAll(w);
+            }
+            if (w != null) {
+                for (ChunkKey key : b.claimedChunks) {
+                    if (!key.getWorld().equals(w.getName())) {
+                        continue;
+                    }
+                    try {
+                        plugin.getFactionsBridge().unclaimChunk(w.getChunkAt(key.getX(), key.getZ()));
+                    } catch (Exception e) {
+                        plugin.getLogger().warning("Unclaim on disable: " + e.getMessage());
+                    }
+                }
+            }
+            for (ChunkKey key : b.claimedChunks) {
+                chunkOwners.remove(key);
+            }
+        }
+        basesById.clear();
+        HavocDebug.announce(plugin, "Havoc cleanup finished.");
+    }
+
+    private void cancelTimers() {
         if (maintainerTaskId != -1) {
             Bukkit.getScheduler().cancelTask(maintainerTaskId);
+            maintainerTaskId = -1;
         }
         if (restoreTaskId != -1) {
             Bukkit.getScheduler().cancelTask(restoreTaskId);
+            restoreTaskId = -1;
         }
+    }
+
+    private static String shortId(UUID id) {
+        return id.toString().substring(0, 8);
     }
 
     private void maintainPopulation() {
@@ -92,6 +143,7 @@ public final class BaseService {
             int have = countActive(d);
             for (int i = have; i < want; i++) {
                 if (!trySpawnOne(d)) {
+                    HavocDebug.announce(plugin, "Population: could not spawn " + d + " (have " + have + ", want " + want + ") — see console / check border & schematic.");
                     break;
                 }
             }
@@ -116,9 +168,6 @@ public final class BaseService {
         return basesById.get(id);
     }
 
-    /**
-     * All tracked bases (active and restoring), sorted by world then center chunk.
-     */
     public List<ActiveHavocBase> listAllBasesSorted() {
         List<ActiveHavocBase> list = new ArrayList<ActiveHavocBase>(basesById.values());
         Collections.sort(list, new Comparator<ActiveHavocBase>() {
@@ -200,12 +249,16 @@ public final class BaseService {
             return;
         }
         HavocConfig cfg = plugin.getHavocConfig();
+        HavocDebug.announce(plugin, "BREACH " + base.difficulty + " base ~" + shortId(base.id) + " at chunk " + base.centerChunkX + "," + base.centerChunkZ
+                + " block " + breachLoc.getBlockX() + "," + breachLoc.getBlockY() + "," + breachLoc.getBlockZ());
         long now = System.currentTimeMillis();
         base.raidEndMs = now + cfg.getRestoreSeconds() * 1000L;
         base.satellite = SatelliteRing.capture(world, base.centerChunkX, base.centerChunkZ, cfg.getWatchChunkRadius());
         base.restoreCursor = 0;
+        HavocDebug.announce(plugin, "Satellite ring snapshot saved (watch radius " + cfg.getWatchChunkRadius() + " chunks).");
 
         Location spawn = cfg.getSpawnLocation();
+        int tp = 0;
         for (Player p : world.getPlayers()) {
             if (!base.containsBlockColumn(p.getLocation().getBlockX(), p.getLocation().getBlockZ())) {
                 continue;
@@ -214,9 +267,13 @@ public final class BaseService {
                 Object at = plugin.getFactionsBridge().getFactionAtLocation(p.getLocation());
                 if (at != null && plugin.getFactionsBridge().factionsEqual(at, havocFaction)) {
                     p.teleport(spawn);
+                    tp++;
                 }
             } catch (Exception ignored) {
             }
+        }
+        if (tp > 0) {
+            HavocDebug.announce(plugin, "Teleported " + tp + " player(s) inside Havoc claim to spawn.");
         }
 
         int salvageAmt = cfg.randomSalvage(base.difficulty);
@@ -237,17 +294,20 @@ public final class BaseService {
             }
             rewarded.add(p);
         }
+        HavocDebug.announce(plugin, "Rewards: " + rewarded.size() + " player(s) in radius, Salvage roll " + salvageAmt + " each.");
+
         BaseDifficulty nextTier = base.difficulty;
         if (progressionCredit != null) {
             nextTier = prog.nextHintDifficulty(progressionCredit.getUniqueId(), base.difficulty);
+            HavocDebug.announce(plugin, "Progression credit: " + progressionCredit.getName() + " → next tier hint " + nextTier + ".");
         }
         final ActiveHavocBase target = pickRandomActive(nextTier, base.id);
         for (Player p : rewarded) {
             salvage.add(p.getUniqueId(), salvageAmt);
             p.sendMessage(ChatColor.GOLD + "+" + salvageAmt + " Salvage");
             if (target != null) {
-                Location l = new Location(Bukkit.getWorld(target.worldName), target.minBlockX + 8, cfg.getPasteFloorY() + 2, target.minBlockZ + 8);
-                p.sendMessage(ChatColor.AQUA + "Next Havoc lead (" + nextTier + "): " + l.getBlockX() + ", " + l.getBlockZ());
+                Location l = new Location(Bukkit.getWorld(target.worldName), target.obsidianCenterX, target.obsidianCenterY + 2, target.obsidianCenterZ);
+                p.sendMessage(ChatColor.AQUA + "Next Havoc lead (" + nextTier + "): " + l.getBlockX() + ", " + l.getBlockY() + ", " + l.getBlockZ());
             } else {
                 p.sendMessage(ChatColor.GRAY + "No active " + nextTier + " Havoc base to point you to yet.");
             }
@@ -256,18 +316,23 @@ public final class BaseService {
         prog.save();
 
         long delay = cfg.getRestoreSeconds() * 20L;
-        new BukkitRunnable() {
+        final ActiveHavocBase ref = base;
+        base.satelliteTaskId = Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
             @Override
             public void run() {
-                if (base.satellite != null) {
+                ref.satelliteTaskId = -1;
+                if (ref.satellite != null) {
                     try {
-                        base.satellite.restoreAndUnclaimAll(world, plugin.getFactionsBridge());
+                        HavocDebug.announce(plugin, "Satellite reset firing for base ~" + shortId(ref.id));
+                        ref.satellite.restoreAndUnclaimAll(world, plugin.getFactionsBridge());
                     } catch (Exception e) {
                         plugin.getLogger().warning("Satellite reset failed: " + e.getMessage());
+                        HavocDebug.announce(plugin, "Satellite reset FAILED: " + e.getMessage());
                     }
                 }
             }
-        }.runTaskLater(plugin, delay);
+        }, delay);
+        HavocDebug.announce(plugin, "Terrain restore started (" + cfg.getRestoreSeconds() + "s); satellite reset scheduled same delay.");
     }
 
     private ActiveHavocBase pickRandomActive(BaseDifficulty d, UUID exclude) {
@@ -299,6 +364,7 @@ public final class BaseService {
             b.terrainSnapshot.applyPartial(w, b.restoreCursor, perTick);
             b.restoreCursor += perTick;
             if (b.restoreCursor >= vol) {
+                HavocDebug.announce(plugin, "Terrain restore DONE for ~" + shortId(b.id) + " — unclaiming " + b.claimedChunks.size() + " chunk(s).");
                 finishRestore(b, w);
                 unregisterChunks(b);
                 basesById.remove(b.id);
@@ -308,11 +374,11 @@ public final class BaseService {
 
     private void finishRestore(ActiveHavocBase b, World w) {
         try {
-            for (int dx = -1; dx <= 1; dx++) {
-                for (int dz = -1; dz <= 1; dz++) {
-                    Chunk ch = w.getChunkAt(b.centerChunkX + dx, b.centerChunkZ + dz);
-                    plugin.getFactionsBridge().unclaimChunk(ch);
+            for (ChunkKey key : b.claimedChunks) {
+                if (!key.getWorld().equals(w.getName())) {
+                    continue;
                 }
+                plugin.getFactionsBridge().unclaimChunk(w.getChunkAt(key.getX(), key.getZ()));
             }
         } catch (Exception e) {
             plugin.getLogger().warning("Unclaim after restore: " + e.getMessage());
@@ -320,12 +386,10 @@ public final class BaseService {
     }
 
     private void unregisterChunks(ActiveHavocBase b) {
-        b.registerChunks(new BiConsumer<Integer, Integer>() {
-            @Override
-            public void accept(Integer cx, Integer cz) {
-                chunkOwners.remove(ChunkKey.of(Bukkit.getWorld(b.worldName), cx, cz));
-            }
-        });
+        for (ChunkKey key : b.claimedChunks) {
+            chunkOwners.remove(key);
+        }
+        b.claimedChunks.clear();
     }
 
     public boolean isRestoringFootprint(Location loc) {
@@ -367,6 +431,7 @@ public final class BaseService {
 
     public boolean trySpawnOne(BaseDifficulty d) {
         if (havocFaction == null) {
+            HavocDebug.announce(plugin, "trySpawnOne(" + d + "): no Havoc faction.");
             return false;
         }
         HavocConfig cfg = plugin.getHavocConfig();
@@ -375,86 +440,160 @@ public final class BaseService {
             plugin.getLogger().warning("Configured world not loaded: " + cfg.getWorldName());
             return false;
         }
+        File schem = new File(plugin.getDataFolder(), cfg.getSchematicsFolder() + "/" + cfg.schematicFileName(d));
+        if (!schem.isFile()) {
+            HavocDebug.announce(plugin, "Missing schematic file: " + schem.getAbsolutePath());
+            return false;
+        }
+        SchematicService paster = new SchematicService();
+        CuboidClipboard clip;
+        try {
+            clip = paster.loadClipboard(schem);
+        } catch (IOException | DataException e) {
+            HavocDebug.announce(plugin, "Schematic load failed: " + e.getMessage());
+            return false;
+        }
+        int w = clip.getWidth();
+        int h = clip.getHeight();
+        int len = clip.getLength();
+        HavocDebug.announce(plugin, "Loaded " + d + " schematic size " + w + " x " + h + " x " + len + ".");
+
         int half = cfg.getBorderHalfSize();
         int minC = (-half + 32) / 16;
         int maxC = (half - 32) / 16;
         int sep = cfg.getMinCenterSeparationChunks();
+        int[] off = cfg.getSchematicCenterOffset(d);
         for (int attempt = 0; attempt < 80; attempt++) {
             int cx = ThreadLocalRandom.current().nextInt(minC, maxC + 1);
             int cz = ThreadLocalRandom.current().nextInt(minC, maxC + 1);
-            if (!farEnough(cx, cz, sep)) {
+            int targetX = cx * 16 + 8;
+            int targetZ = cz * 16 + 8;
+            int targetY = cfg.getPasteCenterWorldY();
+            int originX = targetX - off[0];
+            int originY = targetY - off[1];
+            int originZ = targetZ - off[2];
+            int worldH = world.getMaxHeight();
+            int yMax = worldH - h;
+            if (originY < 0) {
+                HavocDebug.announce(plugin, "Spawn attempt " + attempt + ": clamp paste Y " + originY + " → 0 (under world).");
+                originY = 0;
+            }
+            if (originY > yMax) {
+                HavocDebug.announce(plugin, "Spawn attempt " + attempt + ": clamp paste Y " + originY + " → " + yMax + " (over height).");
+                originY = yMax;
+            }
+            int obsWorldY = originY + off[1];
+            if (!fitsInBorder(originX, originZ, w, len, half)) {
                 continue;
             }
-            if (spawnAt(world, cx, cz, d)) {
+            int rNew = footprintChunkRadius(originX, originZ, w, len, cx, cz);
+            if (!farEnough(cx, cz, sep, rNew)) {
+                continue;
+            }
+            if (spawnAt(world, cx, cz, d, clip, originX, originY, originZ, w, h, len, targetX, obsWorldY, targetZ, rNew)) {
                 return true;
             }
         }
         return false;
     }
 
-    private boolean farEnough(int cx, int cz, int sep) {
+    private static boolean fitsInBorder(int originX, int originZ, int w, int len, int half) {
+        return originX >= -half && originX + w - 1 <= half && originZ >= -half && originZ + len - 1 <= half;
+    }
+
+    /**
+     * Chebyshev chunk radius from center chunk to farthest chunk touched by the footprint.
+     */
+    private static int footprintChunkRadius(int originX, int originZ, int w, int len, int centerChunkX, int centerChunkZ) {
+        int minCx = Math.floorDiv(originX, 16);
+        int maxCx = Math.floorDiv(originX + w - 1, 16);
+        int minCz = Math.floorDiv(originZ, 16);
+        int maxCz = Math.floorDiv(originZ + len - 1, 16);
+        int r = 0;
+        for (int cx = minCx; cx <= maxCx; cx++) {
+            for (int cz = minCz; cz <= maxCz; cz++) {
+                r = Math.max(r, Math.max(Math.abs(cx - centerChunkX), Math.abs(cz - centerChunkZ)));
+            }
+        }
+        return r;
+    }
+
+    private boolean farEnough(int cx, int cz, int sep, int newRadiusChunks) {
         for (ActiveHavocBase b : basesById.values()) {
             int d = Math.max(Math.abs(b.centerChunkX - cx), Math.abs(b.centerChunkZ - cz));
-            if (d < sep) {
+            int need = sep + newRadiusChunks + b.chunkFootprintRadius;
+            if (d < need) {
                 return false;
             }
         }
         return true;
     }
 
-    private boolean spawnAt(World world, int centerChunkX, int centerChunkZ, BaseDifficulty d) {
+    private boolean spawnAt(World world, int centerChunkX, int centerChunkZ, BaseDifficulty d, CuboidClipboard clip,
+            int originX, int originY, int originZ, int w, int h, int len,
+            int obsidianCenterX, int obsidianCenterY, int obsidianCenterZ, int chunkFootprintRadius) {
         HavocConfig cfg = plugin.getHavocConfig();
         ActiveHavocBase base = new ActiveHavocBase(d, world.getName(), centerChunkX, centerChunkZ);
-        for (int dx = -1; dx <= 1; dx++) {
-            for (int dz = -1; dz <= 1; dz++) {
-                Chunk ch = world.getChunkAt(centerChunkX + dx, centerChunkZ + dz);
+        base.pasteOriginX = originX;
+        base.pasteOriginY = originY;
+        base.pasteOriginZ = originZ;
+        base.footprintSizeX = w;
+        base.footprintSizeZ = len;
+        base.chunkFootprintRadius = chunkFootprintRadius;
+        base.obsidianCenterX = obsidianCenterX;
+        base.obsidianCenterY = obsidianCenterY;
+        base.obsidianCenterZ = obsidianCenterZ;
+
+        int minCx = Math.floorDiv(originX, 16);
+        int maxCx = Math.floorDiv(originX + w - 1, 16);
+        int minCz = Math.floorDiv(originZ, 16);
+        int maxCz = Math.floorDiv(originZ + len - 1, 16);
+        for (int cx = minCx; cx <= maxCx; cx++) {
+            for (int cz = minCz; cz <= maxCz; cz++) {
+                Chunk ch = world.getChunkAt(cx, cz);
                 if (!ch.isLoaded()) {
                     ch.load();
                 }
             }
         }
-        int minX = base.minBlockX;
-        int minZ = base.minBlockZ;
-        int h = world.getMaxHeight();
-        ColumnBoxSnapshot snap = ColumnBoxSnapshot.capture(world, minX, minZ, 48, 48, h);
+        HavocDebug.announce(plugin, "Preparing snapshot " + w + "x" + len + " columns full height @ " + originX + "," + originZ + " …");
+
+        int worldH = world.getMaxHeight();
+        ColumnBoxSnapshot snap = ColumnBoxSnapshot.capture(world, originX, originZ, w, len, worldH);
         base.terrainSnapshot = snap;
-        File schem = new File(plugin.getDataFolder(), cfg.getSchematicsFolder() + "/" + cfg.schematicFileName(d));
-        if (!schem.isFile()) {
-            plugin.getLogger().warning("Missing schematic: " + schem.getAbsolutePath());
-            return false;
-        }
+
         SchematicService paster = new SchematicService();
         try {
-            paster.paste(world, schem, minX, cfg.getPasteFloorY(), minZ);
+            HavocDebug.announce(plugin, "Pasting " + d + " @ min " + originX + "," + originY + "," + originZ + " (obsidian center " + obsidianCenterX + "," + obsidianCenterY + "," + obsidianCenterZ + ").");
+            paster.paste(world, clip, originX, originY, originZ);
         } catch (IOException | DataException | MaxChangedBlocksException e) {
             plugin.getLogger().severe("Schematic paste failed: " + e.getMessage());
+            HavocDebug.announce(plugin, "PASTE FAILED: " + e.getMessage());
             snap.applyAll(world);
             return false;
         }
         try {
-            for (int dx = -1; dx <= 1; dx++) {
-                for (int dz = -1; dz <= 1; dz++) {
-                    Chunk ch = world.getChunkAt(centerChunkX + dx, centerChunkZ + dz);
+            for (int cx = minCx; cx <= maxCx; cx++) {
+                for (int cz = minCz; cz <= maxCz; cz++) {
+                    Chunk ch = world.getChunkAt(cx, cz);
                     plugin.getFactionsBridge().claimChunkForFaction(ch, havocFaction);
+                    base.claimedChunks.add(ChunkKey.of(ch));
                 }
             }
         } catch (Exception e) {
             plugin.getLogger().severe("Claim failed, reverting terrain: " + e.getMessage());
+            HavocDebug.announce(plugin, "CLAIM FAILED, reverting: " + e.getMessage());
             snap.applyAll(world);
+            base.claimedChunks.clear();
             return false;
         }
         basesById.put(base.id, base);
-        registerChunks(base);
-        plugin.getLogger().info("Spawned " + d + " Havoc base at chunk " + centerChunkX + "," + centerChunkZ);
+        for (ChunkKey key : base.claimedChunks) {
+            chunkOwners.put(key, base.id);
+        }
+        HavocDebug.announce(plugin, "Spawned " + d + " base ~" + shortId(base.id) + " chunks " + minCx + "," + minCz + " → " + maxCx + "," + maxCz
+                + " (center chunk " + centerChunkX + "," + centerChunkZ + ", claims=" + base.claimedChunks.size() + ").");
+        plugin.getLogger().info("Spawned " + d + " Havoc base ~" + shortId(base.id) + " at chunk " + centerChunkX + "," + centerChunkZ);
         return true;
-    }
-
-    private void registerChunks(ActiveHavocBase b) {
-        b.registerChunks(new BiConsumer<Integer, Integer>() {
-            @Override
-            public void accept(Integer cx, Integer cz) {
-                chunkOwners.put(ChunkKey.of(Bukkit.getWorld(b.worldName), cx, cz), b.id);
-            }
-        });
     }
 }

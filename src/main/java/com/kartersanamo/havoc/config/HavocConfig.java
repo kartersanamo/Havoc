@@ -27,7 +27,9 @@ public final class HavocConfig {
     private int minCenterSeparationChunks;
     private int watchChunkRadius;
     private int restoreSeconds;
-    private int pasteFloorY;
+    private int pasteCenterWorldY;
+    private boolean debugBroadcastGame;
+    private EnumMap<BaseDifficulty, int[]> schematicCenterFromMin = new EnumMap<BaseDifficulty, int[]>(BaseDifficulty.class);
     private String schematicsFolder;
     private String easySchematic;
     private String mediumSchematic;
@@ -77,7 +79,24 @@ public final class HavocConfig {
         minCenterSeparationChunks = c.getInt("min-center-separation-chunks", 20);
         watchChunkRadius = c.getInt("watch-chunk-radius", 5);
         restoreSeconds = c.getInt("restore-seconds", 1800);
-        pasteFloorY = c.getInt("paste-floor-y", 0);
+        debugBroadcastGame = c.getBoolean("debug-broadcast-game", true);
+        pasteCenterWorldY = c.getInt("paste-center-world-y", c.getInt("paste-floor-y", 64));
+        schematicCenterFromMin.clear();
+        ConfigurationSection sc = c.getConfigurationSection("schematic-center-from-min");
+        if (sc != null) {
+            for (String k : sc.getKeys(false)) {
+                try {
+                    BaseDifficulty d = BaseDifficulty.valueOf(k.toUpperCase(Locale.ROOT));
+                    schematicCenterFromMin.put(d, parseTriple(sc.getString(k), 8, 0, 8));
+                } catch (IllegalArgumentException ignored) {
+                }
+            }
+        }
+        for (BaseDifficulty d : BaseDifficulty.values()) {
+            if (!schematicCenterFromMin.containsKey(d)) {
+                schematicCenterFromMin.put(d, new int[]{8, 0, 8});
+            }
+        }
         schematicsFolder = c.getString("schematics-folder", "schematics");
         easySchematic = c.getString("easy-schematic", "EasyBase.schematic");
         mediumSchematic = c.getString("medium-schematic", "MediumBase.schematic");
@@ -155,6 +174,21 @@ public final class HavocConfig {
         return def;
     }
 
+    private static int[] parseTriple(String raw, int defX, int defY, int defZ) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return new int[]{defX, defY, defZ};
+        }
+        String[] p = raw.trim().split("\\s*,\\s*");
+        if (p.length != 3) {
+            return new int[]{defX, defY, defZ};
+        }
+        try {
+            return new int[]{Integer.parseInt(p[0]), Integer.parseInt(p[1]), Integer.parseInt(p[2])};
+        } catch (NumberFormatException e) {
+            return new int[]{defX, defY, defZ};
+        }
+    }
+
     public String schematicFileName(BaseDifficulty d) {
         switch (d) {
             case MEDIUM:
@@ -195,8 +229,25 @@ public final class HavocConfig {
         return restoreSeconds;
     }
 
+    /**
+     * World Y of the obsidian column center block (see schematic-center-from-min dy).
+     */
+    public int getPasteCenterWorldY() {
+        return pasteCenterWorldY;
+    }
+
+    /** @deprecated use {@link #getPasteCenterWorldY()} */
     public int getPasteFloorY() {
-        return pasteFloorY;
+        return pasteCenterWorldY;
+    }
+
+    public boolean isDebugBroadcastGame() {
+        return debugBroadcastGame;
+    }
+
+    public int[] getSchematicCenterOffset(BaseDifficulty d) {
+        int[] t = schematicCenterFromMin.get(d);
+        return t == null ? new int[]{8, 0, 8} : t;
     }
 
     public String getSchematicsFolder() {

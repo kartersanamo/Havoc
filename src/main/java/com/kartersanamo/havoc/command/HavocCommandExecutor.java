@@ -66,8 +66,6 @@ public final class HavocCommandExecutor implements CommandExecutor, TabCompleter
             }
             String a1 = args[1].toLowerCase(Locale.ROOT);
             if ("list".equals(a1)) {
-                HavocConfig cfg = plugin.getHavocConfig();
-                int y = cfg.getPasteFloorY() + 2;
                 List<ActiveHavocBase> bases = plugin.getBaseService().listAllBasesSorted();
                 if (bases.isEmpty()) {
                     sender.sendMessage(ChatColor.GRAY + "No Havoc bases loaded.");
@@ -75,14 +73,13 @@ public final class HavocCommandExecutor implements CommandExecutor, TabCompleter
                 }
                 sender.sendMessage(ChatColor.GOLD + "Havoc bases (" + bases.size() + "):");
                 for (ActiveHavocBase b : bases) {
-                    int bx = b.minBlockX + b.footprintSize / 2;
-                    int bz = b.minBlockZ + b.footprintSize / 2;
                     String shortId = b.id.toString().substring(0, 8);
                     sender.sendMessage(ChatColor.WHITE + "- " + ChatColor.AQUA + b.difficulty
                             + ChatColor.GRAY + " (" + b.state + ") "
                             + ChatColor.WHITE + b.worldName + " "
-                            + ChatColor.YELLOW + bx + ", " + y + ", " + bz
-                            + ChatColor.DARK_GRAY + " [~" + shortId + "]");
+                            + ChatColor.YELLOW + b.obsidianCenterX + ", " + b.obsidianCenterY + ", " + b.obsidianCenterZ
+                            + ChatColor.DARK_GRAY + " [~" + shortId + "] "
+                            + ChatColor.DARK_GRAY + "(" + b.claimedChunks.size() + " chunks)");
                 }
                 return true;
             }

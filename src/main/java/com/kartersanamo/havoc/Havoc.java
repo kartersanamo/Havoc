@@ -3,6 +3,7 @@ package com.kartersanamo.havoc;
 import com.kartersanamo.havoc.base.BaseService;
 import com.kartersanamo.havoc.command.HavocCommandExecutor;
 import com.kartersanamo.havoc.config.HavocConfig;
+import com.kartersanamo.havoc.debug.HavocDebug;
 import com.kartersanamo.havoc.faction.FactionsBridge;
 import com.kartersanamo.havoc.listener.HavocListener;
 import com.kartersanamo.havoc.shop.SalvageShop;
@@ -62,6 +63,7 @@ public final class Havoc extends JavaPlugin {
             getCommand("havoc").setTabCompleter(ex);
         }
         applyWorldBorder();
+        HavocDebug.announce(this, "Havoc enabled — bases spawn on chunk centers (8,8) with schematic-center-from-min offsets.");
     }
 
     public void applyWorldBorder() {
@@ -78,7 +80,7 @@ public final class Havoc extends JavaPlugin {
     @Override
     public void onDisable() {
         if (baseService != null) {
-            baseService.shutdown();
+            baseService.shutdownFull();
         }
         if (salvageStore != null) {
             salvageStore.save();

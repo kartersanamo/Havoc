@@ -2,6 +2,7 @@ package com.kartersanamo.havoc.listener;
 
 import com.kartersanamo.havoc.Havoc;
 import com.kartersanamo.havoc.base.BaseService;
+import com.kartersanamo.havoc.debug.HavocDebug;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -30,6 +31,7 @@ public final class HavocListener implements Listener {
         for (org.bukkit.block.Block b : event.blockList()) {
             if (bases.shouldCancelBlockChange(b.getLocation())) {
                 event.blockList().clear();
+                HavocDebug.announce(plugin, "Explosion cleared (Havoc lock) near " + b.getX() + "," + b.getY() + "," + b.getZ());
                 return;
             }
         }
