@@ -1,5 +1,5 @@
-# World where bases exist and where /havoc admin spawn places them
-world-name: world
+# World where bases spawn, world border is applied, and schematic pastes run (must match a multiverse world name)
+world-name: Havoc
 
 # SaberFactions tag (usually 4 letters; set to match your server "Havoc" system faction)
 havoc-faction-tag: Havoc
@@ -31,16 +31,25 @@ breach-materials:
 # Seconds until base blocks are fully restored and satellite chunks reset / unclaimed
 restore-seconds: 1800
 
-# World Y of the 1x1 obsidian column center block (must match your schematic layout)
-# Falls back to paste-floor-y in older configs if unset
+# When USE_CONFIG_Y: world Y of obsidian column uses paste-center-world-y and schematic-center-from-min dy.
+# When SNAP_BOTTOM_TO_BEDROCK (default): paste Y is chosen so the lowest solid schematic row sits on bedrock
+# at the center column (chunk*16+8), ignoring paste-center-world-y for vertical placement.
+vertical-paste-mode: SNAP_BOTTOM_TO_BEDROCK
+
+# Only used when vertical-paste-mode is USE_CONFIG_Y (or bedrock column has no bedrock). Falls back to paste-floor-y in older configs.
 paste-center-world-y: 64
 
-# From schematic minimum corner (clipboard 0,0,0) to the obsidian column center block (dx,dy,dz).
-# Tune per file if //copy origin differed (prevents cutting under bedrock / above world when combined with paste-center-world-y)
+# From schematic minimum corner (clipboard 0,0,0) to the obsidian column center block (dx,dy,dz) — horizontal alignment to chunk middle (8,8).
 schematic-center-from-min:
   EASY: "8,0,8"
   MEDIUM: "8,0,8"
   HARD: "8,0,8"
+
+# WorldEdit .schematic stores a pivot offset. true = paste at origin + offset (fixes many "buried in floor" saves); false = origin - offset.
+worldedit-schematic-offset-add: true
+
+# Extra blocks added after WorldEdit offset (set to "0,0,0" if alignment is already perfect).
+schematic-paste-extra-world-delta: "2,0,2"
 
 # Folder under the plugin data folder containing .schematic files
 schematics-folder: schematics
@@ -60,9 +69,9 @@ salvage-reward:
 # Players within this radius (blocks) of the breach block get rewards / progression
 reward-radius: 32
 
-# Where raiders inside the 3x3 Havoc claim get sent
+# Where raiders inside the Havoc claim get sent
 spawn:
-  world: world
+  world: Havoc
   x: 0.5
   y: 64.0
   z: 0.5

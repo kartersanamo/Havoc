@@ -7,6 +7,7 @@ import com.kartersanamo.havoc.faction.FactionsBridge;
 import com.kartersanamo.havoc.storage.ProgressionStore;
 import com.kartersanamo.havoc.storage.SalvageStore;
 import com.kartersanamo.havoc.world.ColumnBoxSnapshot;
+import com.kartersanamo.havoc.world.SchematicPlacement;
 import com.kartersanamo.havoc.world.SchematicService;
 import com.sk89q.worldedit.CuboidClipboard;
 import com.sk89q.worldedit.MaxChangedBlocksException;
@@ -470,8 +471,21 @@ public final class BaseService {
             int targetZ = cz * 16 + 8;
             int targetY = cfg.getPasteCenterWorldY();
             int originX = targetX - off[0];
-            int originY = targetY - off[1];
             int originZ = targetZ - off[2];
+            int originY;
+            if (cfg.isVerticalPasteSnapToBedrock()) {
+                int roof = SchematicPlacement.highestBedrockY(world, targetX, targetZ);
+                if (roof >= 0) {
+                    int bottomSolid = SchematicPlacement.lowestSolidY(clip);
+                    originY = roof + 1 - bottomSolid;
+                    HavocDebug.announce(plugin, "Spawn attempt " + attempt + ": vertical SNAP bedrock roof " + roof + ", lowest schematic solid Y=" + bottomSolid + " → originY=" + originY);
+                } else {
+                    originY = targetY - off[1];
+                    HavocDebug.announce(plugin, "Spawn attempt " + attempt + ": no bedrock at " + targetX + "," + targetZ + " — using config Y.");
+                }
+            } else {
+                originY = targetY - off[1];
+            }
             int worldH = world.getMaxHeight();
             int yMax = worldH - h;
             if (originY < 0) {
@@ -564,8 +578,12 @@ public final class BaseService {
 
         SchematicService paster = new SchematicService();
         try {
-            HavocDebug.announce(plugin, "Pasting " + d + " @ min " + originX + "," + originY + "," + originZ + " (obsidian center " + obsidianCenterX + "," + obsidianCenterY + "," + obsidianCenterZ + ").");
-            paster.paste(world, clip, originX, originY, originZ);
+            int[] ex = cfg.getPasteExtraWorldDelta();
+            HavocDebug.announce(plugin, "Pasting " + d + " logical min " + originX + "," + originY + "," + originZ
+                    + " obsidian " + obsidianCenterX + "," + obsidianCenterY + "," + obsidianCenterZ
+                    + " WE-offset=" + clip.getOffset() + " addWE=" + cfg.isWorldeditSchematicOffsetAdd()
+                    + " extra=" + ex[0] + "," + ex[1] + "," + ex[2]);
+            paster.paste(world, clip, originX, originY, originZ, cfg.isWorldeditSchematicOffsetAdd(), ex[0], ex[1], ex[2]);
         } catch (IOException | DataException | MaxChangedBlocksException e) {
             plugin.getLogger().severe("Schematic paste failed: " + e.getMessage());
             HavocDebug.announce(plugin, "PASTE FAILED: " + e.getMessage());

@@ -30,6 +30,9 @@ public final class HavocConfig {
     private int pasteCenterWorldY;
     private boolean debugBroadcastGame;
     private EnumMap<BaseDifficulty, int[]> schematicCenterFromMin = new EnumMap<BaseDifficulty, int[]>(BaseDifficulty.class);
+    private boolean worldeditSchematicOffsetAdd;
+    private int[] pasteExtraWorldDelta = new int[]{0, 0, 0};
+    private boolean verticalPasteSnapToBedrock;
     private String schematicsFolder;
     private String easySchematic;
     private String mediumSchematic;
@@ -57,7 +60,7 @@ public final class HavocConfig {
         plugin.saveDefaultConfig();
         plugin.reloadConfig();
         FileConfiguration c = plugin.getConfig();
-        worldName = c.getString("world-name", "world");
+        worldName = c.getString("world-name", "Havoc");
         havocFactionTag = c.getString("havoc-faction-tag", "Havoc");
         borderHalfSize = c.getInt("border-half-size", 2500);
         basesPerDifficulty.clear();
@@ -97,6 +100,10 @@ public final class HavocConfig {
                 schematicCenterFromMin.put(d, new int[]{8, 0, 8});
             }
         }
+        worldeditSchematicOffsetAdd = c.getBoolean("worldedit-schematic-offset-add", true);
+        pasteExtraWorldDelta = parseTriple(c.getString("schematic-paste-extra-world-delta"), 0, 0, 0);
+        String vMode = c.getString("vertical-paste-mode", "SNAP_BOTTOM_TO_BEDROCK");
+        verticalPasteSnapToBedrock = !"USE_CONFIG_Y".equalsIgnoreCase(vMode.trim());
         schematicsFolder = c.getString("schematics-folder", "schematics");
         easySchematic = c.getString("easy-schematic", "EasyBase.schematic");
         mediumSchematic = c.getString("medium-schematic", "MediumBase.schematic");
@@ -248,6 +255,23 @@ public final class HavocConfig {
     public int[] getSchematicCenterOffset(BaseDifficulty d) {
         int[] t = schematicCenterFromMin.get(d);
         return t == null ? new int[]{8, 0, 8} : t;
+    }
+
+    /**
+     * When true, paste corner uses {@code origin + clipboard.getOffset()}; when false, {@code origin - offset}.
+     */
+    public boolean isWorldeditSchematicOffsetAdd() {
+        return worldeditSchematicOffsetAdd;
+    }
+
+    /** Added after WorldEdit offset (nudge XZ if still misaligned). */
+    public int[] getPasteExtraWorldDelta() {
+        return pasteExtraWorldDelta;
+    }
+
+    /** If true, paste Y is chosen so the lowest non-air schematic row sits on top of bedrock at the center column. */
+    public boolean isVerticalPasteSnapToBedrock() {
+        return verticalPasteSnapToBedrock;
     }
 
     public String getSchematicsFolder() {

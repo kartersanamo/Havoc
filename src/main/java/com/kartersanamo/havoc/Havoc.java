@@ -63,7 +63,7 @@ public final class Havoc extends JavaPlugin {
             getCommand("havoc").setTabCompleter(ex);
         }
         applyWorldBorder();
-        HavocDebug.announce(this, "Havoc enabled — bases spawn on chunk centers (8,8) with schematic-center-from-min offsets.");
+        HavocDebug.announce(this, "Havoc enabled — world \"" + havocConfig.getWorldName() + "\" chunk centers (8,8), WE offset mode + optional bedrock snap (see config.yml).");
     }
 
     public void applyWorldBorder() {
