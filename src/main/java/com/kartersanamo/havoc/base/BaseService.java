@@ -11,6 +11,7 @@ import com.kartersanamo.havoc.world.SchematicPlacement;
 import com.kartersanamo.havoc.world.SchematicService;
 import com.sk89q.worldedit.CuboidClipboard;
 import com.sk89q.worldedit.MaxChangedBlocksException;
+import com.sk89q.worldedit.Vector;
 import com.sk89q.worldedit.data.DataException;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -464,6 +465,8 @@ public final class BaseService {
         int maxC = (half - 32) / 16;
         int sep = cfg.getMinCenterSeparationChunks();
         int[] off = cfg.getSchematicCenterOffset(d);
+        int[] ex = cfg.getPasteExtraWorldDelta();
+        boolean addWe = cfg.isWorldeditSchematicOffsetAdd();
         for (int attempt = 0; attempt < 80; attempt++) {
             int cx = ThreadLocalRandom.current().nextInt(minC, maxC + 1);
             int cz = ThreadLocalRandom.current().nextInt(minC, maxC + 1);
@@ -496,15 +499,23 @@ public final class BaseService {
                 HavocDebug.announce(plugin, "Spawn attempt " + attempt + ": clamp paste Y " + originY + " → " + yMax + " (over height).");
                 originY = yMax;
             }
-            int obsWorldY = originY + off[1];
-            if (!fitsInBorder(originX, originZ, w, len, half)) {
+            Vector pvec = SchematicService.resolvePasteCorner(originX, originY, originZ, clip, addWe, ex[0], ex[1], ex[2]);
+            int ax = pvec.getBlockX();
+            int ay = pvec.getBlockY();
+            int az = pvec.getBlockZ();
+            int obsX = ax + off[0];
+            int obsY = ay + off[1];
+            int obsZ = az + off[2];
+            int occCx = Math.floorDiv(obsX, 16);
+            int occCz = Math.floorDiv(obsZ, 16);
+            if (!fitsInBorder(ax, az, w, len, half)) {
                 continue;
             }
-            int rNew = footprintChunkRadius(originX, originZ, w, len, cx, cz);
-            if (!farEnough(cx, cz, sep, rNew)) {
+            int rNew = footprintChunkRadius(ax, az, w, len, occCx, occCz);
+            if (!farEnough(occCx, occCz, sep, rNew)) {
                 continue;
             }
-            if (spawnAt(world, cx, cz, d, clip, originX, originY, originZ, w, h, len, targetX, obsWorldY, targetZ, rNew)) {
+            if (spawnAt(world, d, clip, originX, originY, originZ, w, h, len, off, rNew)) {
                 return true;
             }
         }
@@ -543,25 +554,34 @@ public final class BaseService {
         return true;
     }
 
-    private boolean spawnAt(World world, int centerChunkX, int centerChunkZ, BaseDifficulty d, CuboidClipboard clip,
-            int originX, int originY, int originZ, int w, int h, int len,
-            int obsidianCenterX, int obsidianCenterY, int obsidianCenterZ, int chunkFootprintRadius) {
+    private boolean spawnAt(World world, BaseDifficulty d, CuboidClipboard clip,
+            int logicalOriginX, int logicalOriginY, int logicalOriginZ, int w, int h, int len,
+            int[] schematicCenterFromMin, int chunkFootprintRadius) {
         HavocConfig cfg = plugin.getHavocConfig();
-        ActiveHavocBase base = new ActiveHavocBase(d, world.getName(), centerChunkX, centerChunkZ);
-        base.pasteOriginX = originX;
-        base.pasteOriginY = originY;
-        base.pasteOriginZ = originZ;
+        int[] ex = cfg.getPasteExtraWorldDelta();
+        Vector pc = SchematicService.resolvePasteCorner(logicalOriginX, logicalOriginY, logicalOriginZ, clip,
+                cfg.isWorldeditSchematicOffsetAdd(), ex[0], ex[1], ex[2]);
+        int ax = pc.getBlockX();
+        int ay = pc.getBlockY();
+        int az = pc.getBlockZ();
+
+        ActiveHavocBase base = new ActiveHavocBase(d, world.getName());
+        base.pasteOriginX = ax;
+        base.pasteOriginY = ay;
+        base.pasteOriginZ = az;
         base.footprintSizeX = w;
         base.footprintSizeZ = len;
         base.chunkFootprintRadius = chunkFootprintRadius;
-        base.obsidianCenterX = obsidianCenterX;
-        base.obsidianCenterY = obsidianCenterY;
-        base.obsidianCenterZ = obsidianCenterZ;
+        base.obsidianCenterX = ax + schematicCenterFromMin[0];
+        base.obsidianCenterY = ay + schematicCenterFromMin[1];
+        base.obsidianCenterZ = az + schematicCenterFromMin[2];
+        base.centerChunkX = Math.floorDiv(base.obsidianCenterX, 16);
+        base.centerChunkZ = Math.floorDiv(base.obsidianCenterZ, 16);
 
-        int minCx = Math.floorDiv(originX, 16);
-        int maxCx = Math.floorDiv(originX + w - 1, 16);
-        int minCz = Math.floorDiv(originZ, 16);
-        int maxCz = Math.floorDiv(originZ + len - 1, 16);
+        int minCx = Math.floorDiv(ax, 16);
+        int maxCx = Math.floorDiv(ax + w - 1, 16);
+        int minCz = Math.floorDiv(az, 16);
+        int maxCz = Math.floorDiv(az + len - 1, 16);
         for (int cx = minCx; cx <= maxCx; cx++) {
             for (int cz = minCz; cz <= maxCz; cz++) {
                 Chunk ch = world.getChunkAt(cx, cz);
@@ -570,20 +590,20 @@ public final class BaseService {
                 }
             }
         }
-        HavocDebug.announce(plugin, "Preparing snapshot " + w + "x" + len + " columns full height @ " + originX + "," + originZ + " …");
+        HavocDebug.announce(plugin, "Preparing snapshot " + w + "x" + len + " columns full height @ paste corner " + ax + "," + az + " …");
 
         int worldH = world.getMaxHeight();
-        ColumnBoxSnapshot snap = ColumnBoxSnapshot.capture(world, originX, originZ, w, len, worldH);
+        ColumnBoxSnapshot snap = ColumnBoxSnapshot.capture(world, ax, az, w, len, worldH);
         base.terrainSnapshot = snap;
 
         SchematicService paster = new SchematicService();
         try {
-            int[] ex = cfg.getPasteExtraWorldDelta();
-            HavocDebug.announce(plugin, "Pasting " + d + " logical min " + originX + "," + originY + "," + originZ
-                    + " obsidian " + obsidianCenterX + "," + obsidianCenterY + "," + obsidianCenterZ
+            HavocDebug.announce(plugin, "Pasting " + d + " logical min " + logicalOriginX + "," + logicalOriginY + "," + logicalOriginZ
+                    + " → WE corner " + ax + "," + ay + "," + az
+                    + " obsidian " + base.obsidianCenterX + "," + base.obsidianCenterY + "," + base.obsidianCenterZ
                     + " WE-offset=" + clip.getOffset() + " addWE=" + cfg.isWorldeditSchematicOffsetAdd()
                     + " extra=" + ex[0] + "," + ex[1] + "," + ex[2]);
-            paster.paste(world, clip, originX, originY, originZ, cfg.isWorldeditSchematicOffsetAdd(), ex[0], ex[1], ex[2]);
+            paster.paste(world, clip, logicalOriginX, logicalOriginY, logicalOriginZ, cfg.isWorldeditSchematicOffsetAdd(), ex[0], ex[1], ex[2]);
         } catch (IOException | DataException | MaxChangedBlocksException e) {
             plugin.getLogger().severe("Schematic paste failed: " + e.getMessage());
             HavocDebug.announce(plugin, "PASTE FAILED: " + e.getMessage());
@@ -610,8 +630,8 @@ public final class BaseService {
             chunkOwners.put(key, base.id);
         }
         HavocDebug.announce(plugin, "Spawned " + d + " base ~" + shortId(base.id) + " chunks " + minCx + "," + minCz + " → " + maxCx + "," + maxCz
-                + " (center chunk " + centerChunkX + "," + centerChunkZ + ", claims=" + base.claimedChunks.size() + ").");
-        plugin.getLogger().info("Spawned " + d + " Havoc base ~" + shortId(base.id) + " at chunk " + centerChunkX + "," + centerChunkZ);
+                + " (obsidian center chunk " + base.centerChunkX + "," + base.centerChunkZ + ", claims=" + base.claimedChunks.size() + ").");
+        plugin.getLogger().info("Spawned " + d + " Havoc base ~" + shortId(base.id) + " at chunk " + base.centerChunkX + "," + base.centerChunkZ);
         return true;
     }
 }

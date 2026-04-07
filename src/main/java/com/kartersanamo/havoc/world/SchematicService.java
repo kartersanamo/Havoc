@@ -17,6 +17,20 @@ import java.io.IOException;
 
 public final class SchematicService {
 
+    /**
+     * World position where WorldEdit will place the clipboard minimum (same math as {@link #paste}).
+     */
+    public static Vector resolvePasteCorner(int logicalOriginX, int logicalOriginY, int logicalOriginZ,
+            CuboidClipboard clipboard, boolean addWorldEditOffset, int extraX, int extraY, int extraZ) {
+        Vector corner = new Vector(logicalOriginX, logicalOriginY, logicalOriginZ);
+        if (addWorldEditOffset) {
+            corner = corner.add(clipboard.getOffset());
+        } else {
+            corner = corner.subtract(clipboard.getOffset());
+        }
+        return corner.add(new Vector(extraX, extraY, extraZ));
+    }
+
     public CuboidClipboard loadClipboard(File schematicFile) throws IOException, DataException {
         SchematicFormat format = SchematicFormat.getFormat(schematicFile);
         if (format == null) {
@@ -37,13 +51,7 @@ public final class SchematicService {
         }
         WorldEditPlugin we = (WorldEditPlugin) p;
         EditSession session = we.getWorldEdit().getEditSessionFactory().getEditSession(BukkitUtil.getLocalWorld(world), -1);
-        Vector corner = new Vector(originMinX, originMinY, originMinZ);
-        if (addWorldEditOffset) {
-            corner = corner.add(clipboard.getOffset());
-        } else {
-            corner = corner.subtract(clipboard.getOffset());
-        }
-        corner = corner.add(new Vector(extraX, extraY, extraZ));
+        Vector corner = resolvePasteCorner(originMinX, originMinY, originMinZ, clipboard, addWorldEditOffset, extraX, extraY, extraZ);
         clipboard.paste(session, corner, false);
     }
 

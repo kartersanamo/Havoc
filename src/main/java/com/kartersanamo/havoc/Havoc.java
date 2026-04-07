@@ -43,6 +43,9 @@ public final class Havoc extends JavaPlugin {
         saveDefaultConfig();
         havocConfig = new HavocConfig(this);
         havocConfig.reload();
+        if (Bukkit.getWorld(havocConfig.getWorldName()) == null) {
+            getLogger().severe("Havoc: world \"" + havocConfig.getWorldName() + "\" is not loaded — bases cannot spawn until Multiverse (or server.properties) loads that world.");
+        }
         salvageStore = new SalvageStore(this);
         salvageStore.load();
         progressionStore = new ProgressionStore(this);

@@ -11,17 +11,16 @@ public final class ActiveHavocBase {
     public final UUID id = UUID.randomUUID();
     public final BaseDifficulty difficulty;
     public final String worldName;
-    /** Chunk that contains the obsidian column aligned to block (chunk*16+8, chunk*16+8). */
-    public final int centerChunkX;
-    public final int centerChunkZ;
+    /** Chunk containing the obsidian core (set after paste from real world coords). */
+    public int centerChunkX;
+    public int centerChunkZ;
 
-    /** WorldEdit paste min corner (clipboard min after offset) in world blocks. */
+    /** Actual WorldEdit paste corner (clipboard min block in world). */
     public int pasteOriginX;
     public int pasteOriginY;
     public int pasteOriginZ;
     public int footprintSizeX;
     public int footprintSizeZ;
-    /** Chebyshev distance in chunks from center chunk to farthest claimed chunk (for spacing). */
     public int chunkFootprintRadius;
 
     public int obsidianCenterX;
@@ -37,11 +36,9 @@ public final class ActiveHavocBase {
     public long raidEndMs;
     public int satelliteTaskId = -1;
 
-    public ActiveHavocBase(BaseDifficulty difficulty, String worldName, int centerChunkX, int centerChunkZ) {
+    public ActiveHavocBase(BaseDifficulty difficulty, String worldName) {
         this.difficulty = difficulty;
         this.worldName = worldName;
-        this.centerChunkX = centerChunkX;
-        this.centerChunkZ = centerChunkZ;
     }
 
     public boolean containsBlockColumn(int bx, int bz) {

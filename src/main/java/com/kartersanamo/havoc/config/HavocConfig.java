@@ -130,6 +130,7 @@ public final class HavocConfig {
             spawnY = 64;
             spawnZ = 0.5;
         }
+        normalizeWorldNames();
         ConfigurationSection shop = c.getConfigurationSection("shop");
         shopItems.clear();
         shopRows = 3;
@@ -179,6 +180,26 @@ public final class HavocConfig {
             return ((Number) o).intValue();
         }
         return def;
+    }
+
+    /**
+     * Bases must not use the literal default "world" — multiverse Havoc world is required.
+     */
+    private void normalizeWorldNames() {
+        String w = worldName == null ? "" : worldName.trim();
+        if (w.isEmpty() || "world".equalsIgnoreCase(w)) {
+            plugin.getLogger().warning("Havoc: world-name was \"" + worldName + "\" — forcing \"Havoc\" for bases and border.");
+            worldName = "Havoc";
+        } else {
+            worldName = w;
+        }
+        String sw = spawnWorld == null ? "" : spawnWorld.trim();
+        if (sw.isEmpty() || "world".equalsIgnoreCase(sw)) {
+            plugin.getLogger().warning("Havoc: spawn world was \"" + spawnWorld + "\" — using base world \"" + worldName + "\".");
+            spawnWorld = worldName;
+        } else {
+            spawnWorld = sw;
+        }
     }
 
     private static int[] parseTriple(String raw, int defX, int defY, int defZ) {
