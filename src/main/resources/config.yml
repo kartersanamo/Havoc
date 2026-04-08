@@ -32,8 +32,8 @@ breach-materials:
 restore-seconds: 1800
 
 # When USE_CONFIG_Y: world Y of obsidian column uses paste-center-world-y and schematic-center-from-min dy.
-# When SNAP_BOTTOM_TO_BEDROCK (default): paste Y is chosen so the lowest solid schematic row sits on bedrock
-# at the center column (chunk*16+8), ignoring paste-center-world-y for vertical placement.
+# When SNAP_BOTTOM_TO_BEDROCK (default): paste Y is chosen so the lowest non-air schematic row (full traverse) sits
+# directly above bedrock at the chunk center column (chunk*16+8), ignoring paste-center-world-y for vertical placement.
 vertical-paste-mode: SNAP_BOTTOM_TO_BEDROCK
 
 # Only used when vertical-paste-mode is USE_CONFIG_Y (or bedrock column has no bedrock). Falls back to paste-floor-y in older configs.
@@ -45,11 +45,11 @@ schematic-center-from-min:
   MEDIUM: "8,0,8"
   HARD: "8,0,8"
 
-# WorldEdit .schematic stores a pivot offset. true = paste at origin + offset (fixes many "buried in floor" saves); false = origin - offset.
+# Legacy: only used by SchematicService.paste (not Havoc base spawning). Bases use block-by-block placement at clipboard (0,0,0).
 worldedit-schematic-offset-add: true
 
-# Extra blocks added after WorldEdit offset (set to "0,0,0" if alignment is already perfect).
-schematic-paste-extra-world-delta: "2,0,2"
+# Optional nudge added to the final world origin after chunk-center and bedrock snap (usually "0,0,0").
+schematic-paste-extra-world-delta: "0,0,0"
 
 # Folder under the plugin data folder containing .schematic files
 schematics-folder: schematics
