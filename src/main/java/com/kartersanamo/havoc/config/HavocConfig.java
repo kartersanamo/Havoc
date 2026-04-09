@@ -33,6 +33,9 @@ public final class HavocConfig {
     private boolean worldeditSchematicOffsetAdd;
     private int[] pasteExtraWorldDelta = new int[]{0, 0, 0};
     private boolean verticalPasteSnapToBedrock;
+    /** 0..15: world block within chunk where schematic-center-from-min sits horizontally (bedrock sample uses same column). */
+    private int chunkCenterLocalX = 6;
+    private int chunkCenterLocalZ = 6;
     private String schematicsFolder;
     private String easySchematic;
     private String mediumSchematic;
@@ -102,6 +105,9 @@ public final class HavocConfig {
         }
         worldeditSchematicOffsetAdd = c.getBoolean("worldedit-schematic-offset-add", true);
         pasteExtraWorldDelta = parseTriple(c.getString("schematic-paste-extra-world-delta"), 0, 0, 0);
+        int[] chunkLocal = parsePair(c.getString("chunk-center-local-xz"), 6, 6);
+        chunkCenterLocalX = clampChunkLocal(chunkLocal[0]);
+        chunkCenterLocalZ = clampChunkLocal(chunkLocal[1]);
         String vMode = c.getString("vertical-paste-mode", "SNAP_BOTTOM_TO_BEDROCK");
         verticalPasteSnapToBedrock = !"USE_CONFIG_Y".equalsIgnoreCase(vMode.trim());
         schematicsFolder = c.getString("schematics-folder", "schematics");
@@ -202,6 +208,31 @@ public final class HavocConfig {
         }
     }
 
+    private static int clampChunkLocal(int v) {
+        if (v < 0) {
+            return 0;
+        }
+        if (v > 15) {
+            return 15;
+        }
+        return v;
+    }
+
+    private static int[] parsePair(String raw, int defA, int defB) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return new int[]{defA, defB};
+        }
+        String[] p = raw.trim().split("\\s*,\\s*");
+        if (p.length != 2) {
+            return new int[]{defA, defB};
+        }
+        try {
+            return new int[]{Integer.parseInt(p[0]), Integer.parseInt(p[1])};
+        } catch (NumberFormatException e) {
+            return new int[]{defA, defB};
+        }
+    }
+
     private static int[] parseTriple(String raw, int defX, int defY, int defZ) {
         if (raw == null || raw.trim().isEmpty()) {
             return new int[]{defX, defY, defZ};
@@ -285,9 +316,21 @@ public final class HavocConfig {
         return worldeditSchematicOffsetAdd;
     }
 
-    /** Added after WorldEdit offset (nudge XZ if still misaligned). */
+    /**
+     * When spawning bases, only the Y component is applied (vertical nudge). X/Z are ignored so horizontal
+     * alignment uses {@link #getChunkCenterLocalX()} / {@link #getChunkCenterLocalZ()} only.
+     */
     public int[] getPasteExtraWorldDelta() {
         return pasteExtraWorldDelta;
+    }
+
+    /** Local block offset (0..15) within the spawn chunk for horizontal anchor of {@code schematic-center-from-min}. */
+    public int getChunkCenterLocalX() {
+        return chunkCenterLocalX;
+    }
+
+    public int getChunkCenterLocalZ() {
+        return chunkCenterLocalZ;
     }
 
     /** If true, paste Y is chosen so the lowest non-air schematic row sits on top of bedrock at the center column. */

@@ -479,14 +479,16 @@ public final class BaseService {
         int sep = cfg.getMinCenterSeparationChunks();
         int[] off = cfg.getSchematicCenterOffset(d);
         int[] ex = cfg.getPasteExtraWorldDelta();
+        int chunkLocalX = cfg.getChunkCenterLocalX();
+        int chunkLocalZ = cfg.getChunkCenterLocalZ();
         for (int attempt = 0; attempt < 80; attempt++) {
             int chunkCx = ThreadLocalRandom.current().nextInt(minC, maxC + 1);
             int chunkCz = ThreadLocalRandom.current().nextInt(minC, maxC + 1);
-            int chunkMidX = chunkCx * 16 + 8;
-            int chunkMidZ = chunkCz * 16 + 8;
+            int chunkMidX = chunkCx * 16 + chunkLocalX;
+            int chunkMidZ = chunkCz * 16 + chunkLocalZ;
             int targetY = cfg.getPasteCenterWorldY();
-            int ox = chunkMidX - off[0] + ex[0];
-            int oz = chunkMidZ - off[2] + ex[2];
+            int ox = chunkMidX - off[0];
+            int oz = chunkMidZ - off[2];
             int oy;
             if (cfg.isVerticalPasteSnapToBedrock()) {
                 int roof = SchematicPlacement.highestBedrockY(world, chunkMidX, chunkMidZ);

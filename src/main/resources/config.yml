@@ -39,16 +39,21 @@ vertical-paste-mode: SNAP_BOTTOM_TO_BEDROCK
 # Only used when vertical-paste-mode is USE_CONFIG_Y (or bedrock column has no bedrock). Falls back to paste-floor-y in older configs.
 paste-center-world-y: 64
 
-# From schematic minimum corner (clipboard 0,0,0) to the obsidian column center block (dx,dy,dz) — horizontal alignment to chunk middle (8,8).
+# From schematic minimum corner (clipboard 0,0,0) to the obsidian column center block (dx,dy,dz).
+# Horizontal world position of that block = chunk*16 + chunk-center-local-xz (below).
 schematic-center-from-min:
   EASY: "8,0,8"
   MEDIUM: "8,0,8"
   HARD: "8,0,8"
 
+# Local block coordinates (0..15) inside the spawn chunk where the obsidian anchor sits. Default 6,6 matches common
+# "chunk center" better than 8,8 for many bases; set "8,8" if your schematic was authored for that anchor.
+chunk-center-local-xz: "6,6"
+
 # Legacy: only used by SchematicService.paste (not Havoc base spawning). Bases use block-by-block placement at clipboard (0,0,0).
 worldedit-schematic-offset-add: true
 
-# Optional nudge added to the final world origin after chunk-center and bedrock snap (usually "0,0,0").
+# Only the middle value (Y) is applied when spawning bases. X/Z are ignored so horizontal alignment uses chunk-center-local-xz only.
 schematic-paste-extra-world-delta: "0,0,0"
 
 # Folder under the plugin data folder containing .schematic files
