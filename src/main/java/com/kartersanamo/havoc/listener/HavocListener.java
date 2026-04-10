@@ -2,7 +2,6 @@ package com.kartersanamo.havoc.listener;
 
 import com.kartersanamo.havoc.Havoc;
 import com.kartersanamo.havoc.base.BaseService;
-import com.kartersanamo.havoc.debug.HavocDebug;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -11,6 +10,9 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
+
+import java.util.Iterator;
+import java.util.List;
 
 public final class HavocListener implements Listener {
 
@@ -25,15 +27,24 @@ public final class HavocListener implements Listener {
         plugin.getBaseService().tryBreachFromExplosion(event.blockList(), event.getLocation());
     }
 
+    /**
+     * Strip only Havoc-locked blocks from the explosion list. Clearing the entire list (old behavior) removed
+     * every block—including breach obsidian—when any one block hit satellite/restore protection.
+     */
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onExplodeLock(EntityExplodeEvent event) {
         BaseService bases = plugin.getBaseService();
-        for (org.bukkit.block.Block b : event.blockList()) {
+        List<org.bukkit.block.Block> blocks = event.blockList();
+        int removed = 0;
+        for (Iterator<org.bukkit.block.Block> it = blocks.iterator(); it.hasNext(); ) {
+            org.bukkit.block.Block b = it.next();
             if (bases.shouldCancelBlockChange(b.getLocation())) {
-                event.blockList().clear();
-                HavocDebug.announce(plugin, "Explosion cleared (Havoc lock) near " + b.getX() + "," + b.getY() + "," + b.getZ());
-                return;
+                it.remove();
+                removed++;
             }
+        }
+        if (removed > 0) {
+            plugin.getLogger().fine("[Havoc] Explosion: removed " + removed + " block(s) from break list (restore / satellite lock).");
         }
     }
 
