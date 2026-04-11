@@ -226,6 +226,28 @@ public final class BaseService {
                 return;
             }
         }
+        tryBreachExplosionEpicenterInCoreChunk(epicenter, credit);
+    }
+
+    /**
+     * Breach when the explosion epicenter lies in the core chunk (obsidian chunk), even if no
+     * {@link HavocConfig#getBreachMaterials()} block appears in {@code EntityExplodeEvent#getBlockList()}.
+     */
+    private void tryBreachExplosionEpicenterInCoreChunk(Location epicenter, Player progressionCredit) {
+        World world = epicenter.getWorld();
+        if (world == null) {
+            return;
+        }
+        Chunk ch = world.getChunkAt(epicenter);
+        ActiveHavocBase base = findByChunk(ch);
+        if (base == null || base.state != BaseState.ACTIVE) {
+            return;
+        }
+        if (!base.isCenterChunk(ch)) {
+            return;
+        }
+        Location breachLoc = new Location(world, epicenter.getBlockX(), epicenter.getBlockY(), epicenter.getBlockZ());
+        breach(base, breachLoc, progressionCredit);
     }
 
     private Player findNearestNonHavoc(World world, Location loc, double maxDistance) {
