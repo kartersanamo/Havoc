@@ -1,31 +1,55 @@
 package com.kartersanamo.havoc.shop;
 
 import com.kartersanamo.havoc.Havoc;
-import com.kartersanamo.havoc.config.HavocConfig;
 import com.kartersanamo.havoc.storage.SalvageStore;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public final class SalvageShop {
 
     private final Havoc plugin;
+    private final ShopConfig config;
 
     public SalvageShop(Havoc plugin) {
         this.plugin = plugin;
+        this.config = new ShopConfig(plugin);
+        reload();
+    }
+
+    public void reload() {
+        config.reload();
     }
 
     public void open(Player player) {
-        HavocConfig cfg = plugin.getHavocConfig();
-        int rows = cfg.getShopRows();
-        int size = rows * 9;
-        Inventory inv = Bukkit.createInventory(new ShopHolder(), size, ChatColor.DARK_GREEN + "Salvage Shop");
-        for (ShopItem item : cfg.getShopItems()) {
-            if (item.getSlot() >= 0 && item.getSlot() < size) {
-                inv.setItem(item.getSlot(), item.createDisplayStack());
+        int size = config.getSize();
+        int balance = plugin.getSalvageStore().get(player.getUniqueId());
+        Inventory inv = Bukkit.createInventory(new ShopHolder(), size, config.getTitle());
+        if (config.isFillEmptySlots()) {
+            ItemStack filler = createStaticDisplay(config.getFillerItem(), balance);
+            if (filler != null) {
+                for (int i = 0; i < size; i++) {
+                    inv.setItem(i, filler.clone());
+                }
             }
+        }
+        for (ShopItem item : config.getItems()) {
+            if (item.getSlot() >= 0 && item.getSlot() < size) {
+                inv.setItem(item.getSlot(), item.createDisplayStack(balance));
+            }
+        }
+        ItemStack balanceDisplay = createStaticDisplay(config.getBalanceItem(), balance);
+        ShopConfig.DisplayItem bd = config.getBalanceItem();
+        if (balanceDisplay != null && bd != null && bd.slot >= 0 && bd.slot < size) {
+            inv.setItem(bd.slot, balanceDisplay);
         }
         player.openInventory(inv);
     }
@@ -38,21 +62,67 @@ public final class SalvageShop {
         if (rawSlot < 0 || rawSlot >= player.getOpenInventory().getTopInventory().getSize()) {
             return;
         }
-        HavocConfig cfg = plugin.getHavocConfig();
-        for (ShopItem item : cfg.getShopItems()) {
-            if (item.getSlot() == rawSlot) {
-                SalvageStore store = plugin.getSalvageStore();
-                int bal = store.get(player.getUniqueId());
-                if (bal < item.getPrice()) {
-                    player.sendMessage(ChatColor.RED + "Not enough Salvage.");
-                    return;
-                }
-                store.add(player.getUniqueId(), -item.getPrice());
-                player.getInventory().addItem(item.createBoughtStack());
-                player.sendMessage(ChatColor.GREEN + "Purchased for " + item.getPrice() + " Salvage.");
-                return;
-            }
+        ShopItem item = config.findBySlot(rawSlot);
+        if (item == null) {
+            return;
         }
+        SalvageStore store = plugin.getSalvageStore();
+        int bal = store.get(player.getUniqueId());
+        if (bal < item.getPrice()) {
+            player.sendMessage(formatMessage(config.getPurchaseFailMessage(), item, bal));
+            return;
+        }
+        store.add(player.getUniqueId(), -item.getPrice());
+        player.getInventory().addItem(item.createBoughtStack());
+        int newBal = store.get(player.getUniqueId());
+        player.sendMessage(formatMessage(config.getPurchaseSuccessMessage(), item, newBal));
+        if (config.isCloseOnPurchase()) {
+            player.closeInventory();
+            return;
+        }
+        if (config.isRefreshAfterPurchase()) {
+            open(player);
+        }
+    }
+
+    private ItemStack createStaticDisplay(ShopConfig.DisplayItem spec, int balance) {
+        if (spec == null) {
+            return null;
+        }
+        Material material = spec.material == null ? Material.PAPER : spec.material;
+        ItemStack stack = new ItemStack(material, Math.max(1, spec.amount), spec.data);
+        ItemMeta meta = stack.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(replace(spec.displayName, null, balance));
+            if (spec.lore != null && !spec.lore.isEmpty()) {
+                List<String> lore = new ArrayList<String>(spec.lore.size());
+                for (String line : spec.lore) {
+                    lore.add(replace(line, null, balance));
+                }
+                meta.setLore(lore);
+            }
+            stack.setItemMeta(meta);
+        }
+        return stack;
+    }
+
+    private String formatMessage(String raw, ShopItem item, int balance) {
+        return replace(raw, item, balance);
+    }
+
+    private String replace(String raw, ShopItem item, int balance) {
+        String out = ChatColor.translateAlternateColorCodes('&', raw == null ? "" : raw);
+        out = out.replace("{balance}", String.valueOf(balance));
+        if (item != null) {
+            out = out.replace("{price}", String.valueOf(item.getPrice()));
+            out = out.replace("{amount}", String.valueOf(item.getAmount()));
+            out = out.replace("{name}", item.getDisplayName());
+        } else {
+            out = out.replace("{price}", "0");
+            out = out.replace("{amount}", "0");
+            out = out.replace("{name}", "");
+        }
+        return out;
     }
 
     private static final class ShopHolder implements InventoryHolder {

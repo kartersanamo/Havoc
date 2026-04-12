@@ -1,9 +1,7 @@
 package com.kartersanamo.havoc.config;
 
 import com.kartersanamo.havoc.base.BaseDifficulty;
-import com.kartersanamo.havoc.shop.ShopItem;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -14,7 +12,6 @@ import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
 
 public final class HavocConfig {
@@ -51,8 +48,6 @@ public final class HavocConfig {
     private double spawnX;
     private double spawnY;
     private double spawnZ;
-    private int shopRows;
-    private List<ShopItem> shopItems = new ArrayList<ShopItem>();
     private Set<Material> breachMaterials = new HashSet<Material>();
 
     public HavocConfig(JavaPlugin plugin) {
@@ -137,22 +132,6 @@ public final class HavocConfig {
             spawnZ = 0.5;
         }
         normalizeWorldNames();
-        ConfigurationSection shop = c.getConfigurationSection("shop");
-        shopItems.clear();
-        shopRows = 3;
-        if (shop != null) {
-            shopRows = Math.min(6, Math.max(1, shop.getInt("rows", 3)));
-            List<?> raw = shop.getList("items");
-            if (raw != null) {
-                for (Object o : raw) {
-                    if (o instanceof Map) {
-                        @SuppressWarnings("unchecked")
-                        Map<String, Object> m = (Map<String, Object>) o;
-                        shopItems.add(parseShopItemMap(m));
-                    }
-                }
-            }
-        }
         breachMaterials.clear();
         List<String> mats = c.getStringList("breach-materials");
         if (mats.isEmpty()) {
@@ -168,24 +147,6 @@ public final class HavocConfig {
                 }
             }
         }
-    }
-
-    private ShopItem parseShopItemMap(Map<String, Object> m) {
-        int slot = intVal(m.get("slot"), 0);
-        String matName = String.valueOf(m.getOrDefault("material", "STONE"));
-        Material mat = Material.valueOf(matName.toUpperCase(Locale.ROOT));
-        int data = intVal(m.get("data"), 0);
-        int amount = intVal(m.get("amount"), 1);
-        int price = intVal(m.get("price"), 0);
-        String dn = ChatColor.translateAlternateColorCodes('&', String.valueOf(m.getOrDefault("display-name", mat.name())));
-        return new ShopItem(slot, mat, (byte) data, amount, price, dn);
-    }
-
-    private static int intVal(Object o, int def) {
-        if (o instanceof Number) {
-            return ((Number) o).intValue();
-        }
-        return def;
     }
 
     /**
@@ -377,14 +338,6 @@ public final class HavocConfig {
             w = Bukkit.getWorlds().get(0);
         }
         return new org.bukkit.Location(w, spawnX, spawnY, spawnZ);
-    }
-
-    public int getShopRows() {
-        return shopRows;
-    }
-
-    public List<ShopItem> getShopItems() {
-        return shopItems;
     }
 
     public Set<Material> getBreachMaterials() {

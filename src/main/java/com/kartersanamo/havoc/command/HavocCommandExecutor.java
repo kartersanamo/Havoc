@@ -86,10 +86,11 @@ public final class HavocCommandExecutor implements CommandExecutor, TabCompleter
             if ("reload".equals(a1)) {
                 HavocConfig c = plugin.getHavocConfig();
                 c.reload();
+                plugin.getSalvageShop().reload();
                 plugin.getSalvageStore().load();
                 plugin.getProgressionStore().load();
                 plugin.applyWorldBorder();
-                sender.sendMessage(ChatColor.GREEN + "Havoc config reloaded.");
+                sender.sendMessage(ChatColor.GREEN + "Havoc config and shop.yml reloaded.");
                 return true;
             }
             if ("spawn".equals(a1)) {

@@ -41,6 +41,7 @@ public final class Havoc extends JavaPlugin {
             schemDir.mkdirs();
         }
         saveDefaultConfig();
+        saveResource("shop.yml", false);
         havocConfig = new HavocConfig(this);
         havocConfig.reload();
         if (Bukkit.getWorld(havocConfig.getWorldName()) == null) {

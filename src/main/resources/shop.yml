@@ -1,0 +1,68 @@
+title: "&2&lHavoc &8- &aSalvage Exchange"
+rows: 4
+fill-empty-slots: true
+close-on-purchase: false
+refresh-after-purchase: true
+
+messages:
+  purchase-success: "&aPurchased &f{amount}x {name} &afor &e{price} Salvage&a. &7(New balance: &f{balance}&7)"
+  insufficient-funds: "&cYou need &e{price}&c Salvage for {name}&c. You only have &e{balance}&c."
+
+filler-item:
+  enabled: true
+  material: STAINED_GLASS_PANE
+  data: 15
+  amount: 1
+  display-name: "&8"
+  lore: []
+
+balance-item:
+  enabled: true
+  slot: 4
+  material: NETHER_STAR
+  data: 0
+  amount: 1
+  display-name: "&e&lYour Salvage"
+  lore:
+    - "&7Current Balance:"
+    - "&6{balance}"
+    - "&8&m--------------------"
+    - "&7Earn Salvage by breaching Havoc bases."
+
+items:
+  gapple:
+    slot: 10
+    material: GOLDEN_APPLE
+    data: 0
+    amount: 1
+    price: 50
+    display-name: "&6Golden Apple"
+    lore:
+      - "&7A classic raid sustain item."
+  pearls:
+    slot: 12
+    material: ENDER_PEARL
+    data: 0
+    amount: 4
+    price: 80
+    display-name: "&dEnder Pearl x4"
+    lore:
+      - "&7Mobility and chase potential."
+  pots:
+    slot: 14
+    material: POTION
+    data: 16421
+    amount: 1
+    price: 120
+    display-name: "&bSplash Healing II"
+    lore:
+      - "&7Instant pressure relief."
+  tnt:
+    slot: 16
+    material: TNT
+    data: 0
+    amount: 16
+    price: 140
+    display-name: "&cTNT x16"
+    lore:
+      - "&7Breach kit staple."

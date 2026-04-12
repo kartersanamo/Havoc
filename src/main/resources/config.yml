@@ -81,18 +81,4 @@ spawn:
   y: 64.0
   z: 0.5
 
-shop:
-  rows: 3
-  items:
-    - slot: 11
-      material: GOLDEN_APPLE
-      data: 0
-      amount: 1
-      price: 50
-      display-name: "&6Golden Apple"
-    - slot: 15
-      material: ENDER_PEARL
-      data: 0
-      amount: 4
-      price: 80
-      display-name: "&dPearl x4"
+# Shop UI is configured in shop.yml
