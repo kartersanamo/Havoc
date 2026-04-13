@@ -6,6 +6,7 @@ import com.kartersanamo.havoc.config.HavocConfig;
 import com.kartersanamo.havoc.debug.HavocDebug;
 import com.kartersanamo.havoc.faction.FactionsBridge;
 import com.kartersanamo.havoc.listener.HavocListener;
+import com.kartersanamo.havoc.message.MessageService;
 import com.kartersanamo.havoc.shop.SalvageShop;
 import com.kartersanamo.havoc.storage.ProgressionStore;
 import com.kartersanamo.havoc.storage.SalvageStore;
@@ -22,6 +23,7 @@ public final class Havoc extends JavaPlugin {
     private HavocConfig havocConfig;
     private FactionsBridge factionsBridge;
     private BaseService baseService;
+    private MessageService messages;
     private SalvageStore salvageStore;
     private ProgressionStore progressionStore;
     private SalvageShop salvageShop;
@@ -41,7 +43,9 @@ public final class Havoc extends JavaPlugin {
             schemDir.mkdirs();
         }
         saveDefaultConfig();
+        saveResource("messages.yml", false);
         saveResource("shop.yml", false);
+        messages = new MessageService(this);
         havocConfig = new HavocConfig(this);
         havocConfig.reload();
         if (Bukkit.getWorld(havocConfig.getWorldName()) == null) {
@@ -117,5 +121,9 @@ public final class Havoc extends JavaPlugin {
 
     public SalvageShop getSalvageShop() {
         return salvageShop;
+    }
+
+    public MessageService getMessages() {
+        return messages;
     }
 }

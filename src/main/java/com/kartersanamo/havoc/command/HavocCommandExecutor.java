@@ -4,7 +4,6 @@ import com.kartersanamo.havoc.Havoc;
 import com.kartersanamo.havoc.base.ActiveHavocBase;
 import com.kartersanamo.havoc.base.BaseDifficulty;
 import com.kartersanamo.havoc.config.HavocConfig;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -14,8 +13,10 @@ import org.bukkit.entity.Player;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public final class HavocCommandExecutor implements CommandExecutor, TabCompleter {
 
@@ -28,19 +29,16 @@ public final class HavocCommandExecutor implements CommandExecutor, TabCompleter
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage(ChatColor.YELLOW + "/havoc shop " + ChatColor.GRAY + "- open Salvage shop");
-            sender.sendMessage(ChatColor.YELLOW + "/havoc salvage " + ChatColor.GRAY + "- balance");
+            plugin.getMessages().sendList(sender, "command.help.player", null);
             if (sender.hasPermission("havoc.admin")) {
-                sender.sendMessage(ChatColor.YELLOW + "/havoc admin list " + ChatColor.GRAY + "- all bases");
-                sender.sendMessage(ChatColor.YELLOW + "/havoc admin spawn <EASY|MEDIUM|HARD> " + ChatColor.GRAY + "- force one base");
-                sender.sendMessage(ChatColor.YELLOW + "/havoc admin reload " + ChatColor.GRAY + "- reload config");
+                plugin.getMessages().sendList(sender, "command.help.admin", null);
             }
             return true;
         }
         String a0 = args[0].toLowerCase(Locale.ROOT);
         if ("shop".equals(a0)) {
             if (!(sender instanceof Player)) {
-                sender.sendMessage(ChatColor.RED + "Players only.");
+                plugin.getMessages().send(sender, "command.players-only");
                 return true;
             }
             plugin.getSalvageShop().open((Player) sender);
@@ -48,69 +46,74 @@ public final class HavocCommandExecutor implements CommandExecutor, TabCompleter
         }
         if ("salvage".equals(a0)) {
             if (!(sender instanceof Player)) {
-                sender.sendMessage(ChatColor.RED + "Players only.");
+                plugin.getMessages().send(sender, "command.players-only");
                 return true;
             }
             int bal = plugin.getSalvageStore().get(((Player) sender).getUniqueId());
-            sender.sendMessage(ChatColor.GOLD + "Salvage: " + bal);
+            plugin.getMessages().send(sender, "command.salvage-balance", one("balance", String.valueOf(bal)));
             return true;
         }
         if ("admin".equals(a0)) {
             if (!sender.hasPermission("havoc.admin")) {
-                sender.sendMessage(ChatColor.RED + "No permission.");
+                plugin.getMessages().send(sender, "command.no-permission");
                 return true;
             }
             if (args.length < 2) {
-                sender.sendMessage(ChatColor.GRAY + "Try: /havoc admin list | /havoc admin reload | /havoc admin spawn <tier>");
+                plugin.getMessages().send(sender, "command.admin-usage");
                 return true;
             }
             String a1 = args[1].toLowerCase(Locale.ROOT);
             if ("list".equals(a1)) {
                 List<ActiveHavocBase> bases = plugin.getBaseService().listAllBasesSorted();
                 if (bases.isEmpty()) {
-                    sender.sendMessage(ChatColor.GRAY + "No Havoc bases loaded.");
+                    plugin.getMessages().send(sender, "admin.list.empty");
                     return true;
                 }
-                sender.sendMessage(ChatColor.GOLD + "Havoc bases (" + bases.size() + "):");
+                plugin.getMessages().send(sender, "admin.list.header", one("count", String.valueOf(bases.size())));
                 for (ActiveHavocBase b : bases) {
                     String shortId = b.id.toString().substring(0, 8);
-                    sender.sendMessage(ChatColor.WHITE + "- " + ChatColor.AQUA + b.difficulty
-                            + ChatColor.GRAY + " (" + b.state + ") "
-                            + ChatColor.WHITE + b.worldName + " "
-                            + ChatColor.YELLOW + b.obsidianCenterX + ", " + b.obsidianCenterY + ", " + b.obsidianCenterZ
-                            + ChatColor.DARK_GRAY + " [~" + shortId + "] "
-                            + ChatColor.DARK_GRAY + "(" + b.claimedChunks.size() + " chunks)");
+                    Map<String, String> vars = new HashMap<String, String>();
+                    vars.put("difficulty", b.difficulty.name());
+                    vars.put("state", b.state.name());
+                    vars.put("world", b.worldName);
+                    vars.put("x", String.valueOf(b.obsidianCenterX));
+                    vars.put("y", String.valueOf(b.obsidianCenterY));
+                    vars.put("z", String.valueOf(b.obsidianCenterZ));
+                    vars.put("id", shortId);
+                    vars.put("claims", String.valueOf(b.claimedChunks.size()));
+                    plugin.getMessages().send(sender, "admin.list.line", vars);
                 }
                 return true;
             }
             if ("reload".equals(a1)) {
                 HavocConfig c = plugin.getHavocConfig();
                 c.reload();
+                plugin.getMessages().reload();
                 plugin.getSalvageShop().reload();
                 plugin.getSalvageStore().load();
                 plugin.getProgressionStore().load();
                 plugin.applyWorldBorder();
-                sender.sendMessage(ChatColor.GREEN + "Havoc config and shop.yml reloaded.");
+                plugin.getMessages().send(sender, "admin.reload.success");
                 return true;
             }
             if ("spawn".equals(a1)) {
                 if (args.length < 3) {
-                    sender.sendMessage(ChatColor.GRAY + "Usage: /havoc admin spawn <EASY|MEDIUM|HARD>");
+                    plugin.getMessages().send(sender, "admin.spawn.usage");
                     return true;
                 }
                 BaseDifficulty d;
                 try {
                     d = BaseDifficulty.valueOf(args[2].toUpperCase(Locale.ROOT));
                 } catch (IllegalArgumentException e) {
-                    sender.sendMessage(ChatColor.RED + "Invalid tier.");
+                    plugin.getMessages().send(sender, "admin.spawn.invalid-tier");
                     return true;
                 }
                 boolean ok = plugin.getBaseService().trySpawnOne(d);
-                sender.sendMessage(ok ? ChatColor.GREEN + "Spawned one " + d + " base." : ChatColor.RED + "Spawn failed (see console).");
+                plugin.getMessages().send(sender, ok ? "admin.spawn.success" : "admin.spawn.failed", one("difficulty", d.name()));
                 return true;
             }
         }
-        sender.sendMessage(ChatColor.RED + "Unknown subcommand.");
+        plugin.getMessages().send(sender, "command.unknown-subcommand");
         return true;
     }
 
@@ -136,6 +139,12 @@ public final class HavocCommandExecutor implements CommandExecutor, TabCompleter
                 out.add(o);
             }
         }
+        return out;
+    }
+
+    private static Map<String, String> one(String key, String value) {
+        Map<String, String> out = new HashMap<String, String>();
+        out.put(key, value);
         return out;
     }
 }

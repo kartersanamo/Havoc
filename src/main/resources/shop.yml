@@ -4,9 +4,12 @@ fill-empty-slots: true
 close-on-purchase: false
 refresh-after-purchase: true
 
-messages:
-  purchase-success: "&aPurchased &f{amount}x {name} &afor &e{price} Salvage&a. &7(New balance: &f{balance}&7)"
-  insufficient-funds: "&cYou need &e{price}&c Salvage for {name}&c. You only have &e{balance}&c."
+# Purchase/insufficient-funds chat messages are in messages.yml under shop.purchase.*
+item-extra-lore:
+  price-line: "&7Price: &6{price} &eSalvage"
+  balance-line: "&7Your Balance: &f{balance}"
+  can-afford-line: "&aClick to purchase."
+  cannot-afford-line: "&cYou cannot afford this."
 
 filler-item:
   enabled: true

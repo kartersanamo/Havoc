@@ -37,8 +37,10 @@ public final class ShopConfig {
     private boolean fillEmptySlots = true;
     private boolean closeOnPurchase = false;
     private boolean refreshAfterPurchase = true;
-    private String purchaseSuccessMessage = "&aPurchased &f{amount}x {name} &afor &e{price} Salvage&a.";
-    private String purchaseFailMessage = "&cYou need &e{price}&c Salvage (you have &e{balance}&c).";
+    private String priceLoreLine = "&7Price: &6{price} &eSalvage";
+    private String balanceLoreLine = "&7Your Balance: &f{balance}";
+    private String canAffordLoreLine = "&aClick to purchase.";
+    private String cannotAffordLoreLine = "&cYou cannot afford this.";
     private DisplayItem fillerItem;
     private DisplayItem balanceItem;
     private final List<ShopItem> items = new ArrayList<ShopItem>();
@@ -56,8 +58,10 @@ public final class ShopConfig {
         fillEmptySlots = y.getBoolean("fill-empty-slots", true);
         closeOnPurchase = y.getBoolean("close-on-purchase", false);
         refreshAfterPurchase = y.getBoolean("refresh-after-purchase", true);
-        purchaseSuccessMessage = y.getString("messages.purchase-success", purchaseSuccessMessage);
-        purchaseFailMessage = y.getString("messages.insufficient-funds", purchaseFailMessage);
+        priceLoreLine = y.getString("item-extra-lore.price-line", priceLoreLine);
+        balanceLoreLine = y.getString("item-extra-lore.balance-line", balanceLoreLine);
+        canAffordLoreLine = y.getString("item-extra-lore.can-afford-line", canAffordLoreLine);
+        cannotAffordLoreLine = y.getString("item-extra-lore.cannot-afford-line", cannotAffordLoreLine);
         fillerItem = parseDisplayItem(y.getConfigurationSection("filler-item"), -1,
                 Material.STAINED_GLASS_PANE, 7, 1, " ");
         balanceItem = parseDisplayItem(y.getConfigurationSection("balance-item"), 4,
@@ -107,12 +111,20 @@ public final class ShopConfig {
         return refreshAfterPurchase;
     }
 
-    public String getPurchaseSuccessMessage() {
-        return purchaseSuccessMessage;
+    public String getPriceLoreLine() {
+        return priceLoreLine;
     }
 
-    public String getPurchaseFailMessage() {
-        return purchaseFailMessage;
+    public String getBalanceLoreLine() {
+        return balanceLoreLine;
+    }
+
+    public String getCanAffordLoreLine() {
+        return canAffordLoreLine;
+    }
+
+    public String getCannotAffordLoreLine() {
+        return cannotAffordLoreLine;
     }
 
     public DisplayItem getFillerItem() {

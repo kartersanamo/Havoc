@@ -1,0 +1,41 @@
+command:
+  help:
+    player:
+      - "&e/havoc shop &7- open the Salvage shop"
+      - "&e/havoc salvage &7- check your Salvage balance"
+    admin:
+      - "&e/havoc admin list &7- list active Havoc bases"
+      - "&e/havoc admin spawn <EASY|MEDIUM|HARD> &7- force-spawn one base"
+      - "&e/havoc admin reload &7- reload Havoc, shop, and messages configs"
+  players-only: "&cPlayers only."
+  no-permission: "&cNo permission."
+  salvage-balance: "&6Salvage: &e{balance}"
+  admin-usage: "&7Try: /havoc admin list | /havoc admin reload | /havoc admin spawn <tier>"
+  unknown-subcommand: "&cUnknown subcommand."
+
+admin:
+  list:
+    empty: "&7No Havoc bases loaded."
+    header: "&6Havoc bases (&e{count}&6):"
+    line: "&f- &b{difficulty} &7({state}) &f{world} &e{x}, {y}, {z} &8[~{id}] &8({claims} chunks)"
+  reload:
+    success: "&aHavoc config, shop.yml, and messages.yml reloaded."
+  spawn:
+    usage: "&7Usage: /havoc admin spawn <EASY|MEDIUM|HARD>"
+    invalid-tier: "&cInvalid tier."
+    success: "&aSpawned one {difficulty} base."
+    failed: "&cSpawn failed (see console)."
+
+shop:
+  purchase:
+    success: "&aPurchased &f{amount}x {name} &afor &e{price} Salvage&a. &7(New balance: &f{balance}&7)"
+    insufficient-funds: "&cYou need &e{price}&c Salvage for {name}&c. You only have &e{balance}&c."
+
+raid:
+  locked:
+    block-change: "&cThis area is currently locked while Havoc restores."
+    entry-denied: "&cYou cannot enter this restoring Havoc base yet."
+  reward:
+    salvage: "&6+{amount} Salvage &7(New balance: &e{balance}&7)"
+    next-lead: "&bNext Havoc lead (&3{difficulty}&b): &f{x}, {y}, {z}"
+    no-next-lead: "&7No active {difficulty} Havoc base to point you to yet."

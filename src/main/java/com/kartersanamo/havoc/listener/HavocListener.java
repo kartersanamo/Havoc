@@ -13,10 +13,13 @@ import org.bukkit.event.player.PlayerMoveEvent;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class HavocListener implements Listener {
 
     private final Havoc plugin;
+    private final ConcurrentHashMap<UUID, Long> notifyCooldownMs = new ConcurrentHashMap<UUID, Long>();
 
     public HavocListener(Havoc plugin) {
         this.plugin = plugin;
@@ -53,6 +56,7 @@ public final class HavocListener implements Listener {
         BaseService bases = plugin.getBaseService();
         if (bases.shouldCancelBlockChange(event.getBlock().getLocation())) {
             event.setCancelled(true);
+            notifyLocked(event.getPlayer(), "raid.locked.block-change");
             return;
         }
         bases.tryBreachBlock(event.getBlock(), event.getPlayer());
@@ -62,6 +66,7 @@ public final class HavocListener implements Listener {
     public void onPlace(BlockPlaceEvent event) {
         if (plugin.getBaseService().shouldCancelBlockChange(event.getBlock().getLocation())) {
             event.setCancelled(true);
+            notifyLocked(event.getPlayer(), "raid.locked.block-change");
         }
     }
 
@@ -74,6 +79,7 @@ public final class HavocListener implements Listener {
         }
         if (plugin.getBaseService().shouldDenyEnter(event.getFrom(), event.getTo())) {
             event.setCancelled(true);
+            notifyLocked(event.getPlayer(), "raid.locked.entry-denied");
         }
     }
 
@@ -88,5 +94,15 @@ public final class HavocListener implements Listener {
                 plugin.getSalvageShop().handleClick((org.bukkit.entity.Player) event.getWhoClicked(), event.getRawSlot());
             }
         }
+    }
+
+    private void notifyLocked(org.bukkit.entity.Player player, String key) {
+        long now = System.currentTimeMillis();
+        Long prev = notifyCooldownMs.get(player.getUniqueId());
+        if (prev != null && now - prev < 1500L) {
+            return;
+        }
+        notifyCooldownMs.put(player.getUniqueId(), now);
+        plugin.getMessages().send(player, key);
     }
 }

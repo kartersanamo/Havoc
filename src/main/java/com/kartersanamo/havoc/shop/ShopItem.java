@@ -45,7 +45,7 @@ public final class ShopItem {
         return displayName;
     }
 
-    public ItemStack createDisplayStack(int balance) {
+    public ItemStack createDisplayStack(int balance, String priceLine, String balanceLine, String canAffordLine, String cannotAffordLine) {
         ItemStack stack = new ItemStack(material, amount, data);
         ItemMeta meta = stack.getItemMeta();
         if (meta != null) {
@@ -54,12 +54,12 @@ public final class ShopItem {
             for (String line : lore) {
                 outLore.add(replacePlaceholders(line, balance));
             }
-            outLore.add(ChatColor.GRAY + "Price: " + ChatColor.GOLD + price + ChatColor.YELLOW + " Salvage");
-            outLore.add(ChatColor.GRAY + "Your Balance: "
-                    + (balance >= price ? ChatColor.GREEN : ChatColor.RED) + balance);
-            outLore.add(balance >= price
-                    ? ChatColor.GREEN + "Click to purchase."
-                    : ChatColor.RED + "You cannot afford this.");
+            outLore.add(replacePlaceholders(priceLine, balance));
+            outLore.add(replacePlaceholders(balanceLine, balance));
+            outLore.add(replacePlaceholders(balance >= price ? canAffordLine : cannotAffordLine, balance));
+            for (int i = 0; i < outLore.size(); i++) {
+                outLore.set(i, ChatColor.translateAlternateColorCodes('&', outLore.get(i)));
+            }
             meta.setLore(outLore);
             stack.setItemMeta(meta);
         }

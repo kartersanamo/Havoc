@@ -3,7 +3,6 @@ package com.kartersanamo.havoc.shop;
 import com.kartersanamo.havoc.Havoc;
 import com.kartersanamo.havoc.storage.SalvageStore;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
@@ -12,7 +11,9 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public final class SalvageShop {
 
@@ -43,7 +44,11 @@ public final class SalvageShop {
         }
         for (ShopItem item : config.getItems()) {
             if (item.getSlot() >= 0 && item.getSlot() < size) {
-                inv.setItem(item.getSlot(), item.createDisplayStack(balance));
+                inv.setItem(item.getSlot(), item.createDisplayStack(balance,
+                        config.getPriceLoreLine(),
+                        config.getBalanceLoreLine(),
+                        config.getCanAffordLoreLine(),
+                        config.getCannotAffordLoreLine()));
             }
         }
         ItemStack balanceDisplay = createStaticDisplay(config.getBalanceItem(), balance);
@@ -69,13 +74,13 @@ public final class SalvageShop {
         SalvageStore store = plugin.getSalvageStore();
         int bal = store.get(player.getUniqueId());
         if (bal < item.getPrice()) {
-            player.sendMessage(formatMessage(config.getPurchaseFailMessage(), item, bal));
+            plugin.getMessages().send(player, "shop.purchase.insufficient-funds", vars(item, bal));
             return;
         }
         store.add(player.getUniqueId(), -item.getPrice());
         player.getInventory().addItem(item.createBoughtStack());
         int newBal = store.get(player.getUniqueId());
-        player.sendMessage(formatMessage(config.getPurchaseSuccessMessage(), item, newBal));
+        plugin.getMessages().send(player, "shop.purchase.success", vars(item, newBal));
         if (config.isCloseOnPurchase()) {
             player.closeInventory();
             return;
@@ -106,12 +111,8 @@ public final class SalvageShop {
         return stack;
     }
 
-    private String formatMessage(String raw, ShopItem item, int balance) {
-        return replace(raw, item, balance);
-    }
-
     private String replace(String raw, ShopItem item, int balance) {
-        String out = ChatColor.translateAlternateColorCodes('&', raw == null ? "" : raw);
+        String out = raw == null ? "" : raw;
         out = out.replace("{balance}", String.valueOf(balance));
         if (item != null) {
             out = out.replace("{price}", String.valueOf(item.getPrice()));
@@ -122,6 +123,15 @@ public final class SalvageShop {
             out = out.replace("{amount}", "0");
             out = out.replace("{name}", "");
         }
+        return out;
+    }
+
+    private Map<String, String> vars(ShopItem item, int balance) {
+        Map<String, String> out = new HashMap<String, String>();
+        out.put("price", String.valueOf(item.getPrice()));
+        out.put("amount", String.valueOf(item.getAmount()));
+        out.put("name", item.getDisplayName());
+        out.put("balance", String.valueOf(balance));
         return out;
     }
 

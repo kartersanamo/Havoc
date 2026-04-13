@@ -15,7 +15,6 @@ import com.sk89q.worldedit.CuboidClipboard;
 import com.sk89q.worldedit.MaxChangedBlocksException;
 import com.sk89q.worldedit.data.DataException;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -339,12 +338,20 @@ public final class BaseService {
         final ActiveHavocBase target = pickRandomActive(nextTier, base.id);
         for (Player p : rewarded) {
             salvage.add(p.getUniqueId(), salvageAmt);
-            p.sendMessage(ChatColor.GOLD + "+" + salvageAmt + " Salvage");
+            plugin.getMessages().send(p, "raid.reward.salvage", mapOf(
+                    "amount", String.valueOf(salvageAmt),
+                    "balance", String.valueOf(salvage.get(p.getUniqueId()))
+            ));
             if (target != null) {
                 Location l = new Location(Bukkit.getWorld(target.worldName), target.obsidianCenterX, target.obsidianCenterY + 2, target.obsidianCenterZ);
-                p.sendMessage(ChatColor.AQUA + "Next Havoc lead (" + nextTier + "): " + l.getBlockX() + ", " + l.getBlockY() + ", " + l.getBlockZ());
+                plugin.getMessages().send(p, "raid.reward.next-lead", mapOf(
+                        "difficulty", String.valueOf(nextTier),
+                        "x", String.valueOf(l.getBlockX()),
+                        "y", String.valueOf(l.getBlockY()),
+                        "z", String.valueOf(l.getBlockZ())
+                ));
             } else {
-                p.sendMessage(ChatColor.GRAY + "No active " + nextTier + " Havoc base to point you to yet.");
+                plugin.getMessages().send(p, "raid.reward.no-next-lead", mapOf("difficulty", String.valueOf(nextTier)));
             }
         }
         salvage.save();
@@ -661,5 +668,27 @@ public final class BaseService {
                 + " (obsidian center chunk " + base.centerChunkX + "," + base.centerChunkZ + ", faction claims=" + base.claimedChunks.size() + ").");
         plugin.getLogger().info("Spawned " + d + " Havoc base ~" + shortId(base.id) + " at chunk " + base.centerChunkX + "," + base.centerChunkZ);
         return true;
+    }
+
+    private static java.util.Map<String, String> mapOf(String k1, String v1) {
+        java.util.Map<String, String> out = new java.util.HashMap<String, String>();
+        out.put(k1, v1);
+        return out;
+    }
+
+    private static java.util.Map<String, String> mapOf(String k1, String v1, String k2, String v2) {
+        java.util.Map<String, String> out = new java.util.HashMap<String, String>();
+        out.put(k1, v1);
+        out.put(k2, v2);
+        return out;
+    }
+
+    private static java.util.Map<String, String> mapOf(String k1, String v1, String k2, String v2, String k3, String v3, String k4, String v4) {
+        java.util.Map<String, String> out = new java.util.HashMap<String, String>();
+        out.put(k1, v1);
+        out.put(k2, v2);
+        out.put(k3, v3);
+        out.put(k4, v4);
+        return out;
     }
 }
