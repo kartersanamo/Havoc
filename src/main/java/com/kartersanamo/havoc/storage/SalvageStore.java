@@ -18,7 +18,7 @@ public final class SalvageStore {
         this.file = new File(plugin.getDataFolder(), "salvage.yml");
     }
 
-    public void load() {
+    public synchronized void load() {
         if (!file.exists()) {
             yaml = new YamlConfiguration();
         } else {
@@ -26,7 +26,7 @@ public final class SalvageStore {
         }
     }
 
-    public void save() {
+    public synchronized void save() {
         if (yaml == null) {
             yaml = new YamlConfiguration();
         }
@@ -37,21 +37,30 @@ public final class SalvageStore {
         }
     }
 
-    public int get(UUID id) {
+    public void saveAsync() {
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, new Runnable() {
+            @Override
+            public void run() {
+                save();
+            }
+        });
+    }
+
+    public synchronized int get(UUID id) {
         if (yaml == null) {
             return 0;
         }
         return yaml.getInt("players." + id.toString(), 0);
     }
 
-    public void set(UUID id, int amount) {
+    public synchronized void set(UUID id, int amount) {
         if (yaml == null) {
             yaml = new YamlConfiguration();
         }
         yaml.set("players." + id.toString(), Math.max(0, amount));
     }
 
-    public void add(UUID id, int delta) {
+    public synchronized void add(UUID id, int delta) {
         set(id, get(id) + delta);
     }
 }

@@ -52,6 +52,7 @@ public final class BaseService {
     private Object havocFaction;
     private int restoreTaskId = -1;
     private int maintainerTaskId = -1;
+    private volatile boolean spawnWorkInFlight;
 
     public BaseService(Havoc plugin) {
         this.plugin = plugin;
@@ -147,6 +148,9 @@ public final class BaseService {
     }
 
     private void maintainPopulation() {
+        if (spawnWorkInFlight) {
+            return;
+        }
         if (havocFaction == null) {
             return;
         }
@@ -154,10 +158,17 @@ public final class BaseService {
             int want = plugin.getHavocConfig().basesToSpawn(d);
             int have = countActive(d);
             for (int i = have; i < want; i++) {
-                if (!trySpawnOne(d)) {
-                    HavocDebug.announce(plugin, "Population: could not spawn " + d + " (have " + have + ", want " + want + ") — see console / check border & schematic.");
-                    break;
+                spawnWorkInFlight = true;
+                boolean ok;
+                try {
+                    ok = trySpawnOne(d);
+                } finally {
+                    spawnWorkInFlight = false;
                 }
+                if (!ok) {
+                    HavocDebug.announce(plugin, "Population: could not spawn " + d + " (have " + have + ", want " + want + ") — see console / check border & schematic.");
+                }
+                return;
             }
         }
     }
@@ -354,8 +365,8 @@ public final class BaseService {
                 plugin.getMessages().send(p, "raid.reward.no-next-lead", mapOf("difficulty", String.valueOf(nextTier)));
             }
         }
-        salvage.save();
-        prog.save();
+        salvage.saveAsync();
+        prog.saveAsync();
 
         long delay = cfg.getRestoreSeconds() * 20L;
         final ActiveHavocBase ref = base;

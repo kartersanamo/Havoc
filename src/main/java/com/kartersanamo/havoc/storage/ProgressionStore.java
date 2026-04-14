@@ -19,7 +19,7 @@ public final class ProgressionStore {
         this.file = new File(plugin.getDataFolder(), "progression.yml");
     }
 
-    public void load() {
+    public synchronized void load() {
         if (!file.exists()) {
             yaml = new YamlConfiguration();
         } else {
@@ -27,7 +27,7 @@ public final class ProgressionStore {
         }
     }
 
-    public void save() {
+    public synchronized void save() {
         if (yaml == null) {
             yaml = new YamlConfiguration();
         }
@@ -38,10 +38,19 @@ public final class ProgressionStore {
         }
     }
 
+    public void saveAsync() {
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, new Runnable() {
+            @Override
+            public void run() {
+                save();
+            }
+        });
+    }
+
     /**
      * After a breach of {@code breached}, which difficulty coords should we point the player to next?
      */
-    public BaseDifficulty nextHintDifficulty(UUID player, BaseDifficulty breached) {
+    public synchronized BaseDifficulty nextHintDifficulty(UUID player, BaseDifficulty breached) {
         if (yaml == null) {
             yaml = new YamlConfiguration();
         }
