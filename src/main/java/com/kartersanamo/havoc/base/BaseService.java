@@ -24,6 +24,7 @@ import org.bukkit.entity.Player;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -52,7 +53,10 @@ public final class BaseService {
     private Object havocFaction;
     private int restoreTaskId = -1;
     private int maintainerTaskId = -1;
+    private int spawnWorkerTaskId = -1;
     private volatile boolean spawnWorkInFlight;
+    private final ArrayDeque<BaseDifficulty> spawnQueue = new ArrayDeque<BaseDifficulty>();
+    private SpawnPlan activeSpawnPlan;
 
     public BaseService(Havoc plugin) {
         this.plugin = plugin;
@@ -86,6 +90,12 @@ public final class BaseService {
             @Override
             public void run() {
                 tickRestores();
+            }
+        }, 1L, 1L);
+        spawnWorkerTaskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin, new Runnable() {
+            @Override
+            public void run() {
+                tickSpawnWorker();
             }
         }, 1L, 1L);
         HavocDebug.announce(plugin, "Base maintainer + restore tickers started.");
@@ -141,6 +151,10 @@ public final class BaseService {
             Bukkit.getScheduler().cancelTask(restoreTaskId);
             restoreTaskId = -1;
         }
+        if (spawnWorkerTaskId != -1) {
+            Bukkit.getScheduler().cancelTask(spawnWorkerTaskId);
+            spawnWorkerTaskId = -1;
+        }
     }
 
     private static String shortId(UUID id) {
@@ -148,28 +162,51 @@ public final class BaseService {
     }
 
     private void maintainPopulation() {
-        if (spawnWorkInFlight) {
-            return;
-        }
         if (havocFaction == null) {
             return;
         }
         for (BaseDifficulty d : BaseDifficulty.values()) {
             int want = plugin.getHavocConfig().basesToSpawn(d);
             int have = countActive(d);
-            for (int i = have; i < want; i++) {
-                spawnWorkInFlight = true;
-                boolean ok;
-                try {
-                    ok = trySpawnOne(d);
-                } finally {
-                    spawnWorkInFlight = false;
-                }
-                if (!ok) {
-                    HavocDebug.announce(plugin, "Population: could not spawn " + d + " (have " + have + ", want " + want + ") — see console / check border & schematic.");
-                }
+            int queued = queuedCount(d);
+            for (int i = have + queued; i < want; i++) {
+                spawnQueue.addLast(d);
+            }
+        }
+    }
+
+    private int queuedCount(BaseDifficulty d) {
+        int n = 0;
+        if (activeSpawnPlan != null && activeSpawnPlan.difficulty == d) {
+            n++;
+        }
+        for (BaseDifficulty q : spawnQueue) {
+            if (q == d) {
+                n++;
+            }
+        }
+        return n;
+    }
+
+    private void tickSpawnWorker() {
+        if (spawnWorkInFlight) {
+            return;
+        }
+        if (activeSpawnPlan == null) {
+            BaseDifficulty next = spawnQueue.pollFirst();
+            if (next == null) {
                 return;
             }
+            activeSpawnPlan = new SpawnPlan(next);
+        }
+        spawnWorkInFlight = true;
+        try {
+            boolean done = activeSpawnPlan.tick();
+            if (done) {
+                activeSpawnPlan = null;
+            }
+        } finally {
+            spawnWorkInFlight = false;
         }
     }
 
@@ -679,6 +716,140 @@ public final class BaseService {
                 + " (obsidian center chunk " + base.centerChunkX + "," + base.centerChunkZ + ", faction claims=" + base.claimedChunks.size() + ").");
         plugin.getLogger().info("Spawned " + d + " Havoc base ~" + shortId(base.id) + " at chunk " + base.centerChunkX + "," + base.centerChunkZ);
         return true;
+    }
+
+    private final class SpawnPlan {
+        private final BaseDifficulty difficulty;
+        private boolean initialized;
+        private boolean failed;
+        private int attempt;
+        private World world;
+        private CuboidClipboard clip;
+        private SchematicAnalysis analysis;
+        private int w;
+        private int h;
+        private int len;
+        private int half;
+        private int minC;
+        private int maxC;
+        private int sep;
+        private int[] off;
+        private int[] ex;
+        private int chunkLocalX;
+        private int chunkLocalZ;
+
+        private SpawnPlan(BaseDifficulty difficulty) {
+            this.difficulty = difficulty;
+        }
+
+        private boolean tick() {
+            if (!initialized) {
+                initialized = true;
+                if (!init()) {
+                    failed = true;
+                    return true;
+                }
+            }
+            if (failed) {
+                return true;
+            }
+            if (attempt >= 80) {
+                HavocDebug.announce(plugin, "Population: could not spawn " + difficulty + " after 80 attempts.");
+                return true;
+            }
+            if (attemptSpawnForCurrentAttempt(attempt)) {
+                return true;
+            }
+            attempt++;
+            return false;
+        }
+
+        private boolean init() {
+            if (havocFaction == null) {
+                return false;
+            }
+            HavocConfig cfg = plugin.getHavocConfig();
+            world = Bukkit.getWorld(cfg.getWorldName());
+            if (world == null) {
+                plugin.getLogger().warning("Configured world not loaded: " + cfg.getWorldName());
+                return false;
+            }
+            File schem = new File(plugin.getDataFolder(), cfg.getSchematicsFolder() + "/" + cfg.schematicFileName(difficulty));
+            if (!schem.isFile()) {
+                HavocDebug.announce(plugin, "Missing schematic file: " + schem.getAbsolutePath());
+                return false;
+            }
+            SchematicService paster = new SchematicService();
+            try {
+                clip = paster.loadClipboard(schem);
+            } catch (IOException | DataException e) {
+                HavocDebug.announce(plugin, "Schematic load failed: " + e.getMessage());
+                return false;
+            }
+            analysis = SchematicAnalysis.analyze(clip);
+            w = analysis.width;
+            h = analysis.height;
+            len = analysis.length;
+            half = cfg.getBorderHalfSize();
+            minC = (-half + 32) / 16;
+            maxC = (half - 32) / 16;
+            sep = cfg.getMinCenterSeparationChunks();
+            off = cfg.getSchematicCenterOffset(difficulty);
+            ex = cfg.getPasteExtraWorldDelta();
+            chunkLocalX = cfg.getChunkCenterLocalX();
+            chunkLocalZ = cfg.getChunkCenterLocalZ();
+            HavocDebug.announce(plugin, "Spawn worker " + difficulty + ": schematic " + w + " x " + h + " x " + len + " prepared.");
+            return true;
+        }
+
+        private boolean attemptSpawnForCurrentAttempt(int attemptNo) {
+            HavocConfig cfg = plugin.getHavocConfig();
+            int chunkCx = ThreadLocalRandom.current().nextInt(minC, maxC + 1);
+            int chunkCz = ThreadLocalRandom.current().nextInt(minC, maxC + 1);
+            int chunkMidX = chunkCx * 16 + chunkLocalX;
+            int chunkMidZ = chunkCz * 16 + chunkLocalZ;
+            int targetY = cfg.getPasteCenterWorldY();
+            int ox = chunkMidX - off[0];
+            int oz = chunkMidZ - off[2];
+            int oy;
+            if (cfg.isVerticalPasteSnapToBedrock()) {
+                int roof = SchematicPlacement.highestBedrockY(world, chunkMidX, chunkMidZ);
+                if (roof >= 0) {
+                    oy = roof + 1 - analysis.lowestNonAirY + ex[1];
+                } else {
+                    oy = targetY - off[1] + ex[1];
+                }
+            } else {
+                oy = targetY - off[1] + ex[1];
+            }
+            int worldH = world.getMaxHeight();
+            int yMax = worldH - h;
+            if (oy < 0) {
+                oy = 0;
+            }
+            if (oy > yMax) {
+                oy = yMax;
+            }
+            int obsX = ox + off[0];
+            int obsZ = oz + off[2];
+            int occCx = Math.floorDiv(obsX, 16);
+            int occCz = Math.floorDiv(obsZ, 16);
+            if (!fitsInBorder(ox, oz, w, len, half)) {
+                return false;
+            }
+            HashSet<ChunkKey> claimSet = new HashSet<ChunkKey>();
+            analysis.collectClaimChunks(world.getName(), ox, oz, claimSet);
+            analysis.ensureAnchorChunkClaimed(world.getName(), ox, oz, off[0], off[2], claimSet);
+            int rNew = footprintChunkRadiusFromClaims(occCx, occCz, claimSet);
+            if (!farEnough(occCx, occCz, sep, rNew)) {
+                return false;
+            }
+            boolean ok = spawnAt(world, difficulty, clip, ox, oy, oz, off, w, h, len, claimSet, rNew);
+            if (!ok && attemptNo == 79) {
+                HavocDebug.announce(plugin, "Population: could not spawn " + difficulty + " (border/claims/place).");
+            }
+            return ok;
+        }
     }
 
     private static java.util.Map<String, String> mapOf(String k1, String v1) {

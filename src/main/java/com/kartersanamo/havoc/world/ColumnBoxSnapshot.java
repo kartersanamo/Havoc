@@ -26,17 +26,26 @@ public final class ColumnBoxSnapshot {
 
     public static ColumnBoxSnapshot capture(World world, int minX, int minZ, int dx, int dz, int height) {
         ColumnBoxSnapshot s = new ColumnBoxSnapshot(minX, minZ, dx, dz, height);
-        for (int y = 0; y < height; y++) {
-            for (int iz = 0; iz < dz; iz++) {
-                for (int ix = 0; ix < dx; ix++) {
-                    int wx = minX + ix;
-                    int wz = minZ + iz;
-                    org.bukkit.block.Block bl = world.getBlockAt(wx, y, wz);
-                    s.packed[s.flat(ix, iz, y)] = pack(bl.getTypeId(), (byte) bl.getData());
-                }
+        s.captureColumns(world, 0, dx * dz);
+        return s;
+    }
+
+    /**
+     * Captures [startColumn, startColumn+columnCount) where column index is x + z*dx.
+     */
+    public void captureColumns(World world, int startColumn, int columnCount) {
+        int total = dx * dz;
+        int end = Math.min(total, Math.max(0, startColumn) + Math.max(0, columnCount));
+        for (int col = Math.max(0, startColumn); col < end; col++) {
+            int ix = col % dx;
+            int iz = col / dx;
+            int wx = minX + ix;
+            int wz = minZ + iz;
+            for (int y = 0; y < height; y++) {
+                org.bukkit.block.Block bl = world.getBlockAt(wx, y, wz);
+                packed[flat(ix, iz, y)] = pack(bl.getTypeId(), (byte) bl.getData());
             }
         }
-        return s;
     }
 
     public void applyPartial(World world, int startFlatIndex, int count) {
