@@ -12,6 +12,7 @@ import com.kartersanamo.havoc.world.SchematicBlockPlacer;
 import com.kartersanamo.havoc.world.SchematicPlacement;
 import com.kartersanamo.havoc.world.SchematicService;
 import com.sk89q.worldedit.CuboidClipboard;
+import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.MaxChangedBlocksException;
 import com.sk89q.worldedit.data.DataException;
 import org.bukkit.Bukkit;
@@ -719,9 +720,20 @@ public final class BaseService {
     }
 
     private final class SpawnPlan {
+        private static final int PHASE_SEARCH = 0;
+        private static final int PHASE_PRELOAD = 1;
+        private static final int PHASE_SNAPSHOT = 2;
+        private static final int PHASE_PASTE = 3;
+        private static final int PHASE_CLAIM = 4;
+        private static final int PHASE_FINALIZE = 5;
+
+        private final int preloadChunksPerTick = 8;
+        private final int snapshotColumnsPerTick = 8;
+        private final int pasteColumnsPerTick = 4;
+        private final int claimChunksPerTick = 6;
+
         private final BaseDifficulty difficulty;
         private boolean initialized;
-        private boolean failed;
         private int attempt;
         private World world;
         private CuboidClipboard clip;
@@ -738,6 +750,21 @@ public final class BaseService {
         private int chunkLocalX;
         private int chunkLocalZ;
 
+        private int phase = PHASE_SEARCH;
+        private int ox;
+        private int oy;
+        private int oz;
+        private int chunkFootprintRadius;
+        private ActiveHavocBase base;
+        private ColumnBoxSnapshot snapshot;
+        private ArrayList<ChunkKey> sortedClaims;
+        private ArrayList<ChunkKey> preloadChunks;
+        private int preloadCursor;
+        private int snapshotColumnCursor;
+        private EditSession pasteSession;
+        private int pasteColumnCursor;
+        private int claimCursor;
+
         private SpawnPlan(BaseDifficulty difficulty) {
             this.difficulty = difficulty;
         }
@@ -746,22 +773,25 @@ public final class BaseService {
             if (!initialized) {
                 initialized = true;
                 if (!init()) {
-                    failed = true;
                     return true;
                 }
             }
-            if (failed) {
-                return true;
+            switch (phase) {
+                case PHASE_SEARCH:
+                    return tickSearch();
+                case PHASE_PRELOAD:
+                    return tickPreload();
+                case PHASE_SNAPSHOT:
+                    return tickSnapshot();
+                case PHASE_PASTE:
+                    return tickPaste();
+                case PHASE_CLAIM:
+                    return tickClaim();
+                case PHASE_FINALIZE:
+                    return finalizeSpawn();
+                default:
+                    return true;
             }
-            if (attempt >= 80) {
-                HavocDebug.announce(plugin, "Population: could not spawn " + difficulty + " after 80 attempts.");
-                return true;
-            }
-            if (attemptSpawnForCurrentAttempt(attempt)) {
-                return true;
-            }
-            attempt++;
-            return false;
         }
 
         private boolean init() {
@@ -802,16 +832,29 @@ public final class BaseService {
             return true;
         }
 
-        private boolean attemptSpawnForCurrentAttempt(int attemptNo) {
+        private boolean tickSearch() {
+            for (int i = 0; i < 2; i++) {
+                if (attempt >= 80) {
+                    HavocDebug.announce(plugin, "Population: could not spawn " + difficulty + " after 80 attempts.");
+                    return true;
+                }
+                if (selectCandidate()) {
+                    return false;
+                }
+                attempt++;
+            }
+            return false;
+        }
+
+        private boolean selectCandidate() {
             HavocConfig cfg = plugin.getHavocConfig();
             int chunkCx = ThreadLocalRandom.current().nextInt(minC, maxC + 1);
             int chunkCz = ThreadLocalRandom.current().nextInt(minC, maxC + 1);
             int chunkMidX = chunkCx * 16 + chunkLocalX;
             int chunkMidZ = chunkCz * 16 + chunkLocalZ;
             int targetY = cfg.getPasteCenterWorldY();
-            int ox = chunkMidX - off[0];
-            int oz = chunkMidZ - off[2];
-            int oy;
+            ox = chunkMidX - off[0];
+            oz = chunkMidZ - off[2];
             if (cfg.isVerticalPasteSnapToBedrock()) {
                 int roof = SchematicPlacement.highestBedrockY(world, chunkMidX, chunkMidZ);
                 if (roof >= 0) {
@@ -822,8 +865,7 @@ public final class BaseService {
             } else {
                 oy = targetY - off[1] + ex[1];
             }
-            int worldH = world.getMaxHeight();
-            int yMax = worldH - h;
+            int yMax = world.getMaxHeight() - h;
             if (oy < 0) {
                 oy = 0;
             }
@@ -840,15 +882,174 @@ public final class BaseService {
             HashSet<ChunkKey> claimSet = new HashSet<ChunkKey>();
             analysis.collectClaimChunks(world.getName(), ox, oz, claimSet);
             analysis.ensureAnchorChunkClaimed(world.getName(), ox, oz, off[0], off[2], claimSet);
-            int rNew = footprintChunkRadiusFromClaims(occCx, occCz, claimSet);
-            if (!farEnough(occCx, occCz, sep, rNew)) {
+            chunkFootprintRadius = footprintChunkRadiusFromClaims(occCx, occCz, claimSet);
+            if (!farEnough(occCx, occCz, sep, chunkFootprintRadius)) {
                 return false;
             }
-            boolean ok = spawnAt(world, difficulty, clip, ox, oy, oz, off, w, h, len, claimSet, rNew);
-            if (!ok && attemptNo == 79) {
-                HavocDebug.announce(plugin, "Population: could not spawn " + difficulty + " (border/claims/place).");
+            base = new ActiveHavocBase(difficulty, world.getName());
+            base.pasteOriginX = ox;
+            base.pasteOriginY = oy;
+            base.pasteOriginZ = oz;
+            base.footprintSizeX = w;
+            base.footprintSizeZ = len;
+            base.chunkFootprintRadius = chunkFootprintRadius;
+            base.obsidianCenterX = ox + off[0];
+            base.obsidianCenterY = oy + off[1];
+            base.obsidianCenterZ = oz + off[2];
+            base.centerChunkX = Math.floorDiv(base.obsidianCenterX, 16);
+            base.centerChunkZ = Math.floorDiv(base.obsidianCenterZ, 16);
+
+            sortedClaims = new ArrayList<ChunkKey>(claimSet);
+            Collections.sort(sortedClaims, CHUNK_KEY_ORDER);
+            preloadChunks = new ArrayList<ChunkKey>();
+            HashSet<ChunkKey> preloadSet = new HashSet<ChunkKey>();
+            int minCx = Math.floorDiv(ox, 16);
+            int maxCx = Math.floorDiv(ox + w - 1, 16);
+            int minCz = Math.floorDiv(oz, 16);
+            int maxCz = Math.floorDiv(oz + len - 1, 16);
+            for (int cx = minCx; cx <= maxCx; cx++) {
+                for (int cz = minCz; cz <= maxCz; cz++) {
+                    ChunkKey key = new ChunkKey(world.getName(), cx, cz);
+                    if (preloadSet.add(key)) {
+                        preloadChunks.add(key);
+                    }
+                }
             }
-            return ok;
+            for (ChunkKey key : sortedClaims) {
+                if (key.getWorld().equals(world.getName()) && preloadSet.add(key)) {
+                    preloadChunks.add(key);
+                }
+            }
+            preloadCursor = 0;
+            snapshot = new ColumnBoxSnapshot(ox, oz, w, len, world.getMaxHeight());
+            base.terrainSnapshot = snapshot;
+            snapshotColumnCursor = 0;
+            pasteSession = null;
+            pasteColumnCursor = 0;
+            claimCursor = 0;
+            phase = PHASE_PRELOAD;
+            return true;
+        }
+
+        private boolean tickPreload() {
+            int done = 0;
+            while (preloadCursor < preloadChunks.size() && done < preloadChunksPerTick) {
+                ChunkKey key = preloadChunks.get(preloadCursor++);
+                Chunk ch = world.getChunkAt(key.getX(), key.getZ());
+                if (!ch.isLoaded()) {
+                    ch.load();
+                }
+                done++;
+            }
+            if (preloadCursor >= preloadChunks.size()) {
+                HavocDebug.announce(plugin, "Preparing snapshot " + w + "x" + len + " columns full height @ origin " + ox + "," + oz + " …");
+                phase = PHASE_SNAPSHOT;
+            }
+            return false;
+        }
+
+        private boolean tickSnapshot() {
+            int totalCols = w * len;
+            int count = Math.min(snapshotColumnsPerTick, totalCols - snapshotColumnCursor);
+            snapshot.captureColumns(world, snapshotColumnCursor, count);
+            snapshotColumnCursor += count;
+            if (snapshotColumnCursor >= totalCols) {
+                phase = PHASE_PASTE;
+            }
+            return false;
+        }
+
+        private boolean tickPaste() {
+            if (pasteSession == null) {
+                try {
+                    HavocDebug.announce(plugin, "Placing " + difficulty + " block-by-block at origin " + ox + "," + oy + "," + oz
+                            + " obsidian " + base.obsidianCenterX + "," + base.obsidianCenterY + "," + base.obsidianCenterZ
+                            + " (clipboard min = chunk alignment; claims=" + sortedClaims.size() + " chunks).");
+                    pasteSession = SchematicBlockPlacer.createSession(world);
+                } catch (IOException e) {
+                    failSpawn("PASTE FAILED: " + e.getMessage());
+                    return true;
+                }
+            }
+            int totalCols = w * len;
+            int count = Math.min(pasteColumnsPerTick, totalCols - pasteColumnCursor);
+            try {
+                SchematicBlockPlacer.pasteColumns(pasteSession, clip, ox, oy, oz, pasteColumnCursor, count);
+            } catch (MaxChangedBlocksException e) {
+                failSpawn("PASTE FAILED: " + e.getMessage());
+                return true;
+            }
+            pasteColumnCursor += count;
+            if (pasteColumnCursor >= totalCols) {
+                pasteSession.flushQueue();
+                pasteSession = null;
+                phase = PHASE_CLAIM;
+            }
+            return false;
+        }
+
+        private boolean tickClaim() {
+            int done = 0;
+            while (claimCursor < sortedClaims.size() && done < claimChunksPerTick) {
+                ChunkKey key = sortedClaims.get(claimCursor++);
+                if (!key.getWorld().equals(world.getName())) {
+                    continue;
+                }
+                try {
+                    Chunk ch = world.getChunkAt(key.getX(), key.getZ());
+                    plugin.getFactionsBridge().claimChunkForFaction(ch, havocFaction);
+                    base.claimedChunks.add(key);
+                } catch (Exception e) {
+                    failSpawn("CLAIM FAILED, reverting: " + e.getMessage());
+                    return true;
+                }
+                done++;
+            }
+            if (claimCursor >= sortedClaims.size()) {
+                phase = PHASE_FINALIZE;
+            }
+            return false;
+        }
+
+        private boolean finalizeSpawn() {
+            basesById.put(base.id, base);
+            for (ChunkKey key : base.claimedChunks) {
+                chunkOwners.put(key, base.id);
+            }
+            int minCx = Math.floorDiv(ox, 16);
+            int maxCx = Math.floorDiv(ox + w - 1, 16);
+            int minCz = Math.floorDiv(oz, 16);
+            int maxCz = Math.floorDiv(oz + len - 1, 16);
+            HavocDebug.announce(plugin, "Spawned " + difficulty + " base ~" + shortId(base.id) + " envelope chunks " + minCx + "," + minCz + " → " + maxCx + "," + maxCz
+                    + " (obsidian center chunk " + base.centerChunkX + "," + base.centerChunkZ + ", faction claims=" + base.claimedChunks.size() + ").");
+            plugin.getLogger().info("Spawned " + difficulty + " Havoc base ~" + shortId(base.id) + " at chunk " + base.centerChunkX + "," + base.centerChunkZ);
+            return true;
+        }
+
+        private void failSpawn(String debugMsg) {
+            plugin.getLogger().severe(debugMsg.replace("FAILED: ", "").replace("reverting: ", ""));
+            HavocDebug.announce(plugin, debugMsg);
+            if (pasteSession != null) {
+                pasteSession.flushQueue();
+                pasteSession = null;
+            }
+            if (base != null && !base.claimedChunks.isEmpty()) {
+                for (ChunkKey key : new ArrayList<ChunkKey>(base.claimedChunks)) {
+                    if (!key.getWorld().equals(world.getName())) {
+                        continue;
+                    }
+                    try {
+                        plugin.getFactionsBridge().unclaimChunk(world.getChunkAt(key.getX(), key.getZ()));
+                    } catch (Exception ignored) {
+                    }
+                }
+            }
+            if (snapshot != null) {
+                snapshot.applyAll(world);
+            }
+            if (base != null) {
+                base.claimedChunks.clear();
+            }
         }
     }
 
