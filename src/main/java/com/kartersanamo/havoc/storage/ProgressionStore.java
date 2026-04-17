@@ -47,6 +47,10 @@ public final class ProgressionStore {
         });
     }
 
+    public synchronized void resetAll() {
+        yaml = new YamlConfiguration();
+    }
+
     /**
      * After a breach of {@code breached}, which difficulty coords should we point the player to next?
      */

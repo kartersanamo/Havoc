@@ -16,6 +16,9 @@ import org.bukkit.WorldBorder;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
+import java.time.Duration;
+import java.time.ZonedDateTime;
+import java.time.ZoneId;
 
 public final class Havoc extends JavaPlugin {
 
@@ -27,6 +30,7 @@ public final class Havoc extends JavaPlugin {
     private SalvageStore salvageStore;
     private ProgressionStore progressionStore;
     private SalvageShop salvageShop;
+    private int progressionResetTaskId = -1;
 
     public static Havoc getInstance() {
         return instance;
@@ -70,6 +74,7 @@ public final class Havoc extends JavaPlugin {
             getCommand("havoc").setExecutor(ex);
             getCommand("havoc").setTabCompleter(ex);
         }
+        scheduleNextProgressionReset();
         applyWorldBorder();
         HavocDebug.announce(this, "Havoc enabled — world \"" + havocConfig.getWorldName() + "\" chunk centers (8,8), WE offset mode + optional bedrock snap (see config.yml).");
     }
@@ -87,6 +92,7 @@ public final class Havoc extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        cancelProgressionResetTask();
         if (baseService != null) {
             baseService.shutdownFull();
         }
@@ -97,6 +103,36 @@ public final class Havoc extends JavaPlugin {
             progressionStore.save();
         }
         instance = null;
+    }
+
+    private void cancelProgressionResetTask() {
+        if (progressionResetTaskId != -1) {
+            Bukkit.getScheduler().cancelTask(progressionResetTaskId);
+            progressionResetTaskId = -1;
+        }
+    }
+
+    private void scheduleNextProgressionReset() {
+        cancelProgressionResetTask();
+        final ZoneId zone = ZoneId.of("America/New_York");
+        ZonedDateTime now = ZonedDateTime.now(zone);
+        ZonedDateTime nextMidnight = now.toLocalDate().plusDays(1).atStartOfDay(zone);
+        long delayMs = Duration.between(now, nextMidnight).toMillis();
+        long delayTicks = Math.max(1L, delayMs / 50L);
+        progressionResetTaskId = Bukkit.getScheduler().runTaskLaterAsynchronously(this, new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    if (progressionStore != null) {
+                        progressionStore.resetAll();
+                        progressionStore.save();
+                    }
+                    getLogger().info("Progression reset completed at midnight America/New_York.");
+                } finally {
+                    scheduleNextProgressionReset();
+                }
+            }
+        }, delayTicks).getTaskId();
     }
 
     public HavocConfig getHavocConfig() {
