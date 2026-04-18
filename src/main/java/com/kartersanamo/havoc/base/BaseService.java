@@ -38,6 +38,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 
 public final class BaseService {
+    private static final int MIN_BASE_SEPARATION_BLOCKS = 500;
+    private static final int MIN_ORIGIN_DISTANCE_BLOCKS = 500;
 
     private static final Comparator<ChunkKey> CHUNK_KEY_ORDER = new Comparator<ChunkKey>() {
         @Override
@@ -599,9 +601,21 @@ public final class BaseService {
             if (!fitsInBorder(ox, oz, w, len, half)) {
                 continue;
             }
+            if (!isFarEnoughFromOrigin(obsX, obsZ)) {
+                continue;
+            }
+            if (!isFarEnoughFromOtherBases(obsX, obsZ, world.getName())) {
+                continue;
+            }
             HashSet<ChunkKey> claimSet = new HashSet<ChunkKey>();
             analysis.collectClaimChunks(world.getName(), ox, oz, claimSet);
             analysis.ensureAnchorChunkClaimed(world.getName(), ox, oz, off[0], off[2], claimSet);
+            if (overlapsExistingFootprint(world.getName(), ox, oz, w, len)) {
+                continue;
+            }
+            if (overlapsExistingClaims(claimSet)) {
+                continue;
+            }
             int rNew = footprintChunkRadiusFromClaims(occCx, occCz, claimSet);
             if (!farEnough(occCx, occCz, sep, rNew)) {
                 continue;
@@ -623,6 +637,63 @@ public final class BaseService {
             r = Math.max(r, Math.max(Math.abs(k.getX() - obsidianChunkX), Math.abs(k.getZ() - obsidianChunkZ)));
         }
         return r;
+    }
+
+    private static boolean rectanglesOverlap(int aMinX, int aMinZ, int aMaxX, int aMaxZ, int bMinX, int bMinZ, int bMaxX, int bMaxZ) {
+        return aMinX <= bMaxX && aMaxX >= bMinX && aMinZ <= bMaxZ && aMaxZ >= bMinZ;
+    }
+
+    private boolean overlapsExistingFootprint(String worldName, int ox, int oz, int w, int len) {
+        int aMinX = ox;
+        int aMaxX = ox + w - 1;
+        int aMinZ = oz;
+        int aMaxZ = oz + len - 1;
+        for (ActiveHavocBase b : basesById.values()) {
+            if (!b.worldName.equals(worldName)) {
+                continue;
+            }
+            int bMinX = b.pasteOriginX;
+            int bMaxX = b.pasteOriginX + b.footprintSizeX - 1;
+            int bMinZ = b.pasteOriginZ;
+            int bMaxZ = b.pasteOriginZ + b.footprintSizeZ - 1;
+            if (rectanglesOverlap(aMinX, aMinZ, aMaxX, aMaxZ, bMinX, bMinZ, bMaxX, bMaxZ)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean overlapsExistingClaims(Set<ChunkKey> claimSet) {
+        for (ChunkKey key : claimSet) {
+            if (chunkOwners.containsKey(key)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static long distSq2D(int ax, int az, int bx, int bz) {
+        long dx = (long) ax - bx;
+        long dz = (long) az - bz;
+        return dx * dx + dz * dz;
+    }
+
+    private static boolean isFarEnoughFromOrigin(int obsidianX, int obsidianZ) {
+        long minSq = (long) MIN_ORIGIN_DISTANCE_BLOCKS * MIN_ORIGIN_DISTANCE_BLOCKS;
+        return distSq2D(obsidianX, obsidianZ, 0, 0) >= minSq;
+    }
+
+    private boolean isFarEnoughFromOtherBases(int obsidianX, int obsidianZ, String worldName) {
+        long minSq = (long) MIN_BASE_SEPARATION_BLOCKS * MIN_BASE_SEPARATION_BLOCKS;
+        for (ActiveHavocBase b : basesById.values()) {
+            if (!b.worldName.equals(worldName)) {
+                continue;
+            }
+            if (distSq2D(obsidianX, obsidianZ, b.obsidianCenterX, b.obsidianCenterZ) < minSq) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private boolean farEnough(int cx, int cz, int sep, int newRadiusChunks) {
@@ -879,9 +950,21 @@ public final class BaseService {
             if (!fitsInBorder(ox, oz, w, len, half)) {
                 return false;
             }
+            if (!isFarEnoughFromOrigin(obsX, obsZ)) {
+                return false;
+            }
+            if (!isFarEnoughFromOtherBases(obsX, obsZ, world.getName())) {
+                return false;
+            }
             HashSet<ChunkKey> claimSet = new HashSet<ChunkKey>();
             analysis.collectClaimChunks(world.getName(), ox, oz, claimSet);
             analysis.ensureAnchorChunkClaimed(world.getName(), ox, oz, off[0], off[2], claimSet);
+            if (overlapsExistingFootprint(world.getName(), ox, oz, w, len)) {
+                return false;
+            }
+            if (overlapsExistingClaims(claimSet)) {
+                return false;
+            }
             chunkFootprintRadius = footprintChunkRadiusFromClaims(occCx, occCz, claimSet);
             if (!farEnough(occCx, occCz, sep, chunkFootprintRadius)) {
                 return false;
