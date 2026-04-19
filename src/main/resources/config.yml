@@ -19,6 +19,14 @@ min-center-separation-chunks: 20
 # Broadcast [Havoc] ... to the whole server for spawn/breach/restore/disable (very noisy on purpose)
 debug-broadcast-game: true
 
+timers:
+  maintainer-initial-delay-ticks: 40
+  maintainer-period-ticks: 200
+  restore-ticker-period-ticks: 1
+  spawn-worker-period-ticks: 1
+  lock-notify-cooldown-ms: 1500
+  progression-reset-timezone: "America/New_York"
+
 # Chunks around each base (Manhattan radius from each base chunk) snapshotted at breach for later reset
 watch-chunk-radius: 5
 
@@ -30,6 +38,19 @@ breach-materials:
 
 # Seconds until base blocks are fully restored and satellite chunks reset / unclaimed
 restore-seconds: 1800
+
+placement:
+  spawn-max-attempts: 80
+  spawn-border-padding-blocks: 32
+  spawn-search-attempts-per-tick: 2
+  min-base-separation-blocks: 500
+  min-origin-distance-blocks: 500
+
+performance:
+  spawn-preload-chunks-per-tick: 8
+  spawn-snapshot-columns-per-tick: 8
+  spawn-paste-columns-per-tick: 4
+  spawn-claim-chunks-per-tick: 6
 
 # When USE_CONFIG_Y: world Y of obsidian column uses paste-center-world-y and schematic-center-from-min dy.
 # When SNAP_BOTTOM_TO_BEDROCK (default): paste Y is chosen so the lowest non-air schematic row (full traverse) sits

@@ -38,8 +38,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 
 public final class BaseService {
-    private static final int MIN_BASE_SEPARATION_BLOCKS = 500;
-    private static final int MIN_ORIGIN_DISTANCE_BLOCKS = 500;
 
     private static final Comparator<ChunkKey> CHUNK_KEY_ORDER = new Comparator<ChunkKey>() {
         @Override
@@ -88,19 +86,19 @@ public final class BaseService {
             public void run() {
                 maintainPopulation();
             }
-        }, 40L, 200L);
+        }, plugin.getHavocConfig().getMaintainerInitialDelayTicks(), plugin.getHavocConfig().getMaintainerPeriodTicks());
         restoreTaskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin, new Runnable() {
             @Override
             public void run() {
                 tickRestores();
             }
-        }, 1L, 1L);
+        }, 1L, plugin.getHavocConfig().getRestoreTickerPeriodTicks());
         spawnWorkerTaskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin, new Runnable() {
             @Override
             public void run() {
                 tickSpawnWorker();
             }
-        }, 1L, 1L);
+        }, 1L, plugin.getHavocConfig().getSpawnWorkerPeriodTicks());
         HavocDebug.announce(plugin, "Base maintainer + restore tickers started.");
     }
 
@@ -554,14 +552,15 @@ public final class BaseService {
                 + " (non-air Y " + analysis.lowestNonAirY + ".." + analysis.highestNonAirY + ").");
 
         int half = cfg.getBorderHalfSize();
-        int minC = (-half + 32) / 16;
-        int maxC = (half - 32) / 16;
+        int pad = cfg.getSpawnBorderPaddingBlocks();
+        int minC = (-half + pad) / 16;
+        int maxC = (half - pad) / 16;
         int sep = cfg.getMinCenterSeparationChunks();
         int[] off = cfg.getSchematicCenterOffset(d);
         int[] ex = cfg.getPasteExtraWorldDelta();
         int chunkLocalX = cfg.getChunkCenterLocalX();
         int chunkLocalZ = cfg.getChunkCenterLocalZ();
-        for (int attempt = 0; attempt < 80; attempt++) {
+        for (int attempt = 0; attempt < cfg.getSpawnMaxAttempts(); attempt++) {
             int chunkCx = ThreadLocalRandom.current().nextInt(minC, maxC + 1);
             int chunkCz = ThreadLocalRandom.current().nextInt(minC, maxC + 1);
             int chunkMidX = chunkCx * 16 + chunkLocalX;
@@ -678,13 +677,15 @@ public final class BaseService {
         return dx * dx + dz * dz;
     }
 
-    private static boolean isFarEnoughFromOrigin(int obsidianX, int obsidianZ) {
-        long minSq = (long) MIN_ORIGIN_DISTANCE_BLOCKS * MIN_ORIGIN_DISTANCE_BLOCKS;
+    private boolean isFarEnoughFromOrigin(int obsidianX, int obsidianZ) {
+        int min = plugin.getHavocConfig().getMinOriginDistanceBlocks();
+        long minSq = (long) min * min;
         return distSq2D(obsidianX, obsidianZ, 0, 0) >= minSq;
     }
 
     private boolean isFarEnoughFromOtherBases(int obsidianX, int obsidianZ, String worldName) {
-        long minSq = (long) MIN_BASE_SEPARATION_BLOCKS * MIN_BASE_SEPARATION_BLOCKS;
+        int min = plugin.getHavocConfig().getMinBaseSeparationBlocks();
+        long minSq = (long) min * min;
         for (ActiveHavocBase b : basesById.values()) {
             if (!b.worldName.equals(worldName)) {
                 continue;
@@ -798,10 +799,12 @@ public final class BaseService {
         private static final int PHASE_CLAIM = 4;
         private static final int PHASE_FINALIZE = 5;
 
-        private final int preloadChunksPerTick = 8;
-        private final int snapshotColumnsPerTick = 8;
-        private final int pasteColumnsPerTick = 4;
-        private final int claimChunksPerTick = 6;
+        private int preloadChunksPerTick;
+        private int snapshotColumnsPerTick;
+        private int pasteColumnsPerTick;
+        private int claimChunksPerTick;
+        private int searchAttemptsPerTick;
+        private int maxAttempts;
 
         private final BaseDifficulty difficulty;
         private boolean initialized;
@@ -892,21 +895,28 @@ public final class BaseService {
             h = analysis.height;
             len = analysis.length;
             half = cfg.getBorderHalfSize();
-            minC = (-half + 32) / 16;
-            maxC = (half - 32) / 16;
+            int pad = cfg.getSpawnBorderPaddingBlocks();
+            minC = (-half + pad) / 16;
+            maxC = (half - pad) / 16;
             sep = cfg.getMinCenterSeparationChunks();
             off = cfg.getSchematicCenterOffset(difficulty);
             ex = cfg.getPasteExtraWorldDelta();
             chunkLocalX = cfg.getChunkCenterLocalX();
             chunkLocalZ = cfg.getChunkCenterLocalZ();
+            preloadChunksPerTick = cfg.getSpawnPreloadChunksPerTick();
+            snapshotColumnsPerTick = cfg.getSpawnSnapshotColumnsPerTick();
+            pasteColumnsPerTick = cfg.getSpawnPasteColumnsPerTick();
+            claimChunksPerTick = cfg.getSpawnClaimChunksPerTick();
+            searchAttemptsPerTick = cfg.getSpawnSearchAttemptsPerTick();
+            maxAttempts = cfg.getSpawnMaxAttempts();
             HavocDebug.announce(plugin, "Spawn worker " + difficulty + ": schematic " + w + " x " + h + " x " + len + " prepared.");
             return true;
         }
 
         private boolean tickSearch() {
-            for (int i = 0; i < 2; i++) {
-                if (attempt >= 80) {
-                    HavocDebug.announce(plugin, "Population: could not spawn " + difficulty + " after 80 attempts.");
+            for (int i = 0; i < searchAttemptsPerTick; i++) {
+                if (attempt >= maxAttempts) {
+                    HavocDebug.announce(plugin, "Population: could not spawn " + difficulty + " after " + maxAttempts + " attempts.");
                     return true;
                 }
                 if (selectCandidate()) {

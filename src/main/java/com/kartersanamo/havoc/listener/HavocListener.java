@@ -99,7 +99,7 @@ public final class HavocListener implements Listener {
     private void notifyLocked(org.bukkit.entity.Player player, String key) {
         long now = System.currentTimeMillis();
         Long prev = notifyCooldownMs.get(player.getUniqueId());
-        if (prev != null && now - prev < 1500L) {
+        if (prev != null && now - prev < plugin.getHavocConfig().getLockNotifyCooldownMs()) {
             return;
         }
         notifyCooldownMs.put(player.getUniqueId(), now);

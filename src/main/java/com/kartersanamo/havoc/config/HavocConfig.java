@@ -48,6 +48,21 @@ public final class HavocConfig {
     private double spawnX;
     private double spawnY;
     private double spawnZ;
+    private int maintainerInitialDelayTicks;
+    private int maintainerPeriodTicks;
+    private int restoreTickerPeriodTicks;
+    private int spawnWorkerPeriodTicks;
+    private int spawnMaxAttempts;
+    private int spawnBorderPaddingBlocks;
+    private int spawnSearchAttemptsPerTick;
+    private int spawnPreloadChunksPerTick;
+    private int spawnSnapshotColumnsPerTick;
+    private int spawnPasteColumnsPerTick;
+    private int spawnClaimChunksPerTick;
+    private int minBaseSeparationBlocks;
+    private int minOriginDistanceBlocks;
+    private long lockNotifyCooldownMs;
+    private String progressionResetTimezone;
     private Set<Material> breachMaterials = new HashSet<Material>();
 
     public HavocConfig(JavaPlugin plugin) {
@@ -119,6 +134,21 @@ public final class HavocConfig {
             salvageHardMax = sr.getInt("HARD_MAX", 300);
         }
         rewardRadius = c.getInt("reward-radius", 32);
+        maintainerInitialDelayTicks = Math.max(1, c.getInt("timers.maintainer-initial-delay-ticks", 40));
+        maintainerPeriodTicks = Math.max(1, c.getInt("timers.maintainer-period-ticks", 200));
+        restoreTickerPeriodTicks = Math.max(1, c.getInt("timers.restore-ticker-period-ticks", 1));
+        spawnWorkerPeriodTicks = Math.max(1, c.getInt("timers.spawn-worker-period-ticks", 1));
+        spawnMaxAttempts = Math.max(1, c.getInt("placement.spawn-max-attempts", 80));
+        spawnBorderPaddingBlocks = Math.max(0, c.getInt("placement.spawn-border-padding-blocks", 32));
+        spawnSearchAttemptsPerTick = Math.max(1, c.getInt("placement.spawn-search-attempts-per-tick", 2));
+        spawnPreloadChunksPerTick = Math.max(1, c.getInt("performance.spawn-preload-chunks-per-tick", 8));
+        spawnSnapshotColumnsPerTick = Math.max(1, c.getInt("performance.spawn-snapshot-columns-per-tick", 8));
+        spawnPasteColumnsPerTick = Math.max(1, c.getInt("performance.spawn-paste-columns-per-tick", 4));
+        spawnClaimChunksPerTick = Math.max(1, c.getInt("performance.spawn-claim-chunks-per-tick", 6));
+        minBaseSeparationBlocks = Math.max(0, c.getInt("placement.min-base-separation-blocks", 500));
+        minOriginDistanceBlocks = Math.max(0, c.getInt("placement.min-origin-distance-blocks", 500));
+        lockNotifyCooldownMs = Math.max(0L, c.getLong("timers.lock-notify-cooldown-ms", 1500L));
+        progressionResetTimezone = c.getString("timers.progression-reset-timezone", "America/New_York");
         ConfigurationSection sp = c.getConfigurationSection("spawn");
         if (sp != null) {
             spawnWorld = sp.getString("world", worldName);
@@ -342,5 +372,65 @@ public final class HavocConfig {
 
     public Set<Material> getBreachMaterials() {
         return breachMaterials;
+    }
+
+    public int getMaintainerInitialDelayTicks() {
+        return maintainerInitialDelayTicks;
+    }
+
+    public int getMaintainerPeriodTicks() {
+        return maintainerPeriodTicks;
+    }
+
+    public int getRestoreTickerPeriodTicks() {
+        return restoreTickerPeriodTicks;
+    }
+
+    public int getSpawnWorkerPeriodTicks() {
+        return spawnWorkerPeriodTicks;
+    }
+
+    public int getSpawnMaxAttempts() {
+        return spawnMaxAttempts;
+    }
+
+    public int getSpawnBorderPaddingBlocks() {
+        return spawnBorderPaddingBlocks;
+    }
+
+    public int getSpawnSearchAttemptsPerTick() {
+        return spawnSearchAttemptsPerTick;
+    }
+
+    public int getSpawnPreloadChunksPerTick() {
+        return spawnPreloadChunksPerTick;
+    }
+
+    public int getSpawnSnapshotColumnsPerTick() {
+        return spawnSnapshotColumnsPerTick;
+    }
+
+    public int getSpawnPasteColumnsPerTick() {
+        return spawnPasteColumnsPerTick;
+    }
+
+    public int getSpawnClaimChunksPerTick() {
+        return spawnClaimChunksPerTick;
+    }
+
+    public int getMinBaseSeparationBlocks() {
+        return minBaseSeparationBlocks;
+    }
+
+    public int getMinOriginDistanceBlocks() {
+        return minOriginDistanceBlocks;
+    }
+
+    public long getLockNotifyCooldownMs() {
+        return lockNotifyCooldownMs;
+    }
+
+    public String getProgressionResetTimezone() {
+        return progressionResetTimezone;
     }
 }

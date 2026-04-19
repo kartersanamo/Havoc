@@ -114,9 +114,17 @@ public final class Havoc extends JavaPlugin {
 
     private void scheduleNextProgressionReset() {
         cancelProgressionResetTask();
-        final ZoneId zone = ZoneId.of("America/New_York");
-        ZonedDateTime now = ZonedDateTime.now(zone);
-        ZonedDateTime nextMidnight = now.toLocalDate().plusDays(1).atStartOfDay(zone);
+        ZoneId zone;
+        try {
+            zone = ZoneId.of(havocConfig.getProgressionResetTimezone());
+        } catch (Exception e) {
+            getLogger().warning("Invalid timers.progression-reset-timezone \"" + havocConfig.getProgressionResetTimezone()
+                    + "\"; falling back to America/New_York.");
+            zone = ZoneId.of("America/New_York");
+        }
+        final ZoneId resetZone = zone;
+        ZonedDateTime now = ZonedDateTime.now(resetZone);
+        ZonedDateTime nextMidnight = now.toLocalDate().plusDays(1).atStartOfDay(resetZone);
         long delayMs = Duration.between(now, nextMidnight).toMillis();
         long delayTicks = Math.max(1L, delayMs / 50L);
         progressionResetTaskId = Bukkit.getScheduler().runTaskLaterAsynchronously(this, new Runnable() {
@@ -127,7 +135,7 @@ public final class Havoc extends JavaPlugin {
                         progressionStore.resetAll();
                         progressionStore.save();
                     }
-                    getLogger().info("Progression reset completed at midnight America/New_York.");
+                    getLogger().info("Progression reset completed at midnight " + resetZone.getId() + ".");
                 } finally {
                     scheduleNextProgressionReset();
                 }
