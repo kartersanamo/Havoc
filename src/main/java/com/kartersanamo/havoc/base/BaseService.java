@@ -248,6 +248,24 @@ public final class BaseService {
         return list;
     }
 
+    public ActiveHavocBase getBaseById(UUID id) {
+        return basesById.get(id);
+    }
+
+    public boolean adminForceStartRestore(UUID id) {
+        ActiveHavocBase b = basesById.get(id);
+        if (b == null || b.state != BaseState.ACTIVE) {
+            return false;
+        }
+        World w = Bukkit.getWorld(b.worldName);
+        if (w == null) {
+            return false;
+        }
+        Location breachLoc = new Location(w, b.obsidianCenterX, b.obsidianCenterY, b.obsidianCenterZ);
+        breach(b, breachLoc, null);
+        return true;
+    }
+
     public boolean tryBreachBlock(Block block, Player progressionCredit) {
         ActiveHavocBase base = findByChunk(block.getChunk());
         if (base == null || base.state != BaseState.ACTIVE) {

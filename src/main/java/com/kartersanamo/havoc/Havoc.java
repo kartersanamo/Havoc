@@ -1,6 +1,7 @@
 package com.kartersanamo.havoc;
 
 import com.kartersanamo.havoc.base.BaseService;
+import com.kartersanamo.havoc.admin.BaseAdminGui;
 import com.kartersanamo.havoc.command.HavocCommandExecutor;
 import com.kartersanamo.havoc.config.HavocConfig;
 import com.kartersanamo.havoc.debug.HavocDebug;
@@ -26,6 +27,7 @@ public final class Havoc extends JavaPlugin {
     private HavocConfig havocConfig;
     private FactionsBridge factionsBridge;
     private BaseService baseService;
+    private BaseAdminGui baseAdminGui;
     private MessageService messages;
     private SalvageStore salvageStore;
     private ProgressionStore progressionStore;
@@ -67,6 +69,7 @@ public final class Havoc extends JavaPlugin {
         }
         baseService = new BaseService(this);
         baseService.start();
+        baseAdminGui = new BaseAdminGui(this);
         salvageShop = new SalvageShop(this);
         Bukkit.getPluginManager().registerEvents(new HavocListener(this), this);
         if (getCommand("havoc") != null) {
@@ -169,5 +172,9 @@ public final class Havoc extends JavaPlugin {
 
     public MessageService getMessages() {
         return messages;
+    }
+
+    public BaseAdminGui getBaseAdminGui() {
+        return baseAdminGui;
     }
 }

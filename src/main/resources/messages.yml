@@ -7,6 +7,7 @@ command:
       - "&e/havoc admin list &7- list active Havoc bases"
       - "&e/havoc admin spawn <EASY|MEDIUM|HARD> &7- force-spawn one base"
       - "&e/havoc admin reload &7- reload Havoc, shop, and messages configs"
+      - "&e/havoc admin salvage <add|set|show> <player> [amount] &7- manage Salvage"
   players-only: "&cPlayers only."
   no-permission: "&cNo permission."
   salvage-balance: "&6Salvage: &e{balance}"
@@ -25,6 +26,15 @@ admin:
     invalid-tier: "&cInvalid tier."
     success: "&aSpawned one {difficulty} base."
     failed: "&cSpawn failed (see console)."
+  salvage:
+    usage: "&7Usage: /havoc admin salvage <add|set|show> <player> [amount]"
+    invalid-action: "&cInvalid salvage action. Use add, set, or show."
+    player-not-found: "&cPlayer not found: &f{player}"
+    amount-required: "&cAmount is required for add/set."
+    invalid-amount: "&cInvalid amount."
+    show: "&e{player}&7 has &6{balance}&7 Salvage."
+    add-success: "&aAdded &e{amount}&a Salvage to &f{player}&a. New balance: &e{balance}&a."
+    set-success: "&aSet &f{player}&a Salvage to &e{balance}&a."
 
 shop:
   purchase:

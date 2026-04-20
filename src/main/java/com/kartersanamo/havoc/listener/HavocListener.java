@@ -88,6 +88,14 @@ public final class HavocListener implements Listener {
         if (!(event.getWhoClicked() instanceof org.bukkit.entity.Player)) {
             return;
         }
+        if (event.getView().getTopInventory() != null && plugin.getBaseAdminGui().isAdminInventory(event.getView().getTopInventory())) {
+            event.setCancelled(true);
+            if (event.getClickedInventory() != null && event.getClickedInventory().equals(event.getView().getTopInventory())) {
+                plugin.getBaseAdminGui().handleClick((org.bukkit.entity.Player) event.getWhoClicked(),
+                        event.getView().getTopInventory(), event.getRawSlot());
+            }
+            return;
+        }
         if (event.getView().getTopInventory() != null && plugin.getSalvageShop().isShopInventory(event.getView().getTopInventory())) {
             event.setCancelled(true);
             if (event.getClickedInventory() != null && event.getClickedInventory().equals(event.getView().getTopInventory())) {

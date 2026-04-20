@@ -4,6 +4,8 @@ import com.kartersanamo.havoc.Havoc;
 import com.kartersanamo.havoc.base.ActiveHavocBase;
 import com.kartersanamo.havoc.base.BaseDifficulty;
 import com.kartersanamo.havoc.config.HavocConfig;
+import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -64,6 +66,10 @@ public final class HavocCommandExecutor implements CommandExecutor, TabCompleter
             }
             String a1 = args[1].toLowerCase(Locale.ROOT);
             if ("list".equals(a1)) {
+                if (sender instanceof Player) {
+                    plugin.getBaseAdminGui().openList((Player) sender);
+                    return true;
+                }
                 List<ActiveHavocBase> bases = plugin.getBaseService().listAllBasesSorted();
                 if (bases.isEmpty()) {
                     plugin.getMessages().send(sender, "admin.list.empty");
@@ -112,6 +118,57 @@ public final class HavocCommandExecutor implements CommandExecutor, TabCompleter
                 plugin.getMessages().send(sender, ok ? "admin.spawn.success" : "admin.spawn.failed", one("difficulty", d.name()));
                 return true;
             }
+            if ("salvage".equals(a1)) {
+                if (args.length < 4) {
+                    plugin.getMessages().send(sender, "admin.salvage.usage");
+                    return true;
+                }
+                String mode = args[2].toLowerCase(Locale.ROOT);
+                OfflinePlayer target = Bukkit.getOfflinePlayer(args[3]);
+                if (target == null || (!target.isOnline() && !target.hasPlayedBefore())) {
+                    plugin.getMessages().send(sender, "admin.salvage.player-not-found", one("player", args[3]));
+                    return true;
+                }
+                if ("show".equals(mode)) {
+                    int bal = plugin.getSalvageStore().get(target.getUniqueId());
+                    Map<String, String> vars = new HashMap<String, String>();
+                    vars.put("player", target.getName() == null ? args[3] : target.getName());
+                    vars.put("balance", String.valueOf(bal));
+                    plugin.getMessages().send(sender, "admin.salvage.show", vars);
+                    return true;
+                }
+                if (!"add".equals(mode) && !"set".equals(mode)) {
+                    plugin.getMessages().send(sender, "admin.salvage.invalid-action");
+                    return true;
+                }
+                if (args.length < 5) {
+                    plugin.getMessages().send(sender, "admin.salvage.amount-required");
+                    return true;
+                }
+                int amount;
+                try {
+                    amount = Integer.parseInt(args[4]);
+                } catch (NumberFormatException e) {
+                    plugin.getMessages().send(sender, "admin.salvage.invalid-amount");
+                    return true;
+                }
+                if ("set".equals(mode) && amount < 0) {
+                    plugin.getMessages().send(sender, "admin.salvage.invalid-amount");
+                    return true;
+                }
+                if ("add".equals(mode)) {
+                    plugin.getSalvageStore().add(target.getUniqueId(), amount);
+                } else {
+                    plugin.getSalvageStore().set(target.getUniqueId(), amount);
+                }
+                int bal = plugin.getSalvageStore().get(target.getUniqueId());
+                Map<String, String> vars = new HashMap<String, String>();
+                vars.put("player", target.getName() == null ? args[3] : target.getName());
+                vars.put("amount", String.valueOf(amount));
+                vars.put("balance", String.valueOf(bal));
+                plugin.getMessages().send(sender, "add".equals(mode) ? "admin.salvage.add-success" : "admin.salvage.set-success", vars);
+                return true;
+            }
         }
         plugin.getMessages().send(sender, "command.unknown-subcommand");
         return true;
@@ -123,10 +180,20 @@ public final class HavocCommandExecutor implements CommandExecutor, TabCompleter
             return partial(Arrays.asList("shop", "salvage", "admin"), args[0]);
         }
         if (args.length == 2 && "admin".equalsIgnoreCase(args[0]) && sender.hasPermission("havoc.admin")) {
-            return partial(Arrays.asList("list", "reload", "spawn"), args[1]);
+            return partial(Arrays.asList("list", "reload", "spawn", "salvage"), args[1]);
         }
         if (args.length == 3 && "admin".equalsIgnoreCase(args[0]) && "spawn".equalsIgnoreCase(args[1]) && sender.hasPermission("havoc.admin")) {
             return partial(Arrays.asList("EASY", "MEDIUM", "HARD"), args[2]);
+        }
+        if (args.length == 3 && "admin".equalsIgnoreCase(args[0]) && "salvage".equalsIgnoreCase(args[1]) && sender.hasPermission("havoc.admin")) {
+            return partial(Arrays.asList("add", "set", "show"), args[2]);
+        }
+        if (args.length == 4 && "admin".equalsIgnoreCase(args[0]) && "salvage".equalsIgnoreCase(args[1]) && sender.hasPermission("havoc.admin")) {
+            List<String> names = new ArrayList<String>();
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                names.add(p.getName());
+            }
+            return partial(names, args[3]);
         }
         return Collections.emptyList();
     }
