@@ -6,6 +6,8 @@ command:
     admin:
       - "&e/havoc admin list &7- list active Havoc bases"
       - "&e/havoc admin spawn <EASY|MEDIUM|HARD> &7- force-spawn one base"
+      - "&e/havoc admin logs [page] &7- view audit logs"
+      - "&e/havoc admin logs <user|base> <value> [page] &7- filter audit logs"
       - "&e/havoc admin reload &7- reload Havoc, shop, and messages configs"
       - "&e/havoc admin salvage <add|set|show> <player> [amount] &7- manage Salvage"
   players-only: "&cPlayers only."
@@ -26,6 +28,10 @@ admin:
     invalid-tier: "&cInvalid tier."
     success: "&aSpawned one {difficulty} base."
     failed: "&cSpawn failed (see console)."
+  logs:
+    usage: "&7Usage: /havoc admin logs [page] OR /havoc admin logs <user|base> <value> [page]"
+    empty: "&7No logs found."
+    header: "&6Havoc Logs &7(scope: &f{scope}&7) &8- &7Page &f{page}&7/&f{pages}&7, total: &f{count}"
   salvage:
     usage: "&7Usage: /havoc admin salvage <add|set|show> <player> [amount]"
     invalid-action: "&cInvalid salvage action. Use add, set, or show."

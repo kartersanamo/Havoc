@@ -37,7 +37,7 @@ breach-materials:
   - WATER
 
 # Seconds until base blocks are fully restored and satellite chunks reset / unclaimed
-restore-seconds: 1800
+restore-seconds: 120
 
 placement:
   spawn-max-attempts: 80

@@ -106,6 +106,8 @@ public final class BaseAdminGui {
             }
             player.teleport(new Location(w, b.obsidianCenterX + 0.5, b.obsidianCenterY + 2.0, b.obsidianCenterZ + 0.5));
             player.sendMessage(ChatColor.GREEN + "Teleported to base " + shortId(b.id) + ".");
+            plugin.getLogService().log("ADMIN_BASE_TELEPORT", player.getName(), shortId(b.id),
+                    new Location(w, b.obsidianCenterX, b.obsidianCenterY, b.obsidianCenterZ), "teleport via GUI");
             return;
         }
         if (rawSlot == 16) {
@@ -116,6 +118,9 @@ public final class BaseAdminGui {
             boolean ok = plugin.getBaseService().adminForceStartRestore(b.id);
             player.sendMessage(ok ? ChatColor.GREEN + "Forced restore for base " + shortId(b.id) + "."
                     : ChatColor.RED + "Could not force restore that base.");
+            plugin.getLogService().log("ADMIN_BASE_FORCE_RESTORE", player.getName(), shortId(b.id),
+                    new Location(Bukkit.getWorld(b.worldName), b.obsidianCenterX, b.obsidianCenterY, b.obsidianCenterZ),
+                    "ok=" + ok);
             openList(player);
             return;
         }

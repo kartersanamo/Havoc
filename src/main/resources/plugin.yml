@@ -7,7 +7,7 @@ softdepend: [WorldEdit]
 commands:
   havoc:
     description: Havoc salvage shop and admin tools
-    usage: /<command> [shop|salvage|admin list|reload|spawn|salvage ...]
+    usage: /<command> [shop|salvage|admin list|reload|spawn|salvage|logs ...]
 
 permissions:
   havoc.admin:

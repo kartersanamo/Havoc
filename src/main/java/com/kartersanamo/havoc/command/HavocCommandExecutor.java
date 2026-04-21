@@ -1,6 +1,7 @@
 package com.kartersanamo.havoc.command;
 
 import com.kartersanamo.havoc.Havoc;
+import com.kartersanamo.havoc.audit.HavocLogService;
 import com.kartersanamo.havoc.base.ActiveHavocBase;
 import com.kartersanamo.havoc.base.BaseDifficulty;
 import com.kartersanamo.havoc.config.HavocConfig;
@@ -100,6 +101,7 @@ public final class HavocCommandExecutor implements CommandExecutor, TabCompleter
                 plugin.getProgressionStore().load();
                 plugin.applyWorldBorder();
                 plugin.getMessages().send(sender, "admin.reload.success");
+                plugin.getLogService().log("ADMIN_RELOAD", sender.getName(), "", null, "reload configs");
                 return true;
             }
             if ("spawn".equals(a1)) {
@@ -116,6 +118,8 @@ public final class HavocCommandExecutor implements CommandExecutor, TabCompleter
                 }
                 boolean ok = plugin.getBaseService().trySpawnOne(d);
                 plugin.getMessages().send(sender, ok ? "admin.spawn.success" : "admin.spawn.failed", one("difficulty", d.name()));
+                plugin.getLogService().log("ADMIN_SPAWN_" + (ok ? "SUCCESS" : "FAILED"), sender.getName(), "", null,
+                        "difficulty=" + d.name());
                 return true;
             }
             if ("salvage".equals(a1)) {
@@ -167,6 +171,13 @@ public final class HavocCommandExecutor implements CommandExecutor, TabCompleter
                 vars.put("amount", String.valueOf(amount));
                 vars.put("balance", String.valueOf(bal));
                 plugin.getMessages().send(sender, "add".equals(mode) ? "admin.salvage.add-success" : "admin.salvage.set-success", vars);
+                plugin.getLogService().log("ADMIN_SALVAGE_" + mode.toUpperCase(Locale.ROOT),
+                        sender.getName(), "", null,
+                        "target=" + vars.get("player") + ", amount=" + amount + ", balance=" + bal);
+                return true;
+            }
+            if ("logs".equals(a1)) {
+                handleLogsCommand(sender, args);
                 return true;
             }
         }
@@ -180,7 +191,7 @@ public final class HavocCommandExecutor implements CommandExecutor, TabCompleter
             return partial(Arrays.asList("shop", "salvage", "admin"), args[0]);
         }
         if (args.length == 2 && "admin".equalsIgnoreCase(args[0]) && sender.hasPermission("havoc.admin")) {
-            return partial(Arrays.asList("list", "reload", "spawn", "salvage"), args[1]);
+            return partial(Arrays.asList("list", "reload", "spawn", "salvage", "logs"), args[1]);
         }
         if (args.length == 3 && "admin".equalsIgnoreCase(args[0]) && "spawn".equalsIgnoreCase(args[1]) && sender.hasPermission("havoc.admin")) {
             return partial(Arrays.asList("EASY", "MEDIUM", "HARD"), args[2]);
@@ -195,7 +206,82 @@ public final class HavocCommandExecutor implements CommandExecutor, TabCompleter
             }
             return partial(names, args[3]);
         }
+        if (args.length == 3 && "admin".equalsIgnoreCase(args[0]) && "logs".equalsIgnoreCase(args[1]) && sender.hasPermission("havoc.admin")) {
+            return partial(Arrays.asList("user", "base", "1", "2", "3"), args[2]);
+        }
+        if (args.length == 4 && "admin".equalsIgnoreCase(args[0]) && "logs".equalsIgnoreCase(args[1]) && "user".equalsIgnoreCase(args[2]) && sender.hasPermission("havoc.admin")) {
+            List<String> names = new ArrayList<String>();
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                names.add(p.getName());
+            }
+            return partial(names, args[3]);
+        }
         return Collections.emptyList();
+    }
+
+    private void handleLogsCommand(CommandSender sender, String[] args) {
+        List<HavocLogService.Entry> logs;
+        String scope;
+        int page = 1;
+        if (args.length == 2) {
+            logs = plugin.getLogService().queryAllNewestFirst();
+            scope = "all";
+        } else {
+            String mode = args[2].toLowerCase(Locale.ROOT);
+            if (isInt(mode)) {
+                logs = plugin.getLogService().queryAllNewestFirst();
+                scope = "all";
+                page = Integer.parseInt(mode);
+            } else if ("user".equals(mode)) {
+                if (args.length < 4) {
+                    plugin.getMessages().send(sender, "admin.logs.usage");
+                    return;
+                }
+                String user = args[3];
+                logs = plugin.getLogService().queryByUserNewestFirst(user);
+                scope = "user:" + user;
+                if (args.length >= 5 && isInt(args[4])) {
+                    page = Integer.parseInt(args[4]);
+                }
+            } else if ("base".equals(mode)) {
+                if (args.length < 4) {
+                    plugin.getMessages().send(sender, "admin.logs.usage");
+                    return;
+                }
+                String base = args[3];
+                logs = plugin.getLogService().queryByBaseNewestFirst(base);
+                scope = "base:" + base;
+                if (args.length >= 5 && isInt(args[4])) {
+                    page = Integer.parseInt(args[4]);
+                }
+            } else {
+                plugin.getMessages().send(sender, "admin.logs.usage");
+                return;
+            }
+        }
+        if (logs.isEmpty()) {
+            plugin.getMessages().send(sender, "admin.logs.empty");
+            return;
+        }
+        int perPage = 8;
+        int pages = Math.max(1, (logs.size() + perPage - 1) / perPage);
+        if (page < 1) {
+            page = 1;
+        }
+        if (page > pages) {
+            page = pages;
+        }
+        int from = (page - 1) * perPage;
+        int to = Math.min(logs.size(), from + perPage);
+        Map<String, String> hdr = new HashMap<String, String>();
+        hdr.put("scope", scope);
+        hdr.put("page", String.valueOf(page));
+        hdr.put("pages", String.valueOf(pages));
+        hdr.put("count", String.valueOf(logs.size()));
+        plugin.getMessages().send(sender, "admin.logs.header", hdr);
+        for (int i = from; i < to; i++) {
+            sender.sendMessage(plugin.getLogService().formatForChat(logs.get(i)));
+        }
     }
 
     private static List<String> partial(List<String> opts, String prefix) {
@@ -213,5 +299,14 @@ public final class HavocCommandExecutor implements CommandExecutor, TabCompleter
         Map<String, String> out = new HashMap<String, String>();
         out.put(key, value);
         return out;
+    }
+
+    private static boolean isInt(String raw) {
+        try {
+            Integer.parseInt(raw);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 }

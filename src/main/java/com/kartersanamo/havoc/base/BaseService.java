@@ -352,6 +352,11 @@ public final class BaseService {
         HavocConfig cfg = plugin.getHavocConfig();
         HavocDebug.announce(plugin, "BREACH " + base.difficulty + " base ~" + shortId(base.id) + " at chunk " + base.centerChunkX + "," + base.centerChunkZ
                 + " block " + breachLoc.getBlockX() + "," + breachLoc.getBlockY() + "," + breachLoc.getBlockZ());
+        plugin.getLogService().log("BASE_BREACH",
+                progressionCredit == null ? "" : progressionCredit.getName(),
+                shortId(base.id),
+                breachLoc,
+                "difficulty=" + base.difficulty + ", state=" + base.state);
         long now = System.currentTimeMillis();
         base.raidEndMs = now + cfg.getRestoreSeconds() * 1000L;
         base.satellite = SatelliteRing.capture(world, base.centerChunkX, base.centerChunkZ, cfg.getWatchChunkRadius());
@@ -474,6 +479,9 @@ public final class BaseService {
             b.restoreCursor += perTick;
             if (b.restoreCursor >= vol) {
                 HavocDebug.announce(plugin, "Terrain restore DONE for ~" + shortId(b.id) + " — unclaiming " + b.claimedChunks.size() + " chunk(s).");
+                plugin.getLogService().log("BASE_RESTORE_DONE", "", shortId(b.id),
+                        new Location(w, b.obsidianCenterX, b.obsidianCenterY, b.obsidianCenterZ),
+                        "claims=" + b.claimedChunks.size());
                 finishRestore(b, w);
                 unregisterChunks(b);
                 basesById.remove(b.id);
@@ -806,6 +814,9 @@ public final class BaseService {
         HavocDebug.announce(plugin, "Spawned " + d + " base ~" + shortId(base.id) + " envelope chunks " + minCx + "," + minCz + " → " + maxCx + "," + maxCz
                 + " (obsidian center chunk " + base.centerChunkX + "," + base.centerChunkZ + ", faction claims=" + base.claimedChunks.size() + ").");
         plugin.getLogger().info("Spawned " + d + " Havoc base ~" + shortId(base.id) + " at chunk " + base.centerChunkX + "," + base.centerChunkZ);
+        plugin.getLogService().log("BASE_SPAWN", "", shortId(base.id),
+                new Location(world, base.obsidianCenterX, base.obsidianCenterY, base.obsidianCenterZ),
+                "difficulty=" + d + ", claims=" + base.claimedChunks.size());
         return true;
     }
 
@@ -935,6 +946,8 @@ public final class BaseService {
             for (int i = 0; i < searchAttemptsPerTick; i++) {
                 if (attempt >= maxAttempts) {
                     HavocDebug.announce(plugin, "Population: could not spawn " + difficulty + " after " + maxAttempts + " attempts.");
+                    plugin.getLogService().log("SPAWN_FAIL", "", "", null,
+                            "difficulty=" + difficulty + ", attempts=" + maxAttempts);
                     return true;
                 }
                 if (selectCandidate()) {
@@ -1134,12 +1147,17 @@ public final class BaseService {
             HavocDebug.announce(plugin, "Spawned " + difficulty + " base ~" + shortId(base.id) + " envelope chunks " + minCx + "," + minCz + " → " + maxCx + "," + maxCz
                     + " (obsidian center chunk " + base.centerChunkX + "," + base.centerChunkZ + ", faction claims=" + base.claimedChunks.size() + ").");
             plugin.getLogger().info("Spawned " + difficulty + " Havoc base ~" + shortId(base.id) + " at chunk " + base.centerChunkX + "," + base.centerChunkZ);
+            plugin.getLogService().log("BASE_SPAWN", "", shortId(base.id),
+                    new Location(world, base.obsidianCenterX, base.obsidianCenterY, base.obsidianCenterZ),
+                    "difficulty=" + difficulty + ", claims=" + base.claimedChunks.size());
             return true;
         }
 
         private void failSpawn(String debugMsg) {
             plugin.getLogger().severe(debugMsg.replace("FAILED: ", "").replace("reverting: ", ""));
             HavocDebug.announce(plugin, debugMsg);
+            plugin.getLogService().log("SPAWN_FAIL", "", "", new Location(world, ox, oy, oz),
+                    "difficulty=" + difficulty + ", reason=" + debugMsg);
             if (pasteSession != null) {
                 pasteSession.flushQueue();
                 pasteSession = null;
