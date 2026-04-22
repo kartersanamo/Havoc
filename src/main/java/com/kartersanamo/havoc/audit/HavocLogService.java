@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -136,6 +137,59 @@ public final class HavocLogService {
                 + " §7- " + e.message;
     }
 
+    public synchronized List<Entry> queryByTypeNewestFirst(String type) {
+        String t = safe(type).toLowerCase(Locale.ROOT);
+        List<Entry> out = new ArrayList<Entry>();
+        for (Entry e : entries) {
+            if (!e.type.isEmpty() && e.type.toLowerCase(Locale.ROOT).contains(t)) {
+                out.add(e);
+            }
+        }
+        sortNewestFirst(out);
+        return out;
+    }
+
+    public synchronized List<Entry> queryByDateRangeNewestFirst(long fromEpochMsInclusive, long toEpochMsInclusive) {
+        List<Entry> out = new ArrayList<Entry>();
+        for (Entry e : entries) {
+            if (e.epochMs >= fromEpochMsInclusive && e.epochMs <= toEpochMsInclusive) {
+                out.add(e);
+            }
+        }
+        sortNewestFirst(out);
+        return out;
+    }
+
+    public synchronized int exportToFile(File outFile, List<Entry> data) {
+        BufferedWriter bw = null;
+        try {
+            bw = new BufferedWriter(new FileWriter(outFile, false));
+            for (Entry e : data) {
+                bw.write(serialize(e));
+                bw.newLine();
+            }
+            return data.size();
+        } catch (IOException e) {
+            plugin.getLogger().warning("Could not export havoc logs: " + e.getMessage());
+            return -1;
+        } finally {
+            if (bw != null) {
+                try {
+                    bw.close();
+                } catch (IOException ignored) {
+                }
+            }
+        }
+    }
+
+    public static Long parseDateStartEpochMs(String yyyyMmDd) {
+        return parseDateEpoch(yyyyMmDd, true);
+    }
+
+    public static Long parseDateEndEpochMs(String yyyyMmDd) {
+        return parseDateEpoch(yyyyMmDd, false);
+    }
+
     private void sortNewestFirst(List<Entry> out) {
         Collections.sort(out, new Comparator<Entry>() {
             @Override
@@ -205,5 +259,26 @@ public final class HavocLogService {
 
     private static String safe(String s) {
         return s == null ? "" : s;
+    }
+
+    private static Long parseDateEpoch(String raw, boolean start) {
+        if (raw == null) {
+            return null;
+        }
+        SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+        f.setLenient(false);
+        try {
+            Date d = f.parse(raw);
+            if (d == null) {
+                return null;
+            }
+            long base = d.getTime();
+            if (start) {
+                return base;
+            }
+            return base + (24L * 60L * 60L * 1000L) - 1L;
+        } catch (ParseException e) {
+            return null;
+        }
     }
 }

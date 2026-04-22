@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.io.File;
 
 public final class HavocCommandExecutor implements CommandExecutor, TabCompleter {
 
@@ -207,7 +208,7 @@ public final class HavocCommandExecutor implements CommandExecutor, TabCompleter
             return partial(names, args[3]);
         }
         if (args.length == 3 && "admin".equalsIgnoreCase(args[0]) && "logs".equalsIgnoreCase(args[1]) && sender.hasPermission("havoc.admin")) {
-            return partial(Arrays.asList("user", "base", "1", "2", "3"), args[2]);
+            return partial(Arrays.asList("user", "base", "type", "date", "export", "1", "2", "3"), args[2]);
         }
         if (args.length == 4 && "admin".equalsIgnoreCase(args[0]) && "logs".equalsIgnoreCase(args[1]) && "user".equalsIgnoreCase(args[2]) && sender.hasPermission("havoc.admin")) {
             List<String> names = new ArrayList<String>();
@@ -215,6 +216,9 @@ public final class HavocCommandExecutor implements CommandExecutor, TabCompleter
                 names.add(p.getName());
             }
             return partial(names, args[3]);
+        }
+        if (args.length == 4 && "admin".equalsIgnoreCase(args[0]) && "logs".equalsIgnoreCase(args[1]) && "type".equalsIgnoreCase(args[2]) && sender.hasPermission("havoc.admin")) {
+            return partial(Arrays.asList("BASE_BREACH", "BASE_SPAWN", "BASE_RESTORE_DONE", "ADMIN_RELOAD", "ADMIN_SALVAGE_ADD", "ADMIN_SALVAGE_SET"), args[3]);
         }
         return Collections.emptyList();
     }
@@ -254,6 +258,64 @@ public final class HavocCommandExecutor implements CommandExecutor, TabCompleter
                 if (args.length >= 5 && isInt(args[4])) {
                     page = Integer.parseInt(args[4]);
                 }
+            } else if ("type".equals(mode)) {
+                if (args.length < 4) {
+                    plugin.getMessages().send(sender, "admin.logs.usage");
+                    return;
+                }
+                String type = args[3];
+                logs = plugin.getLogService().queryByTypeNewestFirst(type);
+                scope = "type:" + type;
+                if (args.length >= 5 && isInt(args[4])) {
+                    page = Integer.parseInt(args[4]);
+                }
+            } else if ("date".equals(mode)) {
+                if (args.length < 5) {
+                    plugin.getMessages().send(sender, "admin.logs.usage");
+                    return;
+                }
+                Long from = HavocLogService.parseDateStartEpochMs(args[3]);
+                Long to = HavocLogService.parseDateEndEpochMs(args[4]);
+                if (from == null || to == null) {
+                    plugin.getMessages().send(sender, "admin.logs.invalid-date");
+                    return;
+                }
+                logs = plugin.getLogService().queryByDateRangeNewestFirst(from, to);
+                scope = "date:" + args[3] + ".." + args[4];
+                if (args.length >= 6 && isInt(args[5])) {
+                    page = Integer.parseInt(args[5]);
+                }
+            } else if ("export".equals(mode)) {
+                List<HavocLogService.Entry> data;
+                String exportedScope;
+                if (args.length == 3 || "all".equalsIgnoreCase(args[3])) {
+                    data = plugin.getLogService().queryAllNewestFirst();
+                    exportedScope = "all";
+                } else if ("user".equalsIgnoreCase(args[3]) && args.length >= 5) {
+                    data = plugin.getLogService().queryByUserNewestFirst(args[4]);
+                    exportedScope = "user:" + args[4];
+                } else if ("base".equalsIgnoreCase(args[3]) && args.length >= 5) {
+                    data = plugin.getLogService().queryByBaseNewestFirst(args[4]);
+                    exportedScope = "base:" + args[4];
+                } else if ("type".equalsIgnoreCase(args[3]) && args.length >= 5) {
+                    data = plugin.getLogService().queryByTypeNewestFirst(args[4]);
+                    exportedScope = "type:" + args[4];
+                } else {
+                    plugin.getMessages().send(sender, "admin.logs.export-usage");
+                    return;
+                }
+                File out = new File(plugin.getDataFolder(), "havoc-logs-export-" + System.currentTimeMillis() + ".log");
+                int written = plugin.getLogService().exportToFile(out, data);
+                if (written < 0) {
+                    plugin.getMessages().send(sender, "admin.logs.export-failed");
+                } else {
+                    Map<String, String> vars = new HashMap<String, String>();
+                    vars.put("file", out.getName());
+                    vars.put("count", String.valueOf(written));
+                    vars.put("scope", exportedScope);
+                    plugin.getMessages().send(sender, "admin.logs.export-success", vars);
+                }
+                return;
             } else {
                 plugin.getMessages().send(sender, "admin.logs.usage");
                 return;
