@@ -208,7 +208,7 @@ public final class HavocCommandExecutor implements CommandExecutor, TabCompleter
             return partial(names, args[3]);
         }
         if (args.length == 3 && "admin".equalsIgnoreCase(args[0]) && "logs".equalsIgnoreCase(args[1]) && sender.hasPermission("havoc.admin")) {
-            return partial(Arrays.asList("user", "base", "type", "date", "export", "1", "2", "3"), args[2]);
+            return partial(Arrays.asList("user", "base", "type", "date", "export", "page", "today", "yesterday", "last7d", "1", "2", "3"), args[2]);
         }
         if (args.length == 4 && "admin".equalsIgnoreCase(args[0]) && "logs".equalsIgnoreCase(args[1]) && "user".equalsIgnoreCase(args[2]) && sender.hasPermission("havoc.admin")) {
             List<String> names = new ArrayList<String>();
@@ -219,6 +219,9 @@ public final class HavocCommandExecutor implements CommandExecutor, TabCompleter
         }
         if (args.length == 4 && "admin".equalsIgnoreCase(args[0]) && "logs".equalsIgnoreCase(args[1]) && "type".equalsIgnoreCase(args[2]) && sender.hasPermission("havoc.admin")) {
             return partial(Arrays.asList("BASE_BREACH", "BASE_SPAWN", "BASE_RESTORE_DONE", "ADMIN_RELOAD", "ADMIN_SALVAGE_ADD", "ADMIN_SALVAGE_SET"), args[3]);
+        }
+        if (args.length == 4 && "admin".equalsIgnoreCase(args[0]) && "logs".equalsIgnoreCase(args[1]) && "date".equalsIgnoreCase(args[2]) && sender.hasPermission("havoc.admin")) {
+            return partial(Arrays.asList("today", "yesterday", "last7d", "2026-05-04"), args[3]);
         }
         return Collections.emptyList();
     }
@@ -236,55 +239,6 @@ public final class HavocCommandExecutor implements CommandExecutor, TabCompleter
                 logs = plugin.getLogService().queryAllNewestFirst();
                 scope = "all";
                 page = Integer.parseInt(mode);
-            } else if ("user".equals(mode)) {
-                if (args.length < 4) {
-                    plugin.getMessages().send(sender, "admin.logs.usage");
-                    return;
-                }
-                String user = args[3];
-                logs = plugin.getLogService().queryByUserNewestFirst(user);
-                scope = "user:" + user;
-                if (args.length >= 5 && isInt(args[4])) {
-                    page = Integer.parseInt(args[4]);
-                }
-            } else if ("base".equals(mode)) {
-                if (args.length < 4) {
-                    plugin.getMessages().send(sender, "admin.logs.usage");
-                    return;
-                }
-                String base = args[3];
-                logs = plugin.getLogService().queryByBaseNewestFirst(base);
-                scope = "base:" + base;
-                if (args.length >= 5 && isInt(args[4])) {
-                    page = Integer.parseInt(args[4]);
-                }
-            } else if ("type".equals(mode)) {
-                if (args.length < 4) {
-                    plugin.getMessages().send(sender, "admin.logs.usage");
-                    return;
-                }
-                String type = args[3];
-                logs = plugin.getLogService().queryByTypeNewestFirst(type);
-                scope = "type:" + type;
-                if (args.length >= 5 && isInt(args[4])) {
-                    page = Integer.parseInt(args[4]);
-                }
-            } else if ("date".equals(mode)) {
-                if (args.length < 5) {
-                    plugin.getMessages().send(sender, "admin.logs.usage");
-                    return;
-                }
-                Long from = HavocLogService.parseDateStartEpochMs(args[3]);
-                Long to = HavocLogService.parseDateEndEpochMs(args[4]);
-                if (from == null || to == null) {
-                    plugin.getMessages().send(sender, "admin.logs.invalid-date");
-                    return;
-                }
-                logs = plugin.getLogService().queryByDateRangeNewestFirst(from, to);
-                scope = "date:" + args[3] + ".." + args[4];
-                if (args.length >= 6 && isInt(args[5])) {
-                    page = Integer.parseInt(args[5]);
-                }
             } else if ("export".equals(mode)) {
                 List<HavocLogService.Entry> data;
                 String exportedScope;
@@ -317,8 +271,14 @@ public final class HavocCommandExecutor implements CommandExecutor, TabCompleter
                 }
                 return;
             } else {
-                plugin.getMessages().send(sender, "admin.logs.usage");
-                return;
+                ParsedFilter f = parseCombinedLogsFilter(args, 2);
+                if (!f.ok) {
+                    plugin.getMessages().send(sender, f.errorKey == null ? "admin.logs.usage" : f.errorKey);
+                    return;
+                }
+                logs = plugin.getLogService().queryFilteredNewestFirst(f.user, f.base, f.type, f.from, f.to);
+                scope = f.scope;
+                page = f.page;
             }
         }
         if (logs.isEmpty()) {
@@ -346,6 +306,100 @@ public final class HavocCommandExecutor implements CommandExecutor, TabCompleter
         }
     }
 
+    private ParsedFilter parseCombinedLogsFilter(String[] args, int startIndex) {
+        ParsedFilter f = new ParsedFilter();
+        int i = startIndex;
+        while (i < args.length) {
+            String k = args[i].toLowerCase(Locale.ROOT);
+            if ("user".equals(k)) {
+                if (i + 1 >= args.length) {
+                    f.fail("admin.logs.usage");
+                    return f;
+                }
+                f.user = args[i + 1];
+                i += 2;
+                continue;
+            }
+            if ("base".equals(k)) {
+                if (i + 1 >= args.length) {
+                    f.fail("admin.logs.usage");
+                    return f;
+                }
+                f.base = args[i + 1];
+                i += 2;
+                continue;
+            }
+            if ("type".equals(k)) {
+                if (i + 1 >= args.length) {
+                    f.fail("admin.logs.usage");
+                    return f;
+                }
+                f.type = args[i + 1];
+                i += 2;
+                continue;
+            }
+            if ("date".equals(k)) {
+                if (i + 1 >= args.length) {
+                    f.fail("admin.logs.usage");
+                    return f;
+                }
+                long[] rel = HavocLogService.parseRelativeRange(args[i + 1]);
+                if (rel != null) {
+                    f.from = rel[0];
+                    f.to = rel[1];
+                    i += 2;
+                    continue;
+                }
+                if (i + 2 >= args.length) {
+                    f.fail("admin.logs.usage");
+                    return f;
+                }
+                Long from = HavocLogService.parseDateStartEpochMs(args[i + 1]);
+                Long to = HavocLogService.parseDateEndEpochMs(args[i + 2]);
+                if (from == null || to == null) {
+                    f.fail("admin.logs.invalid-date");
+                    return f;
+                }
+                f.from = from;
+                f.to = to;
+                i += 3;
+                continue;
+            }
+            if ("page".equals(k)) {
+                if (i + 1 >= args.length || !isInt(args[i + 1])) {
+                    f.fail("admin.logs.usage");
+                    return f;
+                }
+                f.page = Integer.parseInt(args[i + 1]);
+                i += 2;
+                continue;
+            }
+            if (isInt(k)) {
+                f.page = Integer.parseInt(k);
+                i += 1;
+                continue;
+            }
+            f.fail("admin.logs.usage");
+            return f;
+        }
+        List<String> s = new ArrayList<String>();
+        if (!f.user.isEmpty()) {
+            s.add("user:" + f.user);
+        }
+        if (!f.base.isEmpty()) {
+            s.add("base:" + f.base);
+        }
+        if (!f.type.isEmpty()) {
+            s.add("type:" + f.type);
+        }
+        if (f.from != null && f.to != null) {
+            s.add("date:custom");
+        }
+        f.scope = s.isEmpty() ? "all" : joinScopes(s);
+        f.ok = true;
+        return f;
+    }
+
     private static List<String> partial(List<String> opts, String prefix) {
         List<String> out = new ArrayList<String>();
         String p = prefix.toLowerCase(Locale.ROOT);
@@ -369,6 +423,34 @@ public final class HavocCommandExecutor implements CommandExecutor, TabCompleter
             return true;
         } catch (NumberFormatException e) {
             return false;
+        }
+    }
+
+    private static String joinScopes(List<String> scopes) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < scopes.size(); i++) {
+            if (i > 0) {
+                sb.append(",");
+            }
+            sb.append(scopes.get(i));
+        }
+        return sb.toString();
+    }
+
+    private static final class ParsedFilter {
+        private boolean ok;
+        private String errorKey;
+        private String user = "";
+        private String base = "";
+        private String type = "";
+        private Long from;
+        private Long to;
+        private int page = 1;
+        private String scope = "all";
+
+        private void fail(String key) {
+            ok = false;
+            errorKey = key;
         }
     }
 }

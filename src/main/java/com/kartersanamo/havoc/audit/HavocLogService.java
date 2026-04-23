@@ -17,6 +17,7 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.TimeZone;
 
 public final class HavocLogService {
 
@@ -160,6 +161,33 @@ public final class HavocLogService {
         return out;
     }
 
+    public synchronized List<Entry> queryFilteredNewestFirst(String user, String base, String type, Long fromEpochMsInclusive, Long toEpochMsInclusive) {
+        String u = safe(user).toLowerCase(Locale.ROOT);
+        String b = safe(base).toLowerCase(Locale.ROOT);
+        String t = safe(type).toLowerCase(Locale.ROOT);
+        List<Entry> out = new ArrayList<Entry>();
+        for (Entry e : entries) {
+            if (!u.isEmpty() && (e.user.isEmpty() || !e.user.toLowerCase(Locale.ROOT).contains(u))) {
+                continue;
+            }
+            if (!b.isEmpty() && (e.baseId.isEmpty() || !e.baseId.toLowerCase(Locale.ROOT).contains(b))) {
+                continue;
+            }
+            if (!t.isEmpty() && (e.type.isEmpty() || !e.type.toLowerCase(Locale.ROOT).contains(t))) {
+                continue;
+            }
+            if (fromEpochMsInclusive != null && e.epochMs < fromEpochMsInclusive.longValue()) {
+                continue;
+            }
+            if (toEpochMsInclusive != null && e.epochMs > toEpochMsInclusive.longValue()) {
+                continue;
+            }
+            out.add(e);
+        }
+        sortNewestFirst(out);
+        return out;
+    }
+
     public synchronized int exportToFile(File outFile, List<Entry> data) {
         BufferedWriter bw = null;
         try {
@@ -188,6 +216,34 @@ public final class HavocLogService {
 
     public static Long parseDateEndEpochMs(String yyyyMmDd) {
         return parseDateEpoch(yyyyMmDd, false);
+    }
+
+    /**
+     * Supported: today, yesterday, last7d (server local timezone).
+     */
+    public static long[] parseRelativeRange(String raw) {
+        if (raw == null) {
+            return null;
+        }
+        String k = raw.trim().toLowerCase(Locale.ROOT);
+        long now = System.currentTimeMillis();
+        long day = 24L * 60L * 60L * 1000L;
+        if ("last7d".equals(k)) {
+            return new long[]{now - 7L * day, now};
+        }
+        Long startToday = parseDateStartEpochMs(formatYmd(now));
+        if (startToday == null) {
+            return null;
+        }
+        if ("today".equals(k)) {
+            return new long[]{startToday.longValue(), now};
+        }
+        if ("yesterday".equals(k)) {
+            long from = startToday.longValue() - day;
+            long to = startToday.longValue() - 1L;
+            return new long[]{from, to};
+        }
+        return null;
     }
 
     private void sortNewestFirst(List<Entry> out) {
@@ -280,5 +336,11 @@ public final class HavocLogService {
         } catch (ParseException e) {
             return null;
         }
+    }
+
+    private static String formatYmd(long epochMs) {
+        SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+        f.setTimeZone(TimeZone.getDefault());
+        return f.format(new Date(epochMs));
     }
 }
