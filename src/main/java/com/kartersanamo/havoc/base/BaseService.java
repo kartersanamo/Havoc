@@ -1,11 +1,13 @@
 package com.kartersanamo.havoc.base;
 
 import com.kartersanamo.havoc.Havoc;
+import com.kartersanamo.havoc.base.lifecycle.ClaimService;
+import com.kartersanamo.havoc.base.lifecycle.RestoreEngine;
+import com.kartersanamo.havoc.base.lifecycle.RewardService;
+import com.kartersanamo.havoc.base.lifecycle.SpawnPlanner;
 import com.kartersanamo.havoc.config.HavocConfig;
 import com.kartersanamo.havoc.debug.HavocDebug;
 import com.kartersanamo.havoc.faction.FactionsBridge;
-import com.kartersanamo.havoc.storage.ProgressionStore;
-import com.kartersanamo.havoc.storage.SalvageStore;
 import com.kartersanamo.havoc.world.ColumnBoxSnapshot;
 import com.kartersanamo.havoc.world.SchematicAnalysis;
 import com.kartersanamo.havoc.world.SchematicBlockPlacer;
@@ -25,7 +27,6 @@ import org.bukkit.entity.Player;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -55,9 +56,10 @@ public final class BaseService {
     private int restoreTaskId = -1;
     private int maintainerTaskId = -1;
     private int spawnWorkerTaskId = -1;
-    private volatile boolean spawnWorkInFlight;
-    private final ArrayDeque<BaseDifficulty> spawnQueue = new ArrayDeque<BaseDifficulty>();
-    private SpawnPlan activeSpawnPlan;
+    private final SpawnPlanner spawnPlanner = new SpawnPlanner();
+    private final ClaimService claimService = new ClaimService();
+    private final RewardService rewardService = new RewardService();
+    private final RestoreEngine restoreEngine = new RestoreEngine();
 
     public BaseService(Havoc plugin) {
         this.plugin = plugin;
@@ -169,46 +171,20 @@ public final class BaseService {
         for (BaseDifficulty d : BaseDifficulty.values()) {
             int want = plugin.getHavocConfig().basesToSpawn(d);
             int have = countActive(d);
-            int queued = queuedCount(d);
+            int queued = spawnPlanner.queuedCount(d);
             for (int i = have + queued; i < want; i++) {
-                spawnQueue.addLast(d);
+                spawnPlanner.enqueue(d);
             }
         }
-    }
-
-    private int queuedCount(BaseDifficulty d) {
-        int n = 0;
-        if (activeSpawnPlan != null && activeSpawnPlan.difficulty == d) {
-            n++;
-        }
-        for (BaseDifficulty q : spawnQueue) {
-            if (q == d) {
-                n++;
-            }
-        }
-        return n;
     }
 
     private void tickSpawnWorker() {
-        if (spawnWorkInFlight) {
-            return;
-        }
-        if (activeSpawnPlan == null) {
-            BaseDifficulty next = spawnQueue.pollFirst();
-            if (next == null) {
-                return;
+        spawnPlanner.tick(new SpawnPlanner.SpawnTaskFactory() {
+            @Override
+            public SpawnPlanner.SpawnTask create(BaseDifficulty difficulty) {
+                return new SpawnPlan(difficulty);
             }
-            activeSpawnPlan = new SpawnPlan(next);
-        }
-        spawnWorkInFlight = true;
-        try {
-            boolean done = activeSpawnPlan.tick();
-            if (done) {
-                activeSpawnPlan = null;
-            }
-        } finally {
-            spawnWorkInFlight = false;
-        }
+        });
     }
 
     private int countActive(BaseDifficulty d) {
@@ -382,52 +358,13 @@ public final class BaseService {
             HavocDebug.announce(plugin, "Teleported " + tp + " player(s) inside Havoc claim to spawn.");
         }
 
-        int salvageAmt = cfg.randomSalvage(base.difficulty);
-        SalvageStore salvage = plugin.getSalvageStore();
-        ProgressionStore prog = plugin.getProgressionStore();
-        List<Player> rewarded = new ArrayList<Player>();
-        double rsq = (double) cfg.getRewardRadius() * cfg.getRewardRadius();
-        for (Player p : world.getPlayers()) {
-            if (p.getLocation().distanceSquared(breachLoc) > rsq) {
-                continue;
-            }
-            try {
-                Object pf = plugin.getFactionsBridge().getPlayerFaction(p);
-                if (pf != null && plugin.getFactionsBridge().factionsEqual(pf, havocFaction)) {
-                    continue;
-                }
-            } catch (Exception ignored) {
-            }
-            rewarded.add(p);
-        }
-        HavocDebug.announce(plugin, "Rewards: " + rewarded.size() + " player(s) in radius, Salvage roll " + salvageAmt + " each.");
-
-        BaseDifficulty nextTier = base.difficulty;
-        if (progressionCredit != null) {
-            nextTier = prog.nextHintDifficulty(progressionCredit.getUniqueId(), base.difficulty);
-            HavocDebug.announce(plugin, "Progression credit: " + progressionCredit.getName() + " → next tier hint " + nextTier + ".");
-        }
-        final ActiveHavocBase target = pickRandomActive(nextTier, base.id);
-        for (Player p : rewarded) {
-            salvage.add(p.getUniqueId(), salvageAmt);
-            plugin.getMessages().send(p, "raid.reward.salvage", mapOf(
-                    "amount", String.valueOf(salvageAmt),
-                    "balance", String.valueOf(salvage.get(p.getUniqueId()))
-            ));
-            if (target != null) {
-                Location l = new Location(Bukkit.getWorld(target.worldName), target.obsidianCenterX, target.obsidianCenterY + 2, target.obsidianCenterZ);
-                plugin.getMessages().send(p, "raid.reward.next-lead", mapOf(
-                        "difficulty", String.valueOf(nextTier),
-                        "x", String.valueOf(l.getBlockX()),
-                        "y", String.valueOf(l.getBlockY()),
-                        "z", String.valueOf(l.getBlockZ())
-                ));
-            } else {
-                plugin.getMessages().send(p, "raid.reward.no-next-lead", mapOf("difficulty", String.valueOf(nextTier)));
-            }
-        }
-        salvage.saveAsync();
-        prog.saveAsync();
+        rewardService.processBreachRewards(plugin, havocFaction, base, breachLoc, progressionCredit,
+                new RewardService.NextBasePicker() {
+                    @Override
+                    public ActiveHavocBase pick(BaseDifficulty difficulty, UUID exclude) {
+                        return pickRandomActive(difficulty, exclude);
+                    }
+                });
 
         long delay = cfg.getRestoreSeconds() * 20L;
         final ActiveHavocBase ref = base;
@@ -463,50 +400,7 @@ public final class BaseService {
     }
 
     private void tickRestores() {
-        for (ActiveHavocBase b : new ArrayList<ActiveHavocBase>(basesById.values())) {
-            if (b.state != BaseState.RESTORING || b.terrainSnapshot == null) {
-                continue;
-            }
-            World w = Bukkit.getWorld(b.worldName);
-            if (w == null) {
-                continue;
-            }
-            HavocConfig cfg = plugin.getHavocConfig();
-            int vol = b.terrainSnapshot.volume();
-            int ticks = Math.max(1, cfg.getRestoreSeconds() * 20);
-            int perTick = (vol + ticks - 1) / ticks;
-            b.terrainSnapshot.applyPartial(w, b.restoreCursor, perTick);
-            b.restoreCursor += perTick;
-            if (b.restoreCursor >= vol) {
-                HavocDebug.announce(plugin, "Terrain restore DONE for ~" + shortId(b.id) + " — unclaiming " + b.claimedChunks.size() + " chunk(s).");
-                plugin.getLogService().log("BASE_RESTORE_DONE", "", shortId(b.id),
-                        new Location(w, b.obsidianCenterX, b.obsidianCenterY, b.obsidianCenterZ),
-                        "claims=" + b.claimedChunks.size());
-                finishRestore(b, w);
-                unregisterChunks(b);
-                basesById.remove(b.id);
-            }
-        }
-    }
-
-    private void finishRestore(ActiveHavocBase b, World w) {
-        try {
-            for (ChunkKey key : b.claimedChunks) {
-                if (!key.getWorld().equals(w.getName())) {
-                    continue;
-                }
-                plugin.getFactionsBridge().unclaimChunk(w.getChunkAt(key.getX(), key.getZ()));
-            }
-        } catch (Exception e) {
-            plugin.getLogger().warning("Unclaim after restore: " + e.getMessage());
-        }
-    }
-
-    private void unregisterChunks(ActiveHavocBase b) {
-        for (ChunkKey key : b.claimedChunks) {
-            chunkOwners.remove(key);
-        }
-        b.claimedChunks.clear();
+        restoreEngine.tick(plugin, basesById, chunkOwners);
     }
 
     public boolean isRestoringFootprint(Location loc) {
@@ -664,37 +558,12 @@ public final class BaseService {
         return r;
     }
 
-    private static boolean rectanglesOverlap(int aMinX, int aMinZ, int aMaxX, int aMaxZ, int bMinX, int bMinZ, int bMaxX, int bMaxZ) {
-        return aMinX <= bMaxX && aMaxX >= bMinX && aMinZ <= bMaxZ && aMaxZ >= bMinZ;
-    }
-
     private boolean overlapsExistingFootprint(String worldName, int ox, int oz, int w, int len) {
-        int aMinX = ox;
-        int aMaxX = ox + w - 1;
-        int aMinZ = oz;
-        int aMaxZ = oz + len - 1;
-        for (ActiveHavocBase b : basesById.values()) {
-            if (!b.worldName.equals(worldName)) {
-                continue;
-            }
-            int bMinX = b.pasteOriginX;
-            int bMaxX = b.pasteOriginX + b.footprintSizeX - 1;
-            int bMinZ = b.pasteOriginZ;
-            int bMaxZ = b.pasteOriginZ + b.footprintSizeZ - 1;
-            if (rectanglesOverlap(aMinX, aMinZ, aMaxX, aMaxZ, bMinX, bMinZ, bMaxX, bMaxZ)) {
-                return true;
-            }
-        }
-        return false;
+        return claimService.overlapsExistingFootprint(basesById, worldName, ox, oz, w, len);
     }
 
     private boolean overlapsExistingClaims(Set<ChunkKey> claimSet) {
-        for (ChunkKey key : claimSet) {
-            if (chunkOwners.containsKey(key)) {
-                return true;
-            }
-        }
-        return false;
+        return claimService.overlapsExistingClaims(chunkOwners, claimSet);
     }
 
     private static long distSq2D(int ax, int az, int bx, int bz) {
@@ -820,7 +689,7 @@ public final class BaseService {
         return true;
     }
 
-    private final class SpawnPlan {
+    private final class SpawnPlan implements SpawnPlanner.SpawnTask {
         private static final int PHASE_SEARCH = 0;
         private static final int PHASE_PRELOAD = 1;
         private static final int PHASE_SNAPSHOT = 2;
@@ -872,7 +741,13 @@ public final class BaseService {
             this.difficulty = difficulty;
         }
 
-        private boolean tick() {
+        @Override
+        public BaseDifficulty difficulty() {
+            return difficulty;
+        }
+
+        @Override
+        public boolean tick() {
             if (!initialized) {
                 initialized = true;
                 if (!init()) {
@@ -1182,25 +1057,4 @@ public final class BaseService {
         }
     }
 
-    private static java.util.Map<String, String> mapOf(String k1, String v1) {
-        java.util.Map<String, String> out = new java.util.HashMap<String, String>();
-        out.put(k1, v1);
-        return out;
-    }
-
-    private static java.util.Map<String, String> mapOf(String k1, String v1, String k2, String v2) {
-        java.util.Map<String, String> out = new java.util.HashMap<String, String>();
-        out.put(k1, v1);
-        out.put(k2, v2);
-        return out;
-    }
-
-    private static java.util.Map<String, String> mapOf(String k1, String v1, String k2, String v2, String k3, String v3, String k4, String v4) {
-        java.util.Map<String, String> out = new java.util.HashMap<String, String>();
-        out.put(k1, v1);
-        out.put(k2, v2);
-        out.put(k3, v3);
-        out.put(k4, v4);
-        return out;
-    }
 }
