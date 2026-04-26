@@ -2,13 +2,12 @@ package com.kartersanamo.havoc.command.subcommands.admin;
 
 import com.kartersanamo.havoc.Havoc;
 import com.kartersanamo.havoc.base.ActiveHavocBase;
+import com.kartersanamo.havoc.message.MessageVars;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public final class AdminListSubcommand implements AdminSubcommand {
 
@@ -34,18 +33,20 @@ public final class AdminListSubcommand implements AdminSubcommand {
             plugin.getMessages().send(sender, "admin.list.empty");
             return true;
         }
-        plugin.getMessages().send(sender, "admin.list.header", one("count", String.valueOf(bases.size())));
+        plugin.getMessages().send(sender, "admin.list.header",
+                MessageVars.create().put(MessageVars.Key.COUNT, bases.size()).build());
         for (ActiveHavocBase b : bases) {
             String shortId = b.id.toString().substring(0, 8);
-            Map<String, String> vars = new HashMap<String, String>();
-            vars.put("difficulty", b.difficulty.name());
-            vars.put("state", b.state.name());
-            vars.put("world", b.worldName);
-            vars.put("x", String.valueOf(b.obsidianCenterX));
-            vars.put("y", String.valueOf(b.obsidianCenterY));
-            vars.put("z", String.valueOf(b.obsidianCenterZ));
-            vars.put("id", shortId);
-            vars.put("claims", String.valueOf(b.claimedChunks.size()));
+            java.util.Map<String, String> vars = MessageVars.create()
+                    .put(MessageVars.Key.DIFFICULTY, b.difficulty.name())
+                    .put(MessageVars.Key.STATE, b.state.name())
+                    .put(MessageVars.Key.WORLD, b.worldName)
+                    .put(MessageVars.Key.X, b.obsidianCenterX)
+                    .put(MessageVars.Key.Y, b.obsidianCenterY)
+                    .put(MessageVars.Key.Z, b.obsidianCenterZ)
+                    .put(MessageVars.Key.ID, shortId)
+                    .put(MessageVars.Key.CLAIMS, b.claimedChunks.size())
+                    .build();
             plugin.getMessages().send(sender, "admin.list.line", vars);
         }
         return true;
@@ -54,11 +55,5 @@ public final class AdminListSubcommand implements AdminSubcommand {
     @Override
     public List<String> tabComplete(CommandSender sender, String[] args) {
         return new ArrayList<String>();
-    }
-
-    private static Map<String, String> one(String key, String value) {
-        Map<String, String> out = new HashMap<String, String>();
-        out.put(key, value);
-        return out;
     }
 }

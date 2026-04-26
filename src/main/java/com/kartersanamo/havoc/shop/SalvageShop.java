@@ -1,6 +1,7 @@
 package com.kartersanamo.havoc.shop;
 
 import com.kartersanamo.havoc.Havoc;
+import com.kartersanamo.havoc.message.MessageVars;
 import com.kartersanamo.havoc.storage.SalvageStore;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -11,7 +12,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -127,12 +127,12 @@ public final class SalvageShop {
     }
 
     private Map<String, String> vars(ShopItem item, int balance) {
-        Map<String, String> out = new HashMap<String, String>();
-        out.put("price", String.valueOf(item.getPrice()));
-        out.put("amount", String.valueOf(item.getAmount()));
-        out.put("name", item.getDisplayName());
-        out.put("balance", String.valueOf(balance));
-        return out;
+        return MessageVars.create()
+                .put("price", item.getPrice())
+                .put(MessageVars.Key.AMOUNT, item.getAmount())
+                .put("name", item.getDisplayName())
+                .put(MessageVars.Key.BALANCE, balance)
+                .build();
     }
 
     private static final class ShopHolder implements InventoryHolder {

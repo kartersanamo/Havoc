@@ -1,10 +1,8 @@
 package com.kartersanamo.havoc.command.subcommands;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 public final class CommandUtil {
 
@@ -19,12 +17,6 @@ public final class CommandUtil {
                 out.add(o);
             }
         }
-        return out;
-    }
-
-    public static Map<String, String> one(String key, String value) {
-        Map<String, String> out = new HashMap<String, String>();
-        out.put(key, value);
         return out;
     }
 

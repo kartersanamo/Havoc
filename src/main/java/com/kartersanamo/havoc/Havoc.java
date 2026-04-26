@@ -46,18 +46,23 @@ public final class Havoc extends JavaPlugin {
         if (!getDataFolder().exists()) {
             getDataFolder().mkdirs();
         }
+
         File schemDir = new File(getDataFolder(), "schematics");
         if (!schemDir.exists()) {
             schemDir.mkdirs();
         }
+
         saveDefaultConfig();
         saveResource("messages.yml", false);
         saveResource("shop.yml", false);
+
         messages = new MessageService(this);
         logService = new HavocLogService(this);
         logService.load();
+
         havocConfig = new HavocConfig(this);
         havocConfig.reload();
+
         if (Bukkit.getWorld(havocConfig.getWorldName()) == null) {
             getLogger().severe("Havoc: world \"" + havocConfig.getWorldName() + "\" is not loaded — bases cannot spawn until Multiverse (or server.properties) loads that world.");
         }
@@ -65,12 +70,14 @@ public final class Havoc extends JavaPlugin {
         salvageStore.load();
         progressionStore = new ProgressionStore(this);
         progressionStore.load();
+
         factionsBridge = new FactionsBridge(this);
         if (!factionsBridge.init()) {
             getLogger().severe("Disabling Havoc: Factions API not available.");
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
+        
         baseService = new BaseService(this);
         baseService.start();
         baseAdminGui = new BaseAdminGui(this);

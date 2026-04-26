@@ -3,6 +3,7 @@ package com.kartersanamo.havoc.command.subcommands.admin;
 import com.kartersanamo.havoc.Havoc;
 import com.kartersanamo.havoc.audit.HavocLogService;
 import com.kartersanamo.havoc.command.subcommands.CommandUtil;
+import com.kartersanamo.havoc.message.MessageVars;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -10,10 +11,8 @@ import org.bukkit.entity.Player;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 public final class AdminLogsSubcommand implements AdminSubcommand {
 
@@ -69,11 +68,12 @@ public final class AdminLogsSubcommand implements AdminSubcommand {
         }
         int from = (page - 1) * perPage;
         int to = Math.min(logs.size(), from + perPage);
-        Map<String, String> hdr = new HashMap<String, String>();
-        hdr.put("scope", scope);
-        hdr.put("page", String.valueOf(page));
-        hdr.put("pages", String.valueOf(pages));
-        hdr.put("count", String.valueOf(logs.size()));
+        java.util.Map<String, String> hdr = MessageVars.create()
+                .put(MessageVars.Key.SCOPE, scope)
+                .put(MessageVars.Key.PAGE, page)
+                .put(MessageVars.Key.PAGES, pages)
+                .put(MessageVars.Key.COUNT, logs.size())
+                .build();
         plugin.getMessages().send(sender, "admin.logs.header", hdr);
         for (int i = from; i < to; i++) {
             sender.sendMessage(plugin.getLogService().formatForChat(logs.get(i)));
@@ -126,10 +126,11 @@ public final class AdminLogsSubcommand implements AdminSubcommand {
         if (written < 0) {
             plugin.getMessages().send(sender, "admin.logs.export-failed");
         } else {
-            Map<String, String> vars = new HashMap<String, String>();
-            vars.put("file", out.getName());
-            vars.put("count", String.valueOf(written));
-            vars.put("scope", exportedScope);
+            java.util.Map<String, String> vars = MessageVars.create()
+                    .put(MessageVars.Key.FILE, out.getName())
+                    .put(MessageVars.Key.COUNT, written)
+                    .put(MessageVars.Key.SCOPE, exportedScope)
+                    .build();
             plugin.getMessages().send(sender, "admin.logs.export-success", vars);
         }
         return true;
