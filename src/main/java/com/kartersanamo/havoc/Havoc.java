@@ -57,11 +57,11 @@ public final class Havoc extends JavaPlugin {
         saveResource("shop.yml", false);
 
         messages = new MessageService(this);
-        logService = new HavocLogService(this);
-        logService.load();
-
         havocConfig = new HavocConfig(this);
         havocConfig.reload();
+        logService = new HavocLogService(this);
+        logService.configureRetention(havocConfig.getMaxLogLines(), havocConfig.getMaxLogDays(), havocConfig.isArchiveLogsOnRotate());
+        logService.load();
 
         if (Bukkit.getWorld(havocConfig.getWorldName()) == null) {
             getLogger().severe("Havoc: world \"" + havocConfig.getWorldName() + "\" is not loaded — bases cannot spawn until Multiverse (or server.properties) loads that world.");
@@ -77,11 +77,13 @@ public final class Havoc extends JavaPlugin {
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
-        
+
         baseService = new BaseService(this);
         baseService.start();
+        
         baseAdminGui = new BaseAdminGui(this);
         salvageShop = new SalvageShop(this);
+
         Bukkit.getPluginManager().registerEvents(new HavocListener(this), this);
         if (getCommand("havoc") != null) {
             HavocCommandExecutor ex = new HavocCommandExecutor(this);
@@ -115,6 +117,9 @@ public final class Havoc extends JavaPlugin {
         }
         if (progressionStore != null) {
             progressionStore.save();
+        }
+        if (logService != null) {
+            logService.shutdown();
         }
         instance = null;
     }

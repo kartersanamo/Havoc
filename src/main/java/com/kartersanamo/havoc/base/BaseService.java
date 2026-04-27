@@ -14,7 +14,6 @@ import com.kartersanamo.havoc.world.SchematicBlockPlacer;
 import com.kartersanamo.havoc.world.SchematicPlacement;
 import com.kartersanamo.havoc.world.SchematicService;
 import com.sk89q.worldedit.CuboidClipboard;
-import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.MaxChangedBlocksException;
 import com.sk89q.worldedit.data.DataException;
 import org.bukkit.Bukkit;
@@ -164,6 +163,7 @@ public final class BaseService {
         return id.toString().substring(0, 8);
     }
 
+    // Just pre-ensures our queue has the correct number of bases to spawn
     private void maintainPopulation() {
         if (havocFaction == null) {
             return;
@@ -178,11 +178,12 @@ public final class BaseService {
         }
     }
 
-    private void tickSpawnWorker() {
+    private void tickSpawnWorker() {    
+        // Spawns one base per tick
         spawnPlanner.tick(new SpawnPlanner.SpawnTaskFactory() {
             @Override
             public SpawnPlanner.SpawnTask create(BaseDifficulty difficulty) {
-                return new SpawnPlan(difficulty);
+                return new SpawnPlan(plugin, havocFaction, basesById, chunkOwners, claimService, difficulty);
             }
         });
     }
@@ -399,6 +400,7 @@ public final class BaseService {
         return list.get(random.nextInt(list.size()));
     }
 
+    // Restores all terrain that are restoring immediately
     private void tickRestores() {
         restoreEngine.tick(plugin, basesById, chunkOwners);
     }
@@ -687,374 +689,6 @@ public final class BaseService {
                 new Location(world, base.obsidianCenterX, base.obsidianCenterY, base.obsidianCenterZ),
                 "difficulty=" + d + ", claims=" + base.claimedChunks.size());
         return true;
-    }
-
-    private final class SpawnPlan implements SpawnPlanner.SpawnTask {
-        private static final int PHASE_SEARCH = 0;
-        private static final int PHASE_PRELOAD = 1;
-        private static final int PHASE_SNAPSHOT = 2;
-        private static final int PHASE_PASTE = 3;
-        private static final int PHASE_CLAIM = 4;
-        private static final int PHASE_FINALIZE = 5;
-
-        private int preloadChunksPerTick;
-        private int snapshotColumnsPerTick;
-        private int pasteColumnsPerTick;
-        private int claimChunksPerTick;
-        private int searchAttemptsPerTick;
-        private int maxAttempts;
-
-        private final BaseDifficulty difficulty;
-        private boolean initialized;
-        private int attempt;
-        private World world;
-        private CuboidClipboard clip;
-        private SchematicAnalysis analysis;
-        private int w;
-        private int h;
-        private int len;
-        private int half;
-        private int minC;
-        private int maxC;
-        private int sep;
-        private int[] off;
-        private int[] ex;
-        private int chunkLocalX;
-        private int chunkLocalZ;
-
-        private int phase = PHASE_SEARCH;
-        private int ox;
-        private int oy;
-        private int oz;
-        private int chunkFootprintRadius;
-        private ActiveHavocBase base;
-        private ColumnBoxSnapshot snapshot;
-        private ArrayList<ChunkKey> sortedClaims;
-        private ArrayList<ChunkKey> preloadChunks;
-        private int preloadCursor;
-        private int snapshotColumnCursor;
-        private EditSession pasteSession;
-        private int pasteColumnCursor;
-        private int claimCursor;
-
-        private SpawnPlan(BaseDifficulty difficulty) {
-            this.difficulty = difficulty;
-        }
-
-        @Override
-        public BaseDifficulty difficulty() {
-            return difficulty;
-        }
-
-        @Override
-        public boolean tick() {
-            if (!initialized) {
-                initialized = true;
-                if (!init()) {
-                    return true;
-                }
-            }
-            switch (phase) {
-                case PHASE_SEARCH:
-                    return tickSearch();
-                case PHASE_PRELOAD:
-                    return tickPreload();
-                case PHASE_SNAPSHOT:
-                    return tickSnapshot();
-                case PHASE_PASTE:
-                    return tickPaste();
-                case PHASE_CLAIM:
-                    return tickClaim();
-                case PHASE_FINALIZE:
-                    return finalizeSpawn();
-                default:
-                    return true;
-            }
-        }
-
-        private boolean init() {
-            if (havocFaction == null) {
-                return false;
-            }
-            HavocConfig cfg = plugin.getHavocConfig();
-            world = Bukkit.getWorld(cfg.getWorldName());
-            if (world == null) {
-                plugin.getLogger().warning("Configured world not loaded: " + cfg.getWorldName());
-                return false;
-            }
-            File schem = new File(plugin.getDataFolder(), cfg.getSchematicsFolder() + "/" + cfg.schematicFileName(difficulty));
-            if (!schem.isFile()) {
-                HavocDebug.announce(plugin, "Missing schematic file: " + schem.getAbsolutePath());
-                return false;
-            }
-            SchematicService paster = new SchematicService();
-            try {
-                clip = paster.loadClipboard(schem);
-            } catch (IOException | DataException e) {
-                HavocDebug.announce(plugin, "Schematic load failed: " + e.getMessage());
-                return false;
-            }
-            analysis = SchematicAnalysis.analyze(clip);
-            w = analysis.width;
-            h = analysis.height;
-            len = analysis.length;
-            half = cfg.getBorderHalfSize();
-            int pad = cfg.getSpawnBorderPaddingBlocks();
-            minC = (-half + pad) / 16;
-            maxC = (half - pad) / 16;
-            sep = cfg.getMinCenterSeparationChunks();
-            off = cfg.getSchematicCenterOffset(difficulty);
-            ex = cfg.getPasteExtraWorldDelta();
-            chunkLocalX = cfg.getChunkCenterLocalX();
-            chunkLocalZ = cfg.getChunkCenterLocalZ();
-            preloadChunksPerTick = cfg.getSpawnPreloadChunksPerTick();
-            snapshotColumnsPerTick = cfg.getSpawnSnapshotColumnsPerTick();
-            pasteColumnsPerTick = cfg.getSpawnPasteColumnsPerTick();
-            claimChunksPerTick = cfg.getSpawnClaimChunksPerTick();
-            searchAttemptsPerTick = cfg.getSpawnSearchAttemptsPerTick();
-            maxAttempts = cfg.getSpawnMaxAttempts();
-            HavocDebug.announce(plugin, "Spawn worker " + difficulty + ": schematic " + w + " x " + h + " x " + len + " prepared.");
-            return true;
-        }
-
-        private boolean tickSearch() {
-            for (int i = 0; i < searchAttemptsPerTick; i++) {
-                if (attempt >= maxAttempts) {
-                    HavocDebug.announce(plugin, "Population: could not spawn " + difficulty + " after " + maxAttempts + " attempts.");
-                    plugin.getLogService().log("SPAWN_FAIL", "", "", null,
-                            "difficulty=" + difficulty + ", attempts=" + maxAttempts);
-                    return true;
-                }
-                if (selectCandidate()) {
-                    return false;
-                }
-                attempt++;
-            }
-            return false;
-        }
-
-        private boolean selectCandidate() {
-            HavocConfig cfg = plugin.getHavocConfig();
-            int chunkCx = ThreadLocalRandom.current().nextInt(minC, maxC + 1);
-            int chunkCz = ThreadLocalRandom.current().nextInt(minC, maxC + 1);
-            int chunkMidX = chunkCx * 16 + chunkLocalX;
-            int chunkMidZ = chunkCz * 16 + chunkLocalZ;
-            int targetY = cfg.getPasteCenterWorldY();
-            ox = chunkMidX - off[0];
-            oz = chunkMidZ - off[2];
-            if (cfg.isVerticalPasteSnapToBedrock()) {
-                int roof = SchematicPlacement.highestBedrockY(world, chunkMidX, chunkMidZ);
-                if (roof >= 0) {
-                    oy = roof + 1 - analysis.lowestNonAirY + ex[1];
-                } else {
-                    oy = targetY - off[1] + ex[1];
-                }
-            } else {
-                oy = targetY - off[1] + ex[1];
-            }
-            int yMax = world.getMaxHeight() - h;
-            if (oy < 0) {
-                oy = 0;
-            }
-            if (oy > yMax) {
-                oy = yMax;
-            }
-            int obsX = ox + off[0];
-            int obsZ = oz + off[2];
-            int occCx = Math.floorDiv(obsX, 16);
-            int occCz = Math.floorDiv(obsZ, 16);
-            if (!fitsInBorder(ox, oz, w, len, half)) {
-                return false;
-            }
-            if (!isFarEnoughFromOrigin(obsX, obsZ)) {
-                return false;
-            }
-            if (!isFarEnoughFromOtherBases(obsX, obsZ, world.getName())) {
-                return false;
-            }
-            HashSet<ChunkKey> claimSet = new HashSet<ChunkKey>();
-            analysis.collectClaimChunks(world.getName(), ox, oz, claimSet);
-            analysis.ensureAnchorChunkClaimed(world.getName(), ox, oz, off[0], off[2], claimSet);
-            if (overlapsExistingFootprint(world.getName(), ox, oz, w, len)) {
-                return false;
-            }
-            if (overlapsExistingClaims(claimSet)) {
-                return false;
-            }
-            chunkFootprintRadius = footprintChunkRadiusFromClaims(occCx, occCz, claimSet);
-            if (!farEnough(occCx, occCz, sep, chunkFootprintRadius)) {
-                return false;
-            }
-            base = new ActiveHavocBase(difficulty, world.getName());
-            base.pasteOriginX = ox;
-            base.pasteOriginY = oy;
-            base.pasteOriginZ = oz;
-            base.footprintSizeX = w;
-            base.footprintSizeZ = len;
-            base.chunkFootprintRadius = chunkFootprintRadius;
-            base.obsidianCenterX = ox + off[0];
-            base.obsidianCenterY = oy + off[1];
-            base.obsidianCenterZ = oz + off[2];
-            base.centerChunkX = Math.floorDiv(base.obsidianCenterX, 16);
-            base.centerChunkZ = Math.floorDiv(base.obsidianCenterZ, 16);
-
-            sortedClaims = new ArrayList<ChunkKey>(claimSet);
-            Collections.sort(sortedClaims, CHUNK_KEY_ORDER);
-            preloadChunks = new ArrayList<ChunkKey>();
-            HashSet<ChunkKey> preloadSet = new HashSet<ChunkKey>();
-            int minCx = Math.floorDiv(ox, 16);
-            int maxCx = Math.floorDiv(ox + w - 1, 16);
-            int minCz = Math.floorDiv(oz, 16);
-            int maxCz = Math.floorDiv(oz + len - 1, 16);
-            for (int cx = minCx; cx <= maxCx; cx++) {
-                for (int cz = minCz; cz <= maxCz; cz++) {
-                    ChunkKey key = new ChunkKey(world.getName(), cx, cz);
-                    if (preloadSet.add(key)) {
-                        preloadChunks.add(key);
-                    }
-                }
-            }
-            for (ChunkKey key : sortedClaims) {
-                if (key.getWorld().equals(world.getName()) && preloadSet.add(key)) {
-                    preloadChunks.add(key);
-                }
-            }
-            preloadCursor = 0;
-            snapshot = new ColumnBoxSnapshot(ox, oz, w, len, world.getMaxHeight());
-            base.terrainSnapshot = snapshot;
-            snapshotColumnCursor = 0;
-            pasteSession = null;
-            pasteColumnCursor = 0;
-            claimCursor = 0;
-            phase = PHASE_PRELOAD;
-            return true;
-        }
-
-        private boolean tickPreload() {
-            int done = 0;
-            while (preloadCursor < preloadChunks.size() && done < preloadChunksPerTick) {
-                ChunkKey key = preloadChunks.get(preloadCursor++);
-                Chunk ch = world.getChunkAt(key.getX(), key.getZ());
-                if (!ch.isLoaded()) {
-                    ch.load();
-                }
-                done++;
-            }
-            if (preloadCursor >= preloadChunks.size()) {
-                HavocDebug.announce(plugin, "Preparing snapshot " + w + "x" + len + " columns full height @ origin " + ox + "," + oz + " …");
-                phase = PHASE_SNAPSHOT;
-            }
-            return false;
-        }
-
-        private boolean tickSnapshot() {
-            int totalCols = w * len;
-            int count = Math.min(snapshotColumnsPerTick, totalCols - snapshotColumnCursor);
-            snapshot.captureColumns(world, snapshotColumnCursor, count);
-            snapshotColumnCursor += count;
-            if (snapshotColumnCursor >= totalCols) {
-                phase = PHASE_PASTE;
-            }
-            return false;
-        }
-
-        private boolean tickPaste() {
-            if (pasteSession == null) {
-                try {
-                    HavocDebug.announce(plugin, "Placing " + difficulty + " block-by-block at origin " + ox + "," + oy + "," + oz
-                            + " obsidian " + base.obsidianCenterX + "," + base.obsidianCenterY + "," + base.obsidianCenterZ
-                            + " (clipboard min = chunk alignment; claims=" + sortedClaims.size() + " chunks).");
-                    pasteSession = SchematicBlockPlacer.createSession(world);
-                } catch (IOException e) {
-                    failSpawn("PASTE FAILED: " + e.getMessage());
-                    return true;
-                }
-            }
-            int totalCols = w * len;
-            int count = Math.min(pasteColumnsPerTick, totalCols - pasteColumnCursor);
-            try {
-                SchematicBlockPlacer.pasteColumns(pasteSession, clip, ox, oy, oz, pasteColumnCursor, count);
-            } catch (MaxChangedBlocksException e) {
-                failSpawn("PASTE FAILED: " + e.getMessage());
-                return true;
-            }
-            pasteColumnCursor += count;
-            if (pasteColumnCursor >= totalCols) {
-                pasteSession.flushQueue();
-                pasteSession = null;
-                phase = PHASE_CLAIM;
-            }
-            return false;
-        }
-
-        private boolean tickClaim() {
-            int done = 0;
-            while (claimCursor < sortedClaims.size() && done < claimChunksPerTick) {
-                ChunkKey key = sortedClaims.get(claimCursor++);
-                if (!key.getWorld().equals(world.getName())) {
-                    continue;
-                }
-                try {
-                    Chunk ch = world.getChunkAt(key.getX(), key.getZ());
-                    plugin.getFactionsBridge().claimChunkForFaction(ch, havocFaction);
-                    base.claimedChunks.add(key);
-                } catch (Exception e) {
-                    failSpawn("CLAIM FAILED, reverting: " + e.getMessage());
-                    return true;
-                }
-                done++;
-            }
-            if (claimCursor >= sortedClaims.size()) {
-                phase = PHASE_FINALIZE;
-            }
-            return false;
-        }
-
-        private boolean finalizeSpawn() {
-            basesById.put(base.id, base);
-            for (ChunkKey key : base.claimedChunks) {
-                chunkOwners.put(key, base.id);
-            }
-            int minCx = Math.floorDiv(ox, 16);
-            int maxCx = Math.floorDiv(ox + w - 1, 16);
-            int minCz = Math.floorDiv(oz, 16);
-            int maxCz = Math.floorDiv(oz + len - 1, 16);
-            HavocDebug.announce(plugin, "Spawned " + difficulty + " base ~" + shortId(base.id) + " envelope chunks " + minCx + "," + minCz + " → " + maxCx + "," + maxCz
-                    + " (obsidian center chunk " + base.centerChunkX + "," + base.centerChunkZ + ", faction claims=" + base.claimedChunks.size() + ").");
-            plugin.getLogger().info("Spawned " + difficulty + " Havoc base ~" + shortId(base.id) + " at chunk " + base.centerChunkX + "," + base.centerChunkZ);
-            plugin.getLogService().log("BASE_SPAWN", "", shortId(base.id),
-                    new Location(world, base.obsidianCenterX, base.obsidianCenterY, base.obsidianCenterZ),
-                    "difficulty=" + difficulty + ", claims=" + base.claimedChunks.size());
-            return true;
-        }
-
-        private void failSpawn(String debugMsg) {
-            plugin.getLogger().severe(debugMsg.replace("FAILED: ", "").replace("reverting: ", ""));
-            HavocDebug.announce(plugin, debugMsg);
-            plugin.getLogService().log("SPAWN_FAIL", "", "", new Location(world, ox, oy, oz),
-                    "difficulty=" + difficulty + ", reason=" + debugMsg);
-            if (pasteSession != null) {
-                pasteSession.flushQueue();
-                pasteSession = null;
-            }
-            if (base != null && !base.claimedChunks.isEmpty()) {
-                for (ChunkKey key : new ArrayList<ChunkKey>(base.claimedChunks)) {
-                    if (!key.getWorld().equals(world.getName())) {
-                        continue;
-                    }
-                    try {
-                        plugin.getFactionsBridge().unclaimChunk(world.getChunkAt(key.getX(), key.getZ()));
-                    } catch (Exception ignored) {
-                    }
-                }
-            }
-            if (snapshot != null) {
-                snapshot.applyAll(world);
-            }
-            if (base != null) {
-                base.claimedChunks.clear();
-            }
-        }
     }
 
 }

@@ -24,6 +24,7 @@ public final class AdminReloadSubcommand implements AdminSubcommand {
     public boolean execute(CommandSender sender, String[] args) {
         HavocConfig c = plugin.getHavocConfig();
         c.reload();
+        plugin.getLogService().configureRetention(c.getMaxLogLines(), c.getMaxLogDays(), c.isArchiveLogsOnRotate());
         plugin.getMessages().reload();
         plugin.getSalvageShop().reload();
         plugin.getSalvageStore().load();

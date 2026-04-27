@@ -6,6 +6,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -18,6 +20,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public final class HavocLogService {
 
@@ -47,12 +51,25 @@ public final class HavocLogService {
 
     private final JavaPlugin plugin;
     private final File file;
+    private final File archiveDir;
     private final List<Entry> entries = new ArrayList<Entry>();
     private final SimpleDateFormat dateFmt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
+    private final ExecutorService ioExecutor = Executors.newSingleThreadExecutor();
+    private int maxLogLines = 100000;
+    private int maxLogDays = 30;
+    private boolean archiveOnRotate = true;
 
     public HavocLogService(JavaPlugin plugin) {
         this.plugin = plugin;
         this.file = new File(plugin.getDataFolder(), "havoc-logs.log");
+        this.archiveDir = new File(plugin.getDataFolder(), "log-archive");
+    }
+
+    public synchronized void configureRetention(int maxLogLines, int maxLogDays, boolean archiveOnRotate) {
+        this.maxLogLines = Math.max(100, maxLogLines);
+        this.maxLogDays = Math.max(1, maxLogDays);
+        this.archiveOnRotate = archiveOnRotate;
+        applyRetentionAndPersist(false);
     }
 
     public synchronized void load() {
@@ -80,6 +97,7 @@ public final class HavocLogService {
                 }
             }
         }
+        applyRetentionAndPersist(false);
     }
 
     public synchronized void log(String type, String user, String baseId, Location loc, String message) {
@@ -95,7 +113,9 @@ public final class HavocLogService {
                 x, y, z,
                 safe(message));
         entries.add(e);
-        appendLine(serialize(e));
+        if (!applyRetentionAndPersist(true)) {
+            appendLineAsync(serialize(e));
+        }
     }
 
     public synchronized List<Entry> queryAllNewestFirst() {
@@ -255,8 +275,30 @@ public final class HavocLogService {
         });
     }
 
-    private void appendLine(final String line) {
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, new Runnable() {
+    private boolean applyRetentionAndPersist(boolean maybeArchive) {
+        long now = System.currentTimeMillis();
+        long minEpoch = now - (maxLogDays * 24L * 60L * 60L * 1000L);
+        int before = entries.size();
+        List<Entry> kept = new ArrayList<Entry>(entries.size());
+        for (Entry e : entries) {
+            if (e.epochMs >= minEpoch) {
+                kept.add(e);
+            }
+        }
+        if (kept.size() > maxLogLines) {
+            kept = new ArrayList<Entry>(kept.subList(kept.size() - maxLogLines, kept.size()));
+        }
+        boolean trimmed = kept.size() != before;
+        if (trimmed) {
+            entries.clear();
+            entries.addAll(kept);
+            rewriteAllAsync(maybeArchive && archiveOnRotate);
+        }
+        return trimmed;
+    }
+
+    private void appendLineAsync(final String line) {
+        ioExecutor.submit(new Runnable() {
             @Override
             public void run() {
                 BufferedWriter bw = null;
@@ -276,6 +318,77 @@ public final class HavocLogService {
                 }
             }
         });
+    }
+
+    private void rewriteAllAsync(final boolean archiveCurrentFile) {
+        final List<Entry> snapshot = new ArrayList<Entry>(entries);
+        ioExecutor.submit(new Runnable() {
+            @Override
+            public void run() {
+                if (archiveCurrentFile) {
+                    archiveCurrentLogFile();
+                }
+                BufferedWriter bw = null;
+                try {
+                    bw = new BufferedWriter(new FileWriter(file, false));
+                    for (Entry e : snapshot) {
+                        bw.write(serialize(e));
+                        bw.newLine();
+                    }
+                } catch (IOException e) {
+                    plugin.getLogger().warning("Could not rewrite havoc log file: " + e.getMessage());
+                } finally {
+                    if (bw != null) {
+                        try {
+                            bw.close();
+                        } catch (IOException ignored) {
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    private void archiveCurrentLogFile() {
+        if (!file.exists()) {
+            return;
+        }
+        if (!archiveDir.exists() && !archiveDir.mkdirs()) {
+            plugin.getLogger().warning("Could not create log archive directory: " + archiveDir.getAbsolutePath());
+            return;
+        }
+        String stamp = new SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(new Date());
+        File target = new File(archiveDir, "havoc-logs-" + stamp + ".log");
+        FileInputStream in = null;
+        FileOutputStream out = null;
+        try {
+            in = new FileInputStream(file);
+            out = new FileOutputStream(target);
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = in.read(buf)) > 0) {
+                out.write(buf, 0, n);
+            }
+        } catch (IOException e) {
+            plugin.getLogger().warning("Could not archive havoc log file: " + e.getMessage());
+        } finally {
+            if (in != null) {
+                try {
+                    in.close();
+                } catch (IOException ignored) {
+                }
+            }
+            if (out != null) {
+                try {
+                    out.close();
+                } catch (IOException ignored) {
+                }
+            }
+        }
+    }
+
+    public void shutdown() {
+        ioExecutor.shutdown();
     }
 
     private String serialize(Entry e) {

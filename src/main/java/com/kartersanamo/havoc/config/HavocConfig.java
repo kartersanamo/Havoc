@@ -63,6 +63,9 @@ public final class HavocConfig {
     private int minOriginDistanceBlocks;
     private long lockNotifyCooldownMs;
     private String progressionResetTimezone;
+    private int maxLogLines;
+    private int maxLogDays;
+    private boolean archiveLogsOnRotate;
     private Set<Material> breachMaterials = new HashSet<Material>();
 
     public HavocConfig(JavaPlugin plugin) {
@@ -149,6 +152,9 @@ public final class HavocConfig {
         minOriginDistanceBlocks = Math.max(0, c.getInt("placement.min-origin-distance-blocks", 500));
         lockNotifyCooldownMs = Math.max(0L, c.getLong("timers.lock-notify-cooldown-ms", 1500L));
         progressionResetTimezone = c.getString("timers.progression-reset-timezone", "America/New_York");
+        maxLogLines = Math.max(100, c.getInt("logs.max-log-lines", 100000));
+        maxLogDays = Math.max(1, c.getInt("logs.max-log-days", 30));
+        archiveLogsOnRotate = c.getBoolean("logs.archive-on-rotate", true);
         ConfigurationSection sp = c.getConfigurationSection("spawn");
         if (sp != null) {
             spawnWorld = sp.getString("world", worldName);
@@ -432,5 +438,17 @@ public final class HavocConfig {
 
     public String getProgressionResetTimezone() {
         return progressionResetTimezone;
+    }
+
+    public int getMaxLogLines() {
+        return maxLogLines;
+    }
+
+    public int getMaxLogDays() {
+        return maxLogDays;
+    }
+
+    public boolean isArchiveLogsOnRotate() {
+        return archiveLogsOnRotate;
     }
 }
