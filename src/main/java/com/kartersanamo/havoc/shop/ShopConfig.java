@@ -13,24 +13,6 @@ import java.util.List;
 
 public final class ShopConfig {
 
-    public static final class DisplayItem {
-        public final int slot;
-        public final Material material;
-        public final short data;
-        public final int amount;
-        public final String displayName;
-        public final List<String> lore;
-
-        public DisplayItem(int slot, Material material, short data, int amount, String displayName, List<String> lore) {
-            this.slot = slot;
-            this.material = material;
-            this.data = data;
-            this.amount = amount;
-            this.displayName = displayName;
-            this.lore = lore;
-        }
-    }
-
     private final JavaPlugin plugin;
     private String title = ChatColor.DARK_GREEN + "Havoc Salvage Shop";
     private int rows = 3;
@@ -41,8 +23,8 @@ public final class ShopConfig {
     private String balanceLoreLine = "&7Your Balance: &f{balance}";
     private String canAffordLoreLine = "&aClick to purchase.";
     private String cannotAffordLoreLine = "&cYou cannot afford this.";
-    private DisplayItem fillerItem;
-    private DisplayItem balanceItem;
+    private ShopDisplayItem fillerItem;
+    private ShopDisplayItem balanceItem;
     private final List<ShopItem> items = new ArrayList<ShopItem>();
 
     public ShopConfig(JavaPlugin plugin) {
@@ -127,11 +109,11 @@ public final class ShopConfig {
         return cannotAffordLoreLine;
     }
 
-    public DisplayItem getFillerItem() {
+    public ShopDisplayItem getFillerItem() {
         return fillerItem;
     }
 
-    public DisplayItem getBalanceItem() {
+    public ShopDisplayItem getBalanceItem() {
         return balanceItem;
     }
 
@@ -148,7 +130,7 @@ public final class ShopConfig {
         return null;
     }
 
-    private DisplayItem parseDisplayItem(ConfigurationSection sec, int defSlot, Material defMat, int defData, int defAmount, String defName) {
+    private ShopDisplayItem parseDisplayItem(ConfigurationSection sec, int defSlot, Material defMat, int defData, int defAmount, String defName) {
         if (sec == null) {
             return null;
         }
@@ -161,7 +143,7 @@ public final class ShopConfig {
         int amount = clampAmount(sec.getInt("amount", defAmount));
         String name = color(sec.getString("display-name", defName));
         List<String> lore = colorList(sec.getStringList("lore"));
-        return new DisplayItem(slot, mat, data, amount, name, lore);
+        return new ShopDisplayItem(slot, mat, data, amount, name, lore);
     }
 
     private Material parseMaterial(String raw, Material def, String path) {

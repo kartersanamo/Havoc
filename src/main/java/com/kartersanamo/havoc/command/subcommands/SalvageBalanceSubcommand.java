@@ -1,6 +1,7 @@
 package com.kartersanamo.havoc.command.subcommands;
 
 import com.kartersanamo.havoc.Havoc;
+import com.kartersanamo.havoc.message.MessageKeys;
 import com.kartersanamo.havoc.message.MessageVars;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -29,7 +30,7 @@ public final class SalvageBalanceSubcommand implements HavocSubcommand {
         }
         int bal = plugin.getSalvageStore().get(((Player) sender).getUniqueId());
         plugin.getMessages().send(sender, "command.salvage-balance",
-                MessageVars.create().put(MessageVars.Key.BALANCE, bal).build());
+                MessageVars.create().put(MessageKeys.BALANCE, bal).build());
         return true;
     }
 

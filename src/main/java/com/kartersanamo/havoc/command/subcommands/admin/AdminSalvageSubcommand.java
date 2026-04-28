@@ -1,6 +1,7 @@
 package com.kartersanamo.havoc.command.subcommands.admin;
 
 import com.kartersanamo.havoc.Havoc;
+import com.kartersanamo.havoc.message.MessageKeys;
 import com.kartersanamo.havoc.message.MessageVars;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -37,14 +38,14 @@ public final class AdminSalvageSubcommand implements AdminSubcommand {
         OfflinePlayer target = Bukkit.getOfflinePlayer(args[2]);
         if (target == null || (!target.isOnline() && !target.hasPlayedBefore())) {
             plugin.getMessages().send(sender, "admin.salvage.player-not-found",
-                    MessageVars.one(MessageVars.Key.PLAYER, args[2]));
+                    MessageVars.one(MessageKeys.PLAYER, args[2]));
             return true;
         }
         if ("show".equals(mode)) {
             int bal = plugin.getSalvageStore().get(target.getUniqueId());
             java.util.Map<String, String> vars = MessageVars.create()
-                    .put(MessageVars.Key.PLAYER, target.getName() == null ? args[2] : target.getName())
-                    .put(MessageVars.Key.BALANCE, bal)
+                    .put(MessageKeys.PLAYER, target.getName() == null ? args[2] : target.getName())
+                    .put(MessageKeys.BALANCE, bal)
                     .build();
             plugin.getMessages().send(sender, "admin.salvage.show", vars);
             return true;
@@ -75,9 +76,9 @@ public final class AdminSalvageSubcommand implements AdminSubcommand {
         }
         int bal = plugin.getSalvageStore().get(target.getUniqueId());
         java.util.Map<String, String> vars = MessageVars.create()
-                .put(MessageVars.Key.PLAYER, target.getName() == null ? args[2] : target.getName())
-                .put(MessageVars.Key.AMOUNT, amount)
-                .put(MessageVars.Key.BALANCE, bal)
+                .put(MessageKeys.PLAYER, target.getName() == null ? args[2] : target.getName())
+                .put(MessageKeys.AMOUNT, amount)
+                .put(MessageKeys.BALANCE, bal)
                 .build();
         plugin.getMessages().send(sender, "add".equals(mode) ? "admin.salvage.add-success" : "admin.salvage.set-success", vars);
         plugin.getLogService().log("ADMIN_SALVAGE_" + mode.toUpperCase(Locale.ROOT),

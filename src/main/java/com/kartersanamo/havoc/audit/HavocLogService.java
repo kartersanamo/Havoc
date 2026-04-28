@@ -25,34 +25,10 @@ import java.util.concurrent.Executors;
 
 public final class HavocLogService {
 
-    public static final class Entry {
-        public final long epochMs;
-        public final String type;
-        public final String user;
-        public final String baseId;
-        public final String world;
-        public final int x;
-        public final int y;
-        public final int z;
-        public final String message;
-
-        public Entry(long epochMs, String type, String user, String baseId, String world, int x, int y, int z, String message) {
-            this.epochMs = epochMs;
-            this.type = type;
-            this.user = user;
-            this.baseId = baseId;
-            this.world = world;
-            this.x = x;
-            this.y = y;
-            this.z = z;
-            this.message = message;
-        }
-    }
-
     private final JavaPlugin plugin;
     private final File file;
     private final File archiveDir;
-    private final List<Entry> entries = new ArrayList<Entry>();
+    private final List<HavocLogEntry> entries = new ArrayList<HavocLogEntry>();
     private final SimpleDateFormat dateFmt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
     private final ExecutorService ioExecutor = Executors.newSingleThreadExecutor();
     private int maxLogLines = 100000;
@@ -82,7 +58,7 @@ public final class HavocLogService {
             br = new BufferedReader(new FileReader(file));
             String line;
             while ((line = br.readLine()) != null) {
-                Entry e = parse(line);
+                HavocLogEntry e = parse(line);
                 if (e != null) {
                     entries.add(e);
                 }
@@ -105,7 +81,7 @@ public final class HavocLogService {
         int x = loc != null ? loc.getBlockX() : 0;
         int y = loc != null ? loc.getBlockY() : 0;
         int z = loc != null ? loc.getBlockZ() : 0;
-        Entry e = new Entry(System.currentTimeMillis(),
+        HavocLogEntry e = new HavocLogEntry(System.currentTimeMillis(),
                 safe(type),
                 safe(user),
                 safe(baseId),
@@ -118,16 +94,16 @@ public final class HavocLogService {
         }
     }
 
-    public synchronized List<Entry> queryAllNewestFirst() {
-        List<Entry> out = new ArrayList<Entry>(entries);
+    public synchronized List<HavocLogEntry> queryAllNewestFirst() {
+        List<HavocLogEntry> out = new ArrayList<HavocLogEntry>(entries);
         sortNewestFirst(out);
         return out;
     }
 
-    public synchronized List<Entry> queryByUserNewestFirst(String user) {
+    public synchronized List<HavocLogEntry> queryByUserNewestFirst(String user) {
         String u = safe(user).toLowerCase(Locale.ROOT);
-        List<Entry> out = new ArrayList<Entry>();
-        for (Entry e : entries) {
+        List<HavocLogEntry> out = new ArrayList<HavocLogEntry>();
+        for (HavocLogEntry e : entries) {
             if (!e.user.isEmpty() && e.user.toLowerCase(Locale.ROOT).contains(u)) {
                 out.add(e);
             }
@@ -136,10 +112,10 @@ public final class HavocLogService {
         return out;
     }
 
-    public synchronized List<Entry> queryByBaseNewestFirst(String base) {
+    public synchronized List<HavocLogEntry> queryByBaseNewestFirst(String base) {
         String b = safe(base).toLowerCase(Locale.ROOT);
-        List<Entry> out = new ArrayList<Entry>();
-        for (Entry e : entries) {
+        List<HavocLogEntry> out = new ArrayList<HavocLogEntry>();
+        for (HavocLogEntry e : entries) {
             if (!e.baseId.isEmpty() && e.baseId.toLowerCase(Locale.ROOT).contains(b)) {
                 out.add(e);
             }
@@ -148,7 +124,7 @@ public final class HavocLogService {
         return out;
     }
 
-    public String formatForChat(Entry e) {
+    public String formatForChat(HavocLogEntry e) {
         String t = dateFmt.format(new Date(e.epochMs));
         String loc = e.world.isEmpty() ? "-" : e.world + "@" + e.x + "," + e.y + "," + e.z;
         return "§8[" + t + "] §b" + e.type
@@ -158,10 +134,10 @@ public final class HavocLogService {
                 + " §7- " + e.message;
     }
 
-    public synchronized List<Entry> queryByTypeNewestFirst(String type) {
+    public synchronized List<HavocLogEntry> queryByTypeNewestFirst(String type) {
         String t = safe(type).toLowerCase(Locale.ROOT);
-        List<Entry> out = new ArrayList<Entry>();
-        for (Entry e : entries) {
+        List<HavocLogEntry> out = new ArrayList<HavocLogEntry>();
+        for (HavocLogEntry e : entries) {
             if (!e.type.isEmpty() && e.type.toLowerCase(Locale.ROOT).contains(t)) {
                 out.add(e);
             }
@@ -170,9 +146,9 @@ public final class HavocLogService {
         return out;
     }
 
-    public synchronized List<Entry> queryByDateRangeNewestFirst(long fromEpochMsInclusive, long toEpochMsInclusive) {
-        List<Entry> out = new ArrayList<Entry>();
-        for (Entry e : entries) {
+    public synchronized List<HavocLogEntry> queryByDateRangeNewestFirst(long fromEpochMsInclusive, long toEpochMsInclusive) {
+        List<HavocLogEntry> out = new ArrayList<HavocLogEntry>();
+        for (HavocLogEntry e : entries) {
             if (e.epochMs >= fromEpochMsInclusive && e.epochMs <= toEpochMsInclusive) {
                 out.add(e);
             }
@@ -181,12 +157,12 @@ public final class HavocLogService {
         return out;
     }
 
-    public synchronized List<Entry> queryFilteredNewestFirst(String user, String base, String type, Long fromEpochMsInclusive, Long toEpochMsInclusive) {
+    public synchronized List<HavocLogEntry> queryFilteredNewestFirst(String user, String base, String type, Long fromEpochMsInclusive, Long toEpochMsInclusive) {
         String u = safe(user).toLowerCase(Locale.ROOT);
         String b = safe(base).toLowerCase(Locale.ROOT);
         String t = safe(type).toLowerCase(Locale.ROOT);
-        List<Entry> out = new ArrayList<Entry>();
-        for (Entry e : entries) {
+        List<HavocLogEntry> out = new ArrayList<HavocLogEntry>();
+        for (HavocLogEntry e : entries) {
             if (!u.isEmpty() && (e.user.isEmpty() || !e.user.toLowerCase(Locale.ROOT).contains(u))) {
                 continue;
             }
@@ -208,11 +184,11 @@ public final class HavocLogService {
         return out;
     }
 
-    public synchronized int exportToFile(File outFile, List<Entry> data) {
+    public synchronized int exportToFile(File outFile, List<HavocLogEntry> data) {
         BufferedWriter bw = null;
         try {
             bw = new BufferedWriter(new FileWriter(outFile, false));
-            for (Entry e : data) {
+            for (HavocLogEntry e : data) {
                 bw.write(serialize(e));
                 bw.newLine();
             }
@@ -266,10 +242,10 @@ public final class HavocLogService {
         return null;
     }
 
-    private void sortNewestFirst(List<Entry> out) {
-        Collections.sort(out, new Comparator<Entry>() {
+    private void sortNewestFirst(List<HavocLogEntry> out) {
+        Collections.sort(out, new Comparator<HavocLogEntry>() {
             @Override
-            public int compare(Entry a, Entry b) {
+            public int compare(HavocLogEntry a, HavocLogEntry b) {
                 return Long.compare(b.epochMs, a.epochMs);
             }
         });
@@ -279,14 +255,14 @@ public final class HavocLogService {
         long now = System.currentTimeMillis();
         long minEpoch = now - (maxLogDays * 24L * 60L * 60L * 1000L);
         int before = entries.size();
-        List<Entry> kept = new ArrayList<Entry>(entries.size());
-        for (Entry e : entries) {
+        List<HavocLogEntry> kept = new ArrayList<HavocLogEntry>(entries.size());
+        for (HavocLogEntry e : entries) {
             if (e.epochMs >= minEpoch) {
                 kept.add(e);
             }
         }
         if (kept.size() > maxLogLines) {
-            kept = new ArrayList<Entry>(kept.subList(kept.size() - maxLogLines, kept.size()));
+            kept = new ArrayList<HavocLogEntry>(kept.subList(kept.size() - maxLogLines, kept.size()));
         }
         boolean trimmed = kept.size() != before;
         if (trimmed) {
@@ -321,7 +297,7 @@ public final class HavocLogService {
     }
 
     private void rewriteAllAsync(final boolean archiveCurrentFile) {
-        final List<Entry> snapshot = new ArrayList<Entry>(entries);
+        final List<HavocLogEntry> snapshot = new ArrayList<HavocLogEntry>(entries);
         ioExecutor.submit(new Runnable() {
             @Override
             public void run() {
@@ -331,7 +307,7 @@ public final class HavocLogService {
                 BufferedWriter bw = null;
                 try {
                     bw = new BufferedWriter(new FileWriter(file, false));
-                    for (Entry e : snapshot) {
+                    for (HavocLogEntry e : snapshot) {
                         bw.write(serialize(e));
                         bw.newLine();
                     }
@@ -391,19 +367,19 @@ public final class HavocLogService {
         ioExecutor.shutdown();
     }
 
-    private String serialize(Entry e) {
+    private String serialize(HavocLogEntry e) {
         return e.epochMs + "|" + esc(e.type) + "|" + esc(e.user) + "|" + esc(e.baseId) + "|"
                 + esc(e.world) + "|" + e.x + "|" + e.y + "|" + e.z + "|" + esc(e.message);
     }
 
-    private Entry parse(String line) {
+    private HavocLogEntry parse(String line) {
         String[] p = split(line, 9);
         if (p.length < 9) {
             return null;
         }
         try {
             long ts = Long.parseLong(p[0]);
-            return new Entry(ts, unesc(p[1]), unesc(p[2]), unesc(p[3]), unesc(p[4]),
+            return new HavocLogEntry(ts, unesc(p[1]), unesc(p[2]), unesc(p[3]), unesc(p[4]),
                     Integer.parseInt(p[5]), Integer.parseInt(p[6]), Integer.parseInt(p[7]), unesc(p[8]));
         } catch (Exception e) {
             return null;

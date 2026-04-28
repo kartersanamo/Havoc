@@ -3,6 +3,7 @@ package com.kartersanamo.havoc.command.subcommands.admin;
 import com.kartersanamo.havoc.Havoc;
 import com.kartersanamo.havoc.base.BaseDifficulty;
 import com.kartersanamo.havoc.command.subcommands.CommandUtil;
+import com.kartersanamo.havoc.message.MessageKeys;
 import com.kartersanamo.havoc.message.MessageVars;
 import org.bukkit.command.CommandSender;
 
@@ -38,7 +39,7 @@ public final class AdminSpawnSubcommand implements AdminSubcommand {
         }
         boolean ok = plugin.getBaseService().trySpawnOne(d);
         plugin.getMessages().send(sender, ok ? "admin.spawn.success" : "admin.spawn.failed",
-                MessageVars.one(MessageVars.Key.DIFFICULTY, d.name()));
+                MessageVars.one(MessageKeys.DIFFICULTY, d.name()));
         plugin.getLogService().log("ADMIN_SPAWN_" + (ok ? "SUCCESS" : "FAILED"), sender.getName(), "", null,
                 "difficulty=" + d.name());
         return true;

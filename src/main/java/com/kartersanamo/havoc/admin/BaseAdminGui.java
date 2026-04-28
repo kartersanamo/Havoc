@@ -37,15 +37,15 @@ public final class BaseAdminGui {
     }
 
     public void openList(Player player) {
-        openList(player, 0, SortMode.ACTIVE_FIRST);
+        openList(player, 0, BaseAdminGuiSortMode.ACTIVE_FIRST);
     }
 
-    private void openList(Player player, int requestedPage, SortMode sortMode) {
+    private void openList(Player player, int requestedPage, BaseAdminGuiSortMode sortMode) {
         List<ActiveHavocBase> sortedBases = sortBases(player, plugin.getBaseService().listAllBasesSorted(), sortMode);
         int totalPages = pageCount(sortedBases.size());
         int page = clampPage(requestedPage, totalPages);
 
-        Inventory inv = Bukkit.createInventory(new ListHolder(sortedBases, page, sortMode), LIST_SIZE,
+        Inventory inv = Bukkit.createInventory(new BaseAdminListHolder(sortedBases, page, sortMode), LIST_SIZE,
                 ChatColor.DARK_AQUA + "Havoc Bases");
         int start = page * LIST_PAGE_SIZE;
         int end = Math.min(start + LIST_PAGE_SIZE, sortedBases.size());
@@ -77,21 +77,21 @@ public final class BaseAdminGui {
             return false;
         }
         InventoryHolder h = inv.getHolder();
-        return h instanceof ListHolder || h instanceof DetailHolder;
+        return h instanceof BaseAdminListHolder || h instanceof BaseAdminDetailHolder;
     }
 
     public void handleClick(Player player, Inventory top, int rawSlot) {
         InventoryHolder holder = top.getHolder();
-        if (holder instanceof ListHolder) {
-            handleListClick(player, (ListHolder) holder, rawSlot);
+        if (holder instanceof BaseAdminListHolder) {
+            handleListClick(player, (BaseAdminListHolder) holder, rawSlot);
             return;
         }
-        if (holder instanceof DetailHolder) {
-            handleDetailClick(player, (DetailHolder) holder, rawSlot);
+        if (holder instanceof BaseAdminDetailHolder) {
+            handleDetailClick(player, (BaseAdminDetailHolder) holder, rawSlot);
         }
     }
 
-    private void handleListClick(Player player, ListHolder holder, int rawSlot) {
+    private void handleListClick(Player player, BaseAdminListHolder holder, int rawSlot) {
         if (rawSlot == SLOT_PREV_PAGE) {
             openList(player, holder.page - 1, holder.sortMode);
             return;
@@ -125,8 +125,8 @@ public final class BaseAdminGui {
         openDetail(player, b, holder.page, holder.sortMode);
     }
 
-    private void openDetail(Player player, ActiveHavocBase b, int returnPage, SortMode returnSortMode) {
-        Inventory inv = Bukkit.createInventory(new DetailHolder(b.id, returnPage, returnSortMode), 27,
+    private void openDetail(Player player, ActiveHavocBase b, int returnPage, BaseAdminGuiSortMode returnSortMode) {
+        Inventory inv = Bukkit.createInventory(new BaseAdminDetailHolder(b.id, returnPage, returnSortMode), 27,
                 ChatColor.DARK_BLUE + "Base " + shortId(b.id));
         inv.setItem(11, createBaseItem(b));
         inv.setItem(15, createControlItem(Material.ENDER_PEARL, ChatColor.GREEN + "Teleport To Base",
@@ -138,7 +138,7 @@ public final class BaseAdminGui {
         player.openInventory(inv);
     }
 
-    private void handleDetailClick(Player player, DetailHolder holder, int rawSlot) {
+    private void handleDetailClick(Player player, BaseAdminDetailHolder holder, int rawSlot) {
         ActiveHavocBase b = plugin.getBaseService().getBaseById(holder.baseId);
         if (b == null) {
             player.sendMessage(ChatColor.RED + "That base no longer exists.");
@@ -216,7 +216,7 @@ public final class BaseAdminGui {
         return stack;
     }
 
-    private List<ActiveHavocBase> sortBases(Player viewer, List<ActiveHavocBase> bases, SortMode mode) {
+    private List<ActiveHavocBase> sortBases(Player viewer, List<ActiveHavocBase> bases, BaseAdminGuiSortMode mode) {
         List<ActiveHavocBase> out = new ArrayList<ActiveHavocBase>(bases);
         final Player sortViewer = viewer;
         switch (mode) {
@@ -340,56 +340,4 @@ public final class BaseAdminGui {
         return id.toString().substring(0, 8);
     }
 
-    private enum SortMode {
-        ACTIVE_FIRST("ACTIVE first"),
-        DISTANCE("Distance"),
-        DIFFICULTY("Difficulty");
-
-        private final String label;
-
-        SortMode(String label) {
-            this.label = label;
-        }
-
-        private SortMode next() {
-            SortMode[] vals = values();
-            return vals[(ordinal() + 1) % vals.length];
-        }
-    }
-
-    private static final class ListHolder implements InventoryHolder {
-        private final List<UUID> baseIds = new ArrayList<UUID>();
-        private final int page;
-        private final SortMode sortMode;
-
-        private ListHolder(List<ActiveHavocBase> bases, int page, SortMode sortMode) {
-            this.page = page;
-            this.sortMode = sortMode;
-            for (ActiveHavocBase b : bases) {
-                baseIds.add(b.id);
-            }
-        }
-
-        @Override
-        public Inventory getInventory() {
-            return null;
-        }
-    }
-
-    private static final class DetailHolder implements InventoryHolder {
-        private final UUID baseId;
-        private final int returnPage;
-        private final SortMode returnSortMode;
-
-        private DetailHolder(UUID baseId, int returnPage, SortMode returnSortMode) {
-            this.baseId = baseId;
-            this.returnPage = returnPage;
-            this.returnSortMode = returnSortMode;
-        }
-
-        @Override
-        public Inventory getInventory() {
-            return null;
-        }
-    }
 }

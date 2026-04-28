@@ -1,8 +1,10 @@
 package com.kartersanamo.havoc.command.subcommands.admin;
 
 import com.kartersanamo.havoc.Havoc;
+import com.kartersanamo.havoc.audit.HavocLogEntry;
 import com.kartersanamo.havoc.audit.HavocLogService;
 import com.kartersanamo.havoc.command.subcommands.CommandUtil;
+import com.kartersanamo.havoc.message.MessageKeys;
 import com.kartersanamo.havoc.message.MessageVars;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
@@ -29,7 +31,7 @@ public final class AdminLogsSubcommand implements AdminSubcommand {
 
     @Override
     public boolean execute(CommandSender sender, String[] args) {
-        List<HavocLogService.Entry> logs;
+        List<HavocLogEntry> logs;
         String scope;
         int page = 1;
         if (args.length == 1) {
@@ -44,7 +46,7 @@ public final class AdminLogsSubcommand implements AdminSubcommand {
             } else if ("export".equals(mode)) {
                 return handleExport(sender, args);
             } else {
-                ParsedFilter f = parseCombinedLogsFilter(args, 1);
+                AdminLogsParsedFilter f = parseCombinedLogsFilter(args, 1);
                 if (!f.ok) {
                     plugin.getMessages().send(sender, f.errorKey == null ? "admin.logs.usage" : f.errorKey);
                     return true;
@@ -69,10 +71,10 @@ public final class AdminLogsSubcommand implements AdminSubcommand {
         int from = (page - 1) * perPage;
         int to = Math.min(logs.size(), from + perPage);
         java.util.Map<String, String> hdr = MessageVars.create()
-                .put(MessageVars.Key.SCOPE, scope)
-                .put(MessageVars.Key.PAGE, page)
-                .put(MessageVars.Key.PAGES, pages)
-                .put(MessageVars.Key.COUNT, logs.size())
+                .put(MessageKeys.SCOPE, scope)
+                .put(MessageKeys.PAGE, page)
+                .put(MessageKeys.PAGES, pages)
+                .put(MessageKeys.COUNT, logs.size())
                 .build();
         plugin.getMessages().send(sender, "admin.logs.header", hdr);
         for (int i = from; i < to; i++) {
@@ -103,7 +105,7 @@ public final class AdminLogsSubcommand implements AdminSubcommand {
     }
 
     private boolean handleExport(CommandSender sender, String[] args) {
-        List<HavocLogService.Entry> data;
+        List<HavocLogEntry> data;
         String exportedScope;
         if (args.length == 2 || "all".equalsIgnoreCase(args[2])) {
             data = plugin.getLogService().queryAllNewestFirst();
@@ -127,17 +129,17 @@ public final class AdminLogsSubcommand implements AdminSubcommand {
             plugin.getMessages().send(sender, "admin.logs.export-failed");
         } else {
             java.util.Map<String, String> vars = MessageVars.create()
-                    .put(MessageVars.Key.FILE, out.getName())
-                    .put(MessageVars.Key.COUNT, written)
-                    .put(MessageVars.Key.SCOPE, exportedScope)
+                    .put(MessageKeys.FILE, out.getName())
+                    .put(MessageKeys.COUNT, written)
+                    .put(MessageKeys.SCOPE, exportedScope)
                     .build();
             plugin.getMessages().send(sender, "admin.logs.export-success", vars);
         }
         return true;
     }
 
-    private ParsedFilter parseCombinedLogsFilter(String[] args, int startIndex) {
-        ParsedFilter f = new ParsedFilter();
+    private AdminLogsParsedFilter parseCombinedLogsFilter(String[] args, int startIndex) {
+        AdminLogsParsedFilter f = new AdminLogsParsedFilter();
         int i = startIndex;
         while (i < args.length) {
             String k = args[i].toLowerCase(Locale.ROOT);
@@ -241,20 +243,4 @@ public final class AdminLogsSubcommand implements AdminSubcommand {
         return sb.toString();
     }
 
-    private static final class ParsedFilter {
-        private boolean ok;
-        private String errorKey;
-        private String user = "";
-        private String base = "";
-        private String type = "";
-        private Long from;
-        private Long to;
-        private int page = 1;
-        private String scope = "all";
-
-        private void fail(String key) {
-            ok = false;
-            errorKey = key;
-        }
-    }
 }

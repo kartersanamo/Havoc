@@ -1,13 +1,13 @@
 package com.kartersanamo.havoc.shop;
 
 import com.kartersanamo.havoc.Havoc;
+import com.kartersanamo.havoc.message.MessageKeys;
 import com.kartersanamo.havoc.message.MessageVars;
 import com.kartersanamo.havoc.storage.SalvageStore;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
@@ -33,7 +33,7 @@ public final class SalvageShop {
     public void open(Player player) {
         int size = config.getSize();
         int balance = plugin.getSalvageStore().get(player.getUniqueId());
-        Inventory inv = Bukkit.createInventory(new ShopHolder(), size, config.getTitle());
+        Inventory inv = Bukkit.createInventory(new SalvageShopHolder(), size, config.getTitle());
         if (config.isFillEmptySlots()) {
             ItemStack filler = createStaticDisplay(config.getFillerItem(), balance);
             if (filler != null) {
@@ -52,7 +52,7 @@ public final class SalvageShop {
             }
         }
         ItemStack balanceDisplay = createStaticDisplay(config.getBalanceItem(), balance);
-        ShopConfig.DisplayItem bd = config.getBalanceItem();
+        ShopDisplayItem bd = config.getBalanceItem();
         if (balanceDisplay != null && bd != null && bd.slot >= 0 && bd.slot < size) {
             inv.setItem(bd.slot, balanceDisplay);
         }
@@ -60,7 +60,7 @@ public final class SalvageShop {
     }
 
     public boolean isShopInventory(Inventory inv) {
-        return inv != null && inv.getHolder() instanceof ShopHolder;
+        return inv != null && inv.getHolder() instanceof SalvageShopHolder;
     }
 
     public void handleClick(Player player, int rawSlot) {
@@ -90,7 +90,7 @@ public final class SalvageShop {
         }
     }
 
-    private ItemStack createStaticDisplay(ShopConfig.DisplayItem spec, int balance) {
+    private ItemStack createStaticDisplay(ShopDisplayItem spec, int balance) {
         if (spec == null) {
             return null;
         }
@@ -129,16 +129,10 @@ public final class SalvageShop {
     private Map<String, String> vars(ShopItem item, int balance) {
         return MessageVars.create()
                 .put("price", item.getPrice())
-                .put(MessageVars.Key.AMOUNT, item.getAmount())
+                .put(MessageKeys.AMOUNT, item.getAmount())
                 .put("name", item.getDisplayName())
-                .put(MessageVars.Key.BALANCE, balance)
+                .put(MessageKeys.BALANCE, balance)
                 .build();
     }
 
-    private static final class ShopHolder implements InventoryHolder {
-        @Override
-        public Inventory getInventory() {
-            return null;
-        }
-    }
 }

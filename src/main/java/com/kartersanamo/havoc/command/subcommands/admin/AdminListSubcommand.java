@@ -2,6 +2,7 @@ package com.kartersanamo.havoc.command.subcommands.admin;
 
 import com.kartersanamo.havoc.Havoc;
 import com.kartersanamo.havoc.base.ActiveHavocBase;
+import com.kartersanamo.havoc.message.MessageKeys;
 import com.kartersanamo.havoc.message.MessageVars;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -34,18 +35,18 @@ public final class AdminListSubcommand implements AdminSubcommand {
             return true;
         }
         plugin.getMessages().send(sender, "admin.list.header",
-                MessageVars.create().put(MessageVars.Key.COUNT, bases.size()).build());
+                MessageVars.create().put(MessageKeys.COUNT, bases.size()).build());
         for (ActiveHavocBase b : bases) {
             String shortId = b.id.toString().substring(0, 8);
             java.util.Map<String, String> vars = MessageVars.create()
-                    .put(MessageVars.Key.DIFFICULTY, b.difficulty.name())
-                    .put(MessageVars.Key.STATE, b.state.name())
-                    .put(MessageVars.Key.WORLD, b.worldName)
-                    .put(MessageVars.Key.X, b.obsidianCenterX)
-                    .put(MessageVars.Key.Y, b.obsidianCenterY)
-                    .put(MessageVars.Key.Z, b.obsidianCenterZ)
-                    .put(MessageVars.Key.ID, shortId)
-                    .put(MessageVars.Key.CLAIMS, b.claimedChunks.size())
+                    .put(MessageKeys.DIFFICULTY, b.difficulty.name())
+                    .put(MessageKeys.STATE, b.state.name())
+                    .put(MessageKeys.WORLD, b.worldName)
+                    .put(MessageKeys.X, b.obsidianCenterX)
+                    .put(MessageKeys.Y, b.obsidianCenterY)
+                    .put(MessageKeys.Z, b.obsidianCenterZ)
+                    .put(MessageKeys.ID, shortId)
+                    .put(MessageKeys.CLAIMS, b.claimedChunks.size())
                     .build();
             plugin.getMessages().send(sender, "admin.list.line", vars);
         }
