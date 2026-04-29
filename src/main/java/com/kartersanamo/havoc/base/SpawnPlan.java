@@ -132,6 +132,26 @@ final class SpawnPlan implements SpawnPlanner.SpawnTask {
         }
     }
 
+    @Override
+    public String phaseName() {
+        switch (phase) {
+            case PHASE_SEARCH:
+                return "SEARCH";
+            case PHASE_PRELOAD:
+                return "PRELOAD";
+            case PHASE_SNAPSHOT:
+                return "SNAPSHOT";
+            case PHASE_PASTE:
+                return "PASTE";
+            case PHASE_CLAIM:
+                return "CLAIM";
+            case PHASE_FINALIZE:
+                return "FINALIZE";
+            default:
+                return "UNKNOWN";
+        }
+    }
+
     private boolean init() {
         if (havocFaction == null) {
             return false;

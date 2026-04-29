@@ -59,6 +59,8 @@ public final class BaseService {
     private final ClaimService claimService = new ClaimService();
     private final RewardService rewardService = new RewardService();
     private final RestoreEngine restoreEngine = new RestoreEngine();
+    private long spawnWorkerTicksMeasured;
+    private double spawnWorkerAvgMs;
 
     public BaseService(Havoc plugin) {
         this.plugin = plugin;
@@ -179,13 +181,44 @@ public final class BaseService {
     }
 
     private void tickSpawnWorker() {    
-        // Spawns one base per tick
+        long startNs = System.nanoTime();
         spawnPlanner.tick(new SpawnPlanner.SpawnTaskFactory() {
             @Override
             public SpawnPlanner.SpawnTask create(BaseDifficulty difficulty) {
                 return new SpawnPlan(plugin, havocFaction, basesById, chunkOwners, claimService, difficulty);
             }
         });
+        long elapsedNs = System.nanoTime() - startNs;
+        recordSpawnWorkerSample(elapsedNs / 1_000_000.0D);
+    }
+
+    private void recordSpawnWorkerSample(double elapsedMs) {
+        spawnWorkerTicksMeasured++;
+        if (spawnWorkerTicksMeasured == 1L) {
+            spawnWorkerAvgMs = elapsedMs;
+            return;
+        }
+        spawnWorkerAvgMs += (elapsedMs - spawnWorkerAvgMs) / (double) spawnWorkerTicksMeasured;
+    }
+
+    public int getSpawnQueueSize() {
+        return spawnPlanner.queuedTotal();
+    }
+
+    public String getSpawnActivePhase() {
+        return spawnPlanner.activePhaseName();
+    }
+
+    public String getSpawnActiveDifficulty() {
+        return spawnPlanner.activeDifficultyName();
+    }
+
+    public double getSpawnWorkerAvgMs() {
+        return spawnWorkerAvgMs;
+    }
+
+    public long getSpawnWorkerSamples() {
+        return spawnWorkerTicksMeasured;
     }
 
     private int countActive(BaseDifficulty d) {

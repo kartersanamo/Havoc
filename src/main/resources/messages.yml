@@ -11,6 +11,7 @@ command:
       - "&e/havoc admin logs type <event> [page] &7- filter by event type"
       - "&e/havoc admin logs date <today|yesterday|last7d|from to> [page] &7- filter by date range"
       - "&e/havoc admin logs export ... &7- export logs to a file"
+      - "&e/havoc admin perf &7- show spawn worker performance"
       - "&e/havoc admin reload &7- reload Havoc, shop, and messages configs"
       - "&e/havoc admin salvage <add|set|show> <player> [amount] &7- manage Salvage"
   players-only: "&cPlayers only."
@@ -48,6 +49,11 @@ admin:
     show: "&e{player}&7 has &6{balance}&7 Salvage."
     add-success: "&aAdded &e{amount}&a Salvage to &f{player}&a. New balance: &e{balance}&a."
     set-success: "&aSet &f{player}&a Salvage to &e{balance}&a."
+  perf:
+    header: "&6Havoc Perf &7(spawn worker)"
+    queue: "&7Queue size: &f{count}"
+    active: "&7Active task: &f{difficulty} &8/ &f{phase}"
+    spawn-worker: "&7Avg ms/tick: &f{avg_ms} &8(&7samples: &f{samples}&8)"
 
 shop:
   purchase:

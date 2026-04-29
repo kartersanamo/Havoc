@@ -3,6 +3,7 @@ package com.kartersanamo.havoc.command.subcommands;
 import com.kartersanamo.havoc.Havoc;
 import com.kartersanamo.havoc.command.subcommands.admin.AdminListSubcommand;
 import com.kartersanamo.havoc.command.subcommands.admin.AdminLogsSubcommand;
+import com.kartersanamo.havoc.command.subcommands.admin.AdminPerfSubcommand;
 import com.kartersanamo.havoc.command.subcommands.admin.AdminReloadSubcommand;
 import com.kartersanamo.havoc.command.subcommands.admin.AdminSalvageSubcommand;
 import com.kartersanamo.havoc.command.subcommands.admin.AdminSpawnSubcommand;
@@ -28,6 +29,7 @@ public final class AdminSubcommandRouter implements HavocSubcommand {
         register(new AdminSpawnSubcommand(plugin));
         register(new AdminSalvageSubcommand(plugin));
         register(new AdminLogsSubcommand(plugin));
+        register(new AdminPerfSubcommand(plugin));
     }
 
     @Override
@@ -60,7 +62,7 @@ public final class AdminSubcommandRouter implements HavocSubcommand {
             return Collections.emptyList();
         }
         if (args.length == 1) {
-            return CommandUtil.partial(Arrays.asList("list", "reload", "spawn", "salvage", "logs"), args[0]);
+            return CommandUtil.partial(Arrays.asList("list", "reload", "spawn", "salvage", "logs", "perf"), args[0]);
         }
         AdminSubcommand sub = routes.get(args[0].toLowerCase(Locale.ROOT));
         if (sub == null) {

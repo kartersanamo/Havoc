@@ -9,6 +9,7 @@ public final class SpawnPlanner {
     public interface SpawnTask {
         BaseDifficulty difficulty();
         boolean tick();
+        String phaseName();
     }
 
     public interface SpawnTaskFactory {
@@ -55,5 +56,17 @@ public final class SpawnPlanner {
         } finally {
             inFlight = false;
         }
+    }
+
+    public int queuedTotal() {
+        return queue.size() + (active == null ? 0 : 1);
+    }
+
+    public String activePhaseName() {
+        return active == null ? "IDLE" : active.phaseName();
+    }
+
+    public String activeDifficultyName() {
+        return active == null ? "NONE" : active.difficulty().name();
     }
 }
