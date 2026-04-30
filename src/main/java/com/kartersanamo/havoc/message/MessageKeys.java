@@ -12,6 +12,7 @@ public final class MessageKeys {
     public static final String PAGES = "pages";
     public static final String PLAYER = "player";
     public static final String SCOPE = "scope";
+    public static final String SECONDS = "seconds";
     public static final String STATE = "state";
     public static final String WORLD = "world";
     public static final String X = "x";

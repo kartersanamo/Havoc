@@ -3,6 +3,9 @@ package com.kartersanamo.havoc.admin;
 import com.kartersanamo.havoc.Havoc;
 import com.kartersanamo.havoc.base.ActiveHavocBase;
 import com.kartersanamo.havoc.base.BaseState;
+import com.kartersanamo.havoc.config.HavocConfig;
+import com.kartersanamo.havoc.message.MessageKeys;
+import com.kartersanamo.havoc.message.MessageVars;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -19,6 +22,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class BaseAdminGui {
 
@@ -31,6 +35,8 @@ public final class BaseAdminGui {
     private static final int SLOT_NEXT_PAGE = 53;
 
     private final Havoc plugin;
+    private final ConcurrentHashMap<String, Long> pendingForceRestoreConfirmMs = new ConcurrentHashMap<String, Long>();
+    private volatile long lastForceRestoreActionMs;
 
     public BaseAdminGui(Havoc plugin) {
         this.plugin = plugin;
@@ -159,12 +165,35 @@ public final class BaseAdminGui {
         }
         if (rawSlot == 16) {
             if (b.state != BaseState.ACTIVE) {
-                player.sendMessage(ChatColor.RED + "Base is already restoring.");
+                plugin.getMessages().send(player, "admin.force-restore.already-restoring");
                 return;
             }
+            HavocConfig cfg = plugin.getHavocConfig();
+            long now = System.currentTimeMillis();
+            long cooldownMs = cfg.getAdminForceRestoreCooldownMs();
+            long waitMs = cooldownMs - (now - lastForceRestoreActionMs);
+            if (waitMs > 0L) {
+                plugin.getMessages().send(player, "admin.force-restore.cooldown",
+                        MessageVars.create().put(MessageKeys.SECONDS, String.valueOf(Math.max(1L, (waitMs + 999L) / 1000L))).build());
+                return;
+            }
+            if (cfg.isAdminForceRestoreRequireConfirmation()) {
+                String confirmKey = player.getUniqueId().toString() + ":" + b.id.toString();
+                Long ts = pendingForceRestoreConfirmMs.get(confirmKey);
+                if (ts == null || now - ts.longValue() > cfg.getAdminForceRestoreConfirmWindowMs()) {
+                    pendingForceRestoreConfirmMs.put(confirmKey, now);
+                    plugin.getMessages().send(player, "admin.force-restore.confirm",
+                            MessageVars.create()
+                                    .put(MessageKeys.SECONDS, String.valueOf(Math.max(1L, (cfg.getAdminForceRestoreConfirmWindowMs() + 999L) / 1000L)))
+                                    .build());
+                    return;
+                }
+                pendingForceRestoreConfirmMs.remove(confirmKey);
+            }
             boolean ok = plugin.getBaseService().adminForceStartRestore(b.id);
-            player.sendMessage(ok ? ChatColor.GREEN + "Forced restore for base " + shortId(b.id) + "."
-                    : ChatColor.RED + "Could not force restore that base.");
+            lastForceRestoreActionMs = now;
+            plugin.getMessages().send(player, ok ? "admin.force-restore.success" : "admin.force-restore.failed",
+                    MessageVars.one(MessageKeys.ID, shortId(b.id)));
             plugin.getLogService().log("ADMIN_BASE_FORCE_RESTORE", player.getName(), shortId(b.id),
                     new Location(Bukkit.getWorld(b.worldName), b.obsidianCenterX, b.obsidianCenterY, b.obsidianCenterZ),
                     "ok=" + ok);

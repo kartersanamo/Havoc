@@ -66,6 +66,12 @@ public final class HavocConfig {
     private int maxLogLines;
     private int maxLogDays;
     private boolean archiveLogsOnRotate;
+    private long adminSpawnCooldownMs;
+    private boolean adminSpawnRequireConfirmation;
+    private long adminSpawnConfirmWindowMs;
+    private long adminForceRestoreCooldownMs;
+    private boolean adminForceRestoreRequireConfirmation;
+    private long adminForceRestoreConfirmWindowMs;
     private Set<Material> breachMaterials = new HashSet<Material>();
 
     public HavocConfig(JavaPlugin plugin) {
@@ -155,6 +161,12 @@ public final class HavocConfig {
         maxLogLines = Math.max(100, c.getInt("logs.max-log-lines", 100000));
         maxLogDays = Math.max(1, c.getInt("logs.max-log-days", 30));
         archiveLogsOnRotate = c.getBoolean("logs.archive-on-rotate", true);
+        adminSpawnCooldownMs = Math.max(0L, c.getLong("admin-actions.spawn.cooldown-ms", 3000L));
+        adminSpawnRequireConfirmation = c.getBoolean("admin-actions.spawn.require-confirmation", true);
+        adminSpawnConfirmWindowMs = Math.max(250L, c.getLong("admin-actions.spawn.confirm-window-ms", 5000L));
+        adminForceRestoreCooldownMs = Math.max(0L, c.getLong("admin-actions.force-restore.cooldown-ms", 3000L));
+        adminForceRestoreRequireConfirmation = c.getBoolean("admin-actions.force-restore.require-confirmation", true);
+        adminForceRestoreConfirmWindowMs = Math.max(250L, c.getLong("admin-actions.force-restore.confirm-window-ms", 5000L));
         ConfigurationSection sp = c.getConfigurationSection("spawn");
         if (sp != null) {
             spawnWorld = sp.getString("world", worldName);
@@ -450,5 +462,29 @@ public final class HavocConfig {
 
     public boolean isArchiveLogsOnRotate() {
         return archiveLogsOnRotate;
+    }
+
+    public long getAdminSpawnCooldownMs() {
+        return adminSpawnCooldownMs;
+    }
+
+    public boolean isAdminSpawnRequireConfirmation() {
+        return adminSpawnRequireConfirmation;
+    }
+
+    public long getAdminSpawnConfirmWindowMs() {
+        return adminSpawnConfirmWindowMs;
+    }
+
+    public long getAdminForceRestoreCooldownMs() {
+        return adminForceRestoreCooldownMs;
+    }
+
+    public boolean isAdminForceRestoreRequireConfirmation() {
+        return adminForceRestoreRequireConfirmation;
+    }
+
+    public long getAdminForceRestoreConfirmWindowMs() {
+        return adminForceRestoreConfirmWindowMs;
     }
 }

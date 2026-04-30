@@ -60,6 +60,16 @@ logs:
   # When retention trims logs, archive the previous file first.
   archive-on-rotate: true
 
+admin-actions:
+  spawn:
+    cooldown-ms: 3000
+    require-confirmation: true
+    confirm-window-ms: 5000
+  force-restore:
+    cooldown-ms: 3000
+    require-confirmation: true
+    confirm-window-ms: 5000
+
 # When USE_CONFIG_Y: world Y of obsidian column uses paste-center-world-y and schematic-center-from-min dy.
 # When SNAP_BOTTOM_TO_BEDROCK (default): paste Y is chosen so the lowest non-air schematic row (full traverse) sits
 # directly above bedrock at the chunk center column (chunk*16+8), ignoring paste-center-world-y for vertical placement.

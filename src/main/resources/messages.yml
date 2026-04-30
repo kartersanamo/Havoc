@@ -30,8 +30,16 @@ admin:
   spawn:
     usage: "&7Usage: /havoc admin spawn <EASY|MEDIUM|HARD>"
     invalid-tier: "&cInvalid tier."
+    confirm: "&eRun the same spawn command again within &f{seconds}&es to confirm."
+    cooldown: "&cPlease wait &f{seconds}&cs before spawning another base."
     success: "&aSpawned one {difficulty} base."
     failed: "&cSpawn failed (see console)."
+  force-restore:
+    confirm: "&eClick Force Restore again within &f{seconds}&es to confirm."
+    cooldown: "&cPlease wait &f{seconds}&cs before force-restoring another base."
+    already-restoring: "&cBase is already restoring."
+    success: "&aForced restore for base &f{id}&a."
+    failed: "&cCould not force restore that base."
   logs:
     usage: "&7Usage: /havoc admin logs [page] | /havoc admin logs [user <u>] [base <b>] [type <t>] [date <today|yesterday|last7d|from to>] [page <n>|n]"
     export-usage: "&7Usage: /havoc admin logs export [all|user <name>|base <id>|type <event>]"
