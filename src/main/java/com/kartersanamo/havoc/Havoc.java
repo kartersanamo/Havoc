@@ -10,6 +10,7 @@ import com.kartersanamo.havoc.faction.FactionsBridge;
 import com.kartersanamo.havoc.listener.HavocListener;
 import com.kartersanamo.havoc.message.MessageService;
 import com.kartersanamo.havoc.shop.SalvageShop;
+import com.kartersanamo.havoc.storage.AsyncPersistenceQueue;
 import com.kartersanamo.havoc.storage.ProgressionStore;
 import com.kartersanamo.havoc.storage.SalvageStore;
 import org.bukkit.Bukkit;
@@ -31,6 +32,7 @@ public final class Havoc extends JavaPlugin {
     private BaseAdminGui baseAdminGui;
     private HavocLogService logService;
     private MessageService messages;
+    private AsyncPersistenceQueue persistenceQueue;
     private SalvageStore salvageStore;
     private ProgressionStore progressionStore;
     private SalvageShop salvageShop;
@@ -57,6 +59,7 @@ public final class Havoc extends JavaPlugin {
         saveResource("shop.yml", false);
 
         messages = new MessageService(this);
+        persistenceQueue = new AsyncPersistenceQueue();
         havocConfig = new HavocConfig(this);
         havocConfig.reload();
         logService = new HavocLogService(this);
@@ -66,9 +69,9 @@ public final class Havoc extends JavaPlugin {
         if (Bukkit.getWorld(havocConfig.getWorldName()) == null) {
             getLogger().severe("Havoc: world \"" + havocConfig.getWorldName() + "\" is not loaded — bases cannot spawn until Multiverse (or server.properties) loads that world.");
         }
-        salvageStore = new SalvageStore(this);
+        salvageStore = new SalvageStore(this, persistenceQueue);
         salvageStore.load();
-        progressionStore = new ProgressionStore(this);
+        progressionStore = new ProgressionStore(this, persistenceQueue);
         progressionStore.load();
 
         factionsBridge = new FactionsBridge(this);
@@ -120,6 +123,9 @@ public final class Havoc extends JavaPlugin {
         }
         if (logService != null) {
             logService.shutdown();
+        }
+        if (persistenceQueue != null) {
+            persistenceQueue.shutdownAndDrain();
         }
         instance = null;
     }

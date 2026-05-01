@@ -11,10 +11,14 @@ public final class SalvageStore {
 
     private final JavaPlugin plugin;
     private final File file;
+    private final AsyncPersistenceQueue persistenceQueue;
     private YamlConfiguration yaml;
+    private boolean dirty;
+    private boolean saveQueued;
 
-    public SalvageStore(JavaPlugin plugin) {
+    public SalvageStore(JavaPlugin plugin, AsyncPersistenceQueue persistenceQueue) {
         this.plugin = plugin;
+        this.persistenceQueue = persistenceQueue;
         this.file = new File(plugin.getDataFolder(), "salvage.yml");
     }
 
@@ -24,26 +28,63 @@ public final class SalvageStore {
         } else {
             yaml = YamlConfiguration.loadConfiguration(file);
         }
+        dirty = false;
+        saveQueued = false;
     }
 
     public synchronized void save() {
+        String snap = snapshotAndClearDirty();
+        saveSnapshot(snap);
+    }
+
+    private synchronized String snapshotAndClearDirty() {
         if (yaml == null) {
             yaml = new YamlConfiguration();
         }
+        dirty = false;
+        return yaml.saveToString();
+    }
+
+    private void saveSnapshot(String snap) {
         try {
-            yaml.save(file);
+            YamlConfiguration out = new YamlConfiguration();
+            out.loadFromString(snap == null ? "" : snap);
+            out.save(file);
         } catch (IOException e) {
             plugin.getLogger().warning("Could not save salvage.yml: " + e.getMessage());
+        } catch (Exception e) {
+            plugin.getLogger().warning("Could not serialize salvage.yml snapshot: " + e.getMessage());
         }
     }
 
     public void saveAsync() {
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, new Runnable() {
+        synchronized (this) {
+            dirty = true;
+            if (saveQueued) {
+                return;
+            }
+            saveQueued = true;
+        }
+        persistenceQueue.submit(new Runnable() {
             @Override
             public void run() {
-                save();
+                flushQueuedSaves();
             }
         });
+    }
+
+    private void flushQueuedSaves() {
+        while (true) {
+            String snap;
+            synchronized (this) {
+                if (!dirty) {
+                    saveQueued = false;
+                    return;
+                }
+                snap = snapshotAndClearDirty();
+            }
+            saveSnapshot(snap);
+        }
     }
 
     public synchronized int get(UUID id) {
@@ -58,6 +99,7 @@ public final class SalvageStore {
             yaml = new YamlConfiguration();
         }
         yaml.set("players." + id.toString(), Math.max(0, amount));
+        dirty = true;
     }
 
     public synchronized void add(UUID id, int delta) {
