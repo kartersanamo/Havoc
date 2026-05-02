@@ -5,6 +5,8 @@ import com.kartersanamo.havoc.base.lifecycle.ClaimService;
 import com.kartersanamo.havoc.base.lifecycle.SpawnPlanner;
 import com.kartersanamo.havoc.config.HavocConfig;
 import com.kartersanamo.havoc.debug.HavocDebug;
+import com.kartersanamo.havoc.event.BaseSpawnedEvent;
+import com.kartersanamo.havoc.event.InternalEventBus;
 import com.kartersanamo.havoc.world.ColumnBoxSnapshot;
 import com.kartersanamo.havoc.world.SchematicAnalysis;
 import com.kartersanamo.havoc.world.SchematicBlockPlacer;
@@ -51,6 +53,7 @@ final class SpawnPlan implements SpawnPlanner.SpawnTask {
     private final Map<UUID, ActiveHavocBase> basesById;
     private final Map<ChunkKey, UUID> chunkOwners;
     private final ClaimService claimService;
+    private final InternalEventBus eventBus;
     private final BaseDifficulty difficulty;
     private int preloadChunksPerTick;
     private int snapshotColumnsPerTick;
@@ -92,12 +95,13 @@ final class SpawnPlan implements SpawnPlanner.SpawnTask {
     private int claimCursor;
 
     SpawnPlan(Havoc plugin, Object havocFaction, Map<UUID, ActiveHavocBase> basesById,
-              Map<ChunkKey, UUID> chunkOwners, ClaimService claimService, BaseDifficulty difficulty) {
+              Map<ChunkKey, UUID> chunkOwners, ClaimService claimService, InternalEventBus eventBus, BaseDifficulty difficulty) {
         this.plugin = plugin;
         this.havocFaction = havocFaction;
         this.basesById = basesById;
         this.chunkOwners = chunkOwners;
         this.claimService = claimService;
+        this.eventBus = eventBus;
         this.difficulty = difficulty;
     }
 
@@ -401,9 +405,8 @@ final class SpawnPlan implements SpawnPlanner.SpawnTask {
         HavocDebug.announce(plugin, "Spawned " + difficulty + " base ~" + shortId(base.id) + " envelope chunks " + minCx + "," + minCz + " → " + maxCx + "," + maxCz
                 + " (obsidian center chunk " + base.centerChunkX + "," + base.centerChunkZ + ", faction claims=" + base.claimedChunks.size() + ").");
         plugin.getLogger().info("Spawned " + difficulty + " Havoc base ~" + shortId(base.id) + " at chunk " + base.centerChunkX + "," + base.centerChunkZ);
-        plugin.getLogService().log("BASE_SPAWN", "", shortId(base.id),
-                new Location(world, base.obsidianCenterX, base.obsidianCenterY, base.obsidianCenterZ),
-                "difficulty=" + difficulty + ", claims=" + base.claimedChunks.size());
+        eventBus.publish(new BaseSpawnedEvent(base,
+                new Location(world, base.obsidianCenterX, base.obsidianCenterY, base.obsidianCenterZ)));
         return true;
     }
 

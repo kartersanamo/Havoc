@@ -5,6 +5,8 @@ import com.kartersanamo.havoc.base.ActiveHavocBase;
 import com.kartersanamo.havoc.base.BaseState;
 import com.kartersanamo.havoc.base.ChunkKey;
 import com.kartersanamo.havoc.debug.HavocDebug;
+import com.kartersanamo.havoc.event.BaseRestoredEvent;
+import com.kartersanamo.havoc.event.InternalEventBus;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -15,7 +17,7 @@ import java.util.UUID;
 
 public final class RestoreEngine {
 
-    public void tick(Havoc plugin, Map<UUID, ActiveHavocBase> basesById, Map<ChunkKey, UUID> chunkOwners) {
+    public void tick(Havoc plugin, Map<UUID, ActiveHavocBase> basesById, Map<ChunkKey, UUID> chunkOwners, InternalEventBus eventBus) {
         for (ActiveHavocBase b : new ArrayList<ActiveHavocBase>(basesById.values())) {
             if (b.state != BaseState.RESTORING || b.terrainSnapshot == null) {
                 continue;
@@ -31,9 +33,10 @@ public final class RestoreEngine {
             b.restoreCursor += perTick;
             if (b.restoreCursor >= vol) {
                 HavocDebug.announce(plugin, "Terrain restore DONE for ~" + shortId(b.id) + " — unclaiming " + b.claimedChunks.size() + " chunk(s).");
-                plugin.getLogService().log("BASE_RESTORE_DONE", "", shortId(b.id),
+                int claimsCount = b.claimedChunks.size();
+                eventBus.publish(new BaseRestoredEvent(b,
                         new Location(w, b.obsidianCenterX, b.obsidianCenterY, b.obsidianCenterZ),
-                        "claims=" + b.claimedChunks.size());
+                        claimsCount));
                 finishRestore(plugin, b, w);
                 unregisterChunks(b, chunkOwners);
                 basesById.remove(b.id);

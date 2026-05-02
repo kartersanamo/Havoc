@@ -1,6 +1,7 @@
 package com.kartersanamo.havoc;
 
 import com.kartersanamo.havoc.base.BaseService;
+import com.kartersanamo.havoc.base.BaseLifecycleEventHandler;
 import com.kartersanamo.havoc.admin.BaseAdminGui;
 import com.kartersanamo.havoc.audit.HavocLogService;
 import com.kartersanamo.havoc.command.HavocCommandExecutor;
@@ -9,6 +10,11 @@ import com.kartersanamo.havoc.debug.HavocDebug;
 import com.kartersanamo.havoc.faction.FactionsBridge;
 import com.kartersanamo.havoc.listener.HavocListener;
 import com.kartersanamo.havoc.message.MessageService;
+import com.kartersanamo.havoc.event.BaseBreachedEvent;
+import com.kartersanamo.havoc.event.BaseRestoredEvent;
+import com.kartersanamo.havoc.event.BaseSpawnedEvent;
+import com.kartersanamo.havoc.event.EventSubscriber;
+import com.kartersanamo.havoc.event.InternalEventBus;
 import com.kartersanamo.havoc.shop.SalvageShop;
 import com.kartersanamo.havoc.storage.AsyncPersistenceQueue;
 import com.kartersanamo.havoc.storage.ProgressionStore;
@@ -32,6 +38,7 @@ public final class Havoc extends JavaPlugin {
     private BaseAdminGui baseAdminGui;
     private HavocLogService logService;
     private MessageService messages;
+    private InternalEventBus eventBus;
     private AsyncPersistenceQueue persistenceQueue;
     private SalvageStore salvageStore;
     private ProgressionStore progressionStore;
@@ -59,6 +66,7 @@ public final class Havoc extends JavaPlugin {
         saveResource("shop.yml", false);
 
         messages = new MessageService(this);
+        eventBus = new InternalEventBus();
         persistenceQueue = new AsyncPersistenceQueue();
         havocConfig = new HavocConfig(this);
         havocConfig.reload();
@@ -81,7 +89,8 @@ public final class Havoc extends JavaPlugin {
             return;
         }
 
-        baseService = new BaseService(this);
+        baseService = new BaseService(this, eventBus);
+        registerBaseLifecycleSubscribers();
         baseService.start();
         
         baseAdminGui = new BaseAdminGui(this);
@@ -202,5 +211,27 @@ public final class Havoc extends JavaPlugin {
 
     public HavocLogService getLogService() {
         return logService;
+    }
+
+    private void registerBaseLifecycleSubscribers() {
+        final BaseLifecycleEventHandler handler = new BaseLifecycleEventHandler(this, baseService);
+        eventBus.register(BaseSpawnedEvent.class, new EventSubscriber<BaseSpawnedEvent>() {
+            @Override
+            public void onEvent(BaseSpawnedEvent event) {
+                handler.onBaseSpawned(event);
+            }
+        });
+        eventBus.register(BaseBreachedEvent.class, new EventSubscriber<BaseBreachedEvent>() {
+            @Override
+            public void onEvent(BaseBreachedEvent event) {
+                handler.onBaseBreached(event);
+            }
+        });
+        eventBus.register(BaseRestoredEvent.class, new EventSubscriber<BaseRestoredEvent>() {
+            @Override
+            public void onEvent(BaseRestoredEvent event) {
+                handler.onBaseRestored(event);
+            }
+        });
     }
 }

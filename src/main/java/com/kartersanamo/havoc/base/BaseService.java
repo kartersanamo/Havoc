@@ -3,10 +3,12 @@ package com.kartersanamo.havoc.base;
 import com.kartersanamo.havoc.Havoc;
 import com.kartersanamo.havoc.base.lifecycle.ClaimService;
 import com.kartersanamo.havoc.base.lifecycle.RestoreEngine;
-import com.kartersanamo.havoc.base.lifecycle.RewardService;
 import com.kartersanamo.havoc.base.lifecycle.SpawnPlanner;
 import com.kartersanamo.havoc.config.HavocConfig;
 import com.kartersanamo.havoc.debug.HavocDebug;
+import com.kartersanamo.havoc.event.BaseBreachedEvent;
+import com.kartersanamo.havoc.event.BaseSpawnedEvent;
+import com.kartersanamo.havoc.event.InternalEventBus;
 import com.kartersanamo.havoc.faction.FactionsBridge;
 import com.kartersanamo.havoc.world.ColumnBoxSnapshot;
 import com.kartersanamo.havoc.world.SchematicAnalysis;
@@ -57,13 +59,14 @@ public final class BaseService {
     private int spawnWorkerTaskId = -1;
     private final SpawnPlanner spawnPlanner = new SpawnPlanner();
     private final ClaimService claimService = new ClaimService();
-    private final RewardService rewardService = new RewardService();
     private final RestoreEngine restoreEngine = new RestoreEngine();
+    private final InternalEventBus eventBus;
     private long spawnWorkerTicksMeasured;
     private double spawnWorkerAvgMs;
 
-    public BaseService(Havoc plugin) {
+    public BaseService(Havoc plugin, InternalEventBus eventBus) {
         this.plugin = plugin;
+        this.eventBus = eventBus;
     }
 
     public void start() {
@@ -185,7 +188,7 @@ public final class BaseService {
         spawnPlanner.tick(new SpawnPlanner.SpawnTaskFactory() {
             @Override
             public SpawnPlanner.SpawnTask create(BaseDifficulty difficulty) {
-                return new SpawnPlan(plugin, havocFaction, basesById, chunkOwners, claimService, difficulty);
+                return new SpawnPlan(plugin, havocFaction, basesById, chunkOwners, claimService, eventBus, difficulty);
             }
         });
         long elapsedNs = System.nanoTime() - startNs;
@@ -362,11 +365,6 @@ public final class BaseService {
         HavocConfig cfg = plugin.getHavocConfig();
         HavocDebug.announce(plugin, "BREACH " + base.difficulty + " base ~" + shortId(base.id) + " at chunk " + base.centerChunkX + "," + base.centerChunkZ
                 + " block " + breachLoc.getBlockX() + "," + breachLoc.getBlockY() + "," + breachLoc.getBlockZ());
-        plugin.getLogService().log("BASE_BREACH",
-                progressionCredit == null ? "" : progressionCredit.getName(),
-                shortId(base.id),
-                breachLoc,
-                "difficulty=" + base.difficulty + ", state=" + base.state);
         long now = System.currentTimeMillis();
         base.raidEndMs = now + cfg.getRestoreSeconds() * 1000L;
         base.satellite = SatelliteRing.capture(world, base.centerChunkX, base.centerChunkZ, cfg.getWatchChunkRadius());
@@ -392,13 +390,7 @@ public final class BaseService {
             HavocDebug.announce(plugin, "Teleported " + tp + " player(s) inside Havoc claim to spawn.");
         }
 
-        rewardService.processBreachRewards(plugin, havocFaction, base, breachLoc, progressionCredit,
-                new RewardService.NextBasePicker() {
-                    @Override
-                    public ActiveHavocBase pick(BaseDifficulty difficulty, UUID exclude) {
-                        return pickRandomActive(difficulty, exclude);
-                    }
-                });
+        eventBus.publish(new BaseBreachedEvent(base, breachLoc, progressionCredit, havocFaction));
 
         long delay = cfg.getRestoreSeconds() * 20L;
         final ActiveHavocBase ref = base;
@@ -420,7 +412,7 @@ public final class BaseService {
         HavocDebug.announce(plugin, "Terrain restore started (" + cfg.getRestoreSeconds() + "s); satellite reset scheduled same delay.");
     }
 
-    private ActiveHavocBase pickRandomActive(BaseDifficulty d, UUID exclude) {
+    public ActiveHavocBase pickRandomActiveForEvent(BaseDifficulty d, UUID exclude) {
         List<ActiveHavocBase> list = new ArrayList<ActiveHavocBase>();
         for (ActiveHavocBase b : basesById.values()) {
             if (b.state == BaseState.ACTIVE && b.difficulty == d && !b.id.equals(exclude)) {
@@ -435,7 +427,7 @@ public final class BaseService {
 
     // Restores all terrain that are restoring immediately
     private void tickRestores() {
-        restoreEngine.tick(plugin, basesById, chunkOwners);
+        restoreEngine.tick(plugin, basesById, chunkOwners, eventBus);
     }
 
     public boolean isRestoringFootprint(Location loc) {
@@ -718,9 +710,8 @@ public final class BaseService {
         HavocDebug.announce(plugin, "Spawned " + d + " base ~" + shortId(base.id) + " envelope chunks " + minCx + "," + minCz + " → " + maxCx + "," + maxCz
                 + " (obsidian center chunk " + base.centerChunkX + "," + base.centerChunkZ + ", faction claims=" + base.claimedChunks.size() + ").");
         plugin.getLogger().info("Spawned " + d + " Havoc base ~" + shortId(base.id) + " at chunk " + base.centerChunkX + "," + base.centerChunkZ);
-        plugin.getLogService().log("BASE_SPAWN", "", shortId(base.id),
-                new Location(world, base.obsidianCenterX, base.obsidianCenterY, base.obsidianCenterZ),
-                "difficulty=" + d + ", claims=" + base.claimedChunks.size());
+        eventBus.publish(new BaseSpawnedEvent(base,
+                new Location(world, base.obsidianCenterX, base.obsidianCenterY, base.obsidianCenterZ)));
         return true;
     }
 
