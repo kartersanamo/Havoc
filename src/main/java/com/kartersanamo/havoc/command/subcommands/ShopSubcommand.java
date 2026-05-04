@@ -1,6 +1,7 @@
 package com.kartersanamo.havoc.command.subcommands;
 
 import com.kartersanamo.havoc.Havoc;
+import com.kartersanamo.havoc.permission.PermissionNodes;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -22,6 +23,10 @@ public final class ShopSubcommand implements HavocSubcommand {
 
     @Override
     public boolean execute(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(PermissionNodes.SHOP_OPEN)) {
+            plugin.getMessages().send(sender, "command.no-permission");
+            return true;
+        }
         if (!(sender instanceof Player)) {
             plugin.getMessages().send(sender, "command.players-only");
             return true;

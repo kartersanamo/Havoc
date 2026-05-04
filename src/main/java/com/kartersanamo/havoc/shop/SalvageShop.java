@@ -3,6 +3,7 @@ package com.kartersanamo.havoc.shop;
 import com.kartersanamo.havoc.Havoc;
 import com.kartersanamo.havoc.message.MessageKeys;
 import com.kartersanamo.havoc.message.MessageVars;
+import com.kartersanamo.havoc.permission.PermissionNodes;
 import com.kartersanamo.havoc.storage.SalvageStore;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -64,6 +65,10 @@ public final class SalvageShop {
     }
 
     public void handleClick(Player player, int rawSlot) {
+        if (!player.hasPermission(PermissionNodes.SHOP_PURCHASE)) {
+            plugin.getMessages().send(player, "command.no-permission");
+            return;
+        }
         if (rawSlot < 0 || rawSlot >= player.getOpenInventory().getTopInventory().getSize()) {
             return;
         }

@@ -6,6 +6,7 @@ import com.kartersanamo.havoc.base.BaseState;
 import com.kartersanamo.havoc.config.HavocConfig;
 import com.kartersanamo.havoc.message.MessageKeys;
 import com.kartersanamo.havoc.message.MessageVars;
+import com.kartersanamo.havoc.permission.PermissionNodes;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -152,6 +153,10 @@ public final class BaseAdminGui {
             return;
         }
         if (rawSlot == 15) {
+            if (!player.hasPermission(PermissionNodes.ADMIN_LIST_TELEPORT)) {
+                plugin.getMessages().send(player, "command.no-permission");
+                return;
+            }
             World w = Bukkit.getWorld(b.worldName);
             if (w == null) {
                 player.sendMessage(ChatColor.RED + "Base world is not loaded.");
@@ -164,6 +169,10 @@ public final class BaseAdminGui {
             return;
         }
         if (rawSlot == 16) {
+            if (!player.hasPermission(PermissionNodes.ADMIN_LIST_FORCE_RESTORE)) {
+                plugin.getMessages().send(player, "command.no-permission");
+                return;
+            }
             if (b.state != BaseState.ACTIVE) {
                 plugin.getMessages().send(player, "admin.force-restore.already-restoring");
                 return;

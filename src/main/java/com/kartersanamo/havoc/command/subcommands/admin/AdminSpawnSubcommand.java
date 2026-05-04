@@ -6,6 +6,7 @@ import com.kartersanamo.havoc.command.subcommands.CommandUtil;
 import com.kartersanamo.havoc.config.HavocConfig;
 import com.kartersanamo.havoc.message.MessageKeys;
 import com.kartersanamo.havoc.message.MessageVars;
+import com.kartersanamo.havoc.permission.PermissionNodes;
 import org.bukkit.command.CommandSender;
 
 import java.util.Arrays;
@@ -26,6 +27,11 @@ public final class AdminSpawnSubcommand implements AdminSubcommand {
     @Override
     public String name() {
         return "spawn";
+    }
+
+    @Override
+    public String permissionNode() {
+        return PermissionNodes.ADMIN_SPAWN;
     }
 
     @Override

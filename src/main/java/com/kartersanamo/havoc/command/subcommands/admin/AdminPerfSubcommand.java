@@ -3,6 +3,7 @@ package com.kartersanamo.havoc.command.subcommands.admin;
 import com.kartersanamo.havoc.Havoc;
 import com.kartersanamo.havoc.message.MessageKeys;
 import com.kartersanamo.havoc.message.MessageVars;
+import com.kartersanamo.havoc.permission.PermissionNodes;
 import org.bukkit.command.CommandSender;
 
 import java.util.Collections;
@@ -20,6 +21,11 @@ public final class AdminPerfSubcommand implements AdminSubcommand {
     @Override
     public String name() {
         return "perf";
+    }
+
+    @Override
+    public String permissionNode() {
+        return PermissionNodes.ADMIN_PERF;
     }
 
     @Override

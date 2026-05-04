@@ -10,6 +10,75 @@ commands:
     usage: /<command> [shop|salvage|admin list|reload|spawn|salvage|logs ...]
 
 permissions:
+  havoc.use:
+    description: Use base Havoc command.
+    default: true
+  havoc.shop.open:
+    description: Open Havoc salvage shop.
+    default: true
+  havoc.shop.purchase:
+    description: Purchase items from Havoc shop.
+    default: true
+  havoc.salvage.balance:
+    description: Check own salvage balance.
+    default: true
   havoc.admin:
-    description: Spawn bases and reload Havoc
+    description: Access Havoc admin command space.
+    default: op
+    children:
+      havoc.admin.list: true
+      havoc.admin.list.gui: true
+      havoc.admin.list.console: true
+      havoc.admin.list.teleport: true
+      havoc.admin.list.force-restore: true
+      havoc.admin.reload: true
+      havoc.admin.spawn: true
+      havoc.admin.salvage: true
+      havoc.admin.salvage.add: true
+      havoc.admin.salvage.set: true
+      havoc.admin.salvage.show: true
+      havoc.admin.logs: true
+      havoc.admin.logs.export: true
+      havoc.admin.perf: true
+  havoc.admin.list:
+    description: Use /havoc admin list.
+    default: op
+  havoc.admin.list.gui:
+    description: Open admin base list GUI.
+    default: op
+  havoc.admin.list.console:
+    description: View admin base list in console.
+    default: op
+  havoc.admin.list.teleport:
+    description: Teleport to base from admin GUI.
+    default: op
+  havoc.admin.list.force-restore:
+    description: Force restore base from admin GUI.
+    default: op
+  havoc.admin.reload:
+    description: Reload Havoc config and services.
+    default: op
+  havoc.admin.spawn:
+    description: Force spawn a Havoc base.
+    default: op
+  havoc.admin.salvage:
+    description: Access /havoc admin salvage.
+    default: op
+  havoc.admin.salvage.add:
+    description: Add salvage to a player.
+    default: op
+  havoc.admin.salvage.set:
+    description: Set salvage for a player.
+    default: op
+  havoc.admin.salvage.show:
+    description: Show salvage for a player.
+    default: op
+  havoc.admin.logs:
+    description: View Havoc logs.
+    default: op
+  havoc.admin.logs.export:
+    description: Export Havoc logs.
+    default: op
+  havoc.admin.perf:
+    description: View Havoc performance readout.
     default: op

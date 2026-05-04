@@ -5,6 +5,7 @@ import com.kartersanamo.havoc.command.subcommands.AdminSubcommandRouter;
 import com.kartersanamo.havoc.command.subcommands.HavocSubcommand;
 import com.kartersanamo.havoc.command.subcommands.SalvageBalanceSubcommand;
 import com.kartersanamo.havoc.command.subcommands.ShopSubcommand;
+import com.kartersanamo.havoc.permission.PermissionNodes;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -32,9 +33,15 @@ public final class HavocCommandExecutor implements CommandExecutor, TabCompleter
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (!sender.hasPermission(PermissionNodes.USE)) {
+            plugin.getMessages().send(sender, "command.no-permission");
+            return true;
+        }
         if (args.length == 0) {
-            plugin.getMessages().sendList(sender, "command.help.player", null);
-            if (sender.hasPermission("havoc.admin")) {
+            if (sender.hasPermission(PermissionNodes.SHOP_OPEN) || sender.hasPermission(PermissionNodes.SALVAGE_BALANCE)) {
+                plugin.getMessages().sendList(sender, "command.help.player", null);
+            }
+            if (sender.hasPermission(PermissionNodes.ADMIN)) {
                 plugin.getMessages().sendList(sender, "command.help.admin", null);
             }
             return true;
@@ -50,8 +57,21 @@ public final class HavocCommandExecutor implements CommandExecutor, TabCompleter
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (!sender.hasPermission(PermissionNodes.USE)) {
+            return Collections.emptyList();
+        }
         if (args.length == 1) {
-            return partial(Arrays.asList("shop", "salvage", "admin"), args[0]);
+            List<String> opts = new ArrayList<String>();
+            if (sender.hasPermission(PermissionNodes.SHOP_OPEN)) {
+                opts.add("shop");
+            }
+            if (sender.hasPermission(PermissionNodes.SALVAGE_BALANCE)) {
+                opts.add("salvage");
+            }
+            if (sender.hasPermission(PermissionNodes.ADMIN)) {
+                opts.add("admin");
+            }
+            return partial(opts, args[0]);
         }
         HavocSubcommand sub = routes.get(args[0].toLowerCase(Locale.ROOT));
         if (sub != null) {

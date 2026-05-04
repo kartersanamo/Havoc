@@ -3,6 +3,7 @@ package com.kartersanamo.havoc.command.subcommands.admin;
 import com.kartersanamo.havoc.Havoc;
 import com.kartersanamo.havoc.message.MessageKeys;
 import com.kartersanamo.havoc.message.MessageVars;
+import com.kartersanamo.havoc.permission.PermissionNodes;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
@@ -29,6 +30,11 @@ public final class AdminSalvageSubcommand implements AdminSubcommand {
     }
 
     @Override
+    public String permissionNode() {
+        return PermissionNodes.ADMIN_SALVAGE;
+    }
+
+    @Override
     public boolean execute(CommandSender sender, String[] args) {
         if (args.length < 3) {
             plugin.getMessages().send(sender, "admin.salvage.usage");
@@ -42,6 +48,10 @@ public final class AdminSalvageSubcommand implements AdminSubcommand {
             return true;
         }
         if ("show".equals(mode)) {
+            if (!sender.hasPermission(PermissionNodes.ADMIN_SALVAGE_SHOW)) {
+                plugin.getMessages().send(sender, "command.no-permission");
+                return true;
+            }
             int bal = plugin.getSalvageStore().get(target.getUniqueId());
             java.util.Map<String, String> vars = MessageVars.create()
                     .put(MessageKeys.PLAYER, target.getName() == null ? args[2] : target.getName())
@@ -52,6 +62,14 @@ public final class AdminSalvageSubcommand implements AdminSubcommand {
         }
         if (!"add".equals(mode) && !"set".equals(mode)) {
             plugin.getMessages().send(sender, "admin.salvage.invalid-action");
+            return true;
+        }
+        if ("add".equals(mode) && !sender.hasPermission(PermissionNodes.ADMIN_SALVAGE_ADD)) {
+            plugin.getMessages().send(sender, "command.no-permission");
+            return true;
+        }
+        if ("set".equals(mode) && !sender.hasPermission(PermissionNodes.ADMIN_SALVAGE_SET)) {
+            plugin.getMessages().send(sender, "command.no-permission");
             return true;
         }
         if (args.length < 4) {

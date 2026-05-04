@@ -6,6 +6,7 @@ import com.kartersanamo.havoc.audit.HavocLogService;
 import com.kartersanamo.havoc.command.subcommands.CommandUtil;
 import com.kartersanamo.havoc.message.MessageKeys;
 import com.kartersanamo.havoc.message.MessageVars;
+import com.kartersanamo.havoc.permission.PermissionNodes;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -30,6 +31,11 @@ public final class AdminLogsSubcommand implements AdminSubcommand {
     }
 
     @Override
+    public String permissionNode() {
+        return PermissionNodes.ADMIN_LOGS;
+    }
+
+    @Override
     public boolean execute(CommandSender sender, String[] args) {
         List<HavocLogEntry> logs;
         String scope;
@@ -44,6 +50,10 @@ public final class AdminLogsSubcommand implements AdminSubcommand {
                 scope = "all";
                 page = Integer.parseInt(mode);
             } else if ("export".equals(mode)) {
+                if (!sender.hasPermission(PermissionNodes.ADMIN_LOGS_EXPORT)) {
+                    plugin.getMessages().send(sender, "command.no-permission");
+                    return true;
+                }
                 return handleExport(sender, args);
             } else {
                 AdminLogsParsedFilter f = parseCombinedLogsFilter(args, 1);

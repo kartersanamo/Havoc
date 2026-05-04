@@ -4,6 +4,7 @@ import com.kartersanamo.havoc.Havoc;
 import com.kartersanamo.havoc.base.ActiveHavocBase;
 import com.kartersanamo.havoc.message.MessageKeys;
 import com.kartersanamo.havoc.message.MessageVars;
+import com.kartersanamo.havoc.permission.PermissionNodes;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -24,9 +25,22 @@ public final class AdminListSubcommand implements AdminSubcommand {
     }
 
     @Override
+    public String permissionNode() {
+        return PermissionNodes.ADMIN_LIST;
+    }
+
+    @Override
     public boolean execute(CommandSender sender, String[] args) {
         if (sender instanceof Player) {
+            if (!sender.hasPermission(PermissionNodes.ADMIN_LIST_GUI)) {
+                plugin.getMessages().send(sender, "command.no-permission");
+                return true;
+            }
             plugin.getBaseAdminGui().openList((Player) sender);
+            return true;
+        }
+        if (!sender.hasPermission(PermissionNodes.ADMIN_LIST_CONSOLE)) {
+            plugin.getMessages().send(sender, "command.no-permission");
             return true;
         }
         List<ActiveHavocBase> bases = plugin.getBaseService().listAllBasesSorted();

@@ -2,6 +2,7 @@ package com.kartersanamo.havoc.command.subcommands.admin;
 
 import com.kartersanamo.havoc.Havoc;
 import com.kartersanamo.havoc.config.HavocConfig;
+import com.kartersanamo.havoc.permission.PermissionNodes;
 import org.bukkit.command.CommandSender;
 
 import java.util.ArrayList;
@@ -18,6 +19,11 @@ public final class AdminReloadSubcommand implements AdminSubcommand {
     @Override
     public String name() {
         return "reload";
+    }
+
+    @Override
+    public String permissionNode() {
+        return PermissionNodes.ADMIN_RELOAD;
     }
 
     @Override

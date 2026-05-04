@@ -6,6 +6,7 @@ import java.util.List;
 
 public interface AdminSubcommand {
     String name();
+    String permissionNode();
     boolean execute(CommandSender sender, String[] args);
     List<String> tabComplete(CommandSender sender, String[] args);
 }

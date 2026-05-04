@@ -8,6 +8,7 @@ import com.kartersanamo.havoc.command.subcommands.admin.AdminReloadSubcommand;
 import com.kartersanamo.havoc.command.subcommands.admin.AdminSalvageSubcommand;
 import com.kartersanamo.havoc.command.subcommands.admin.AdminSpawnSubcommand;
 import com.kartersanamo.havoc.command.subcommands.admin.AdminSubcommand;
+import com.kartersanamo.havoc.permission.PermissionNodes;
 import org.bukkit.command.CommandSender;
 
 import java.util.Arrays;
@@ -39,7 +40,7 @@ public final class AdminSubcommandRouter implements HavocSubcommand {
 
     @Override
     public boolean execute(CommandSender sender, String[] args) {
-        if (!sender.hasPermission("havoc.admin")) {
+        if (!sender.hasPermission(PermissionNodes.ADMIN)) {
             plugin.getMessages().send(sender, "command.no-permission");
             return true;
         }
@@ -52,20 +53,30 @@ public final class AdminSubcommandRouter implements HavocSubcommand {
             plugin.getMessages().send(sender, "command.unknown-subcommand");
             return true;
         }
+        if (!sender.hasPermission(sub.permissionNode())) {
+            plugin.getMessages().send(sender, "command.no-permission");
+            return true;
+        }
         String[] rest = Arrays.copyOfRange(args, 1, args.length);
         return sub.execute(sender, rest);
     }
 
     @Override
     public List<String> tabComplete(CommandSender sender, String[] args) {
-        if (!sender.hasPermission("havoc.admin")) {
+        if (!sender.hasPermission(PermissionNodes.ADMIN)) {
             return Collections.emptyList();
         }
         if (args.length == 1) {
-            return CommandUtil.partial(Arrays.asList("list", "reload", "spawn", "salvage", "logs", "perf"), args[0]);
+            List<String> opts = new java.util.ArrayList<String>();
+            for (AdminSubcommand sub : routes.values()) {
+                if (sender.hasPermission(sub.permissionNode())) {
+                    opts.add(sub.name());
+                }
+            }
+            return CommandUtil.partial(opts, args[0]);
         }
         AdminSubcommand sub = routes.get(args[0].toLowerCase(Locale.ROOT));
-        if (sub == null) {
+        if (sub == null || !sender.hasPermission(sub.permissionNode())) {
             return Collections.emptyList();
         }
         return sub.tabComplete(sender, args);
