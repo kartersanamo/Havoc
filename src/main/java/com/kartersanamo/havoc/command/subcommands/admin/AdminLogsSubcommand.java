@@ -40,11 +40,11 @@ public final class AdminLogsSubcommand implements AdminSubcommand {
         List<HavocLogEntry> logs;
         String scope;
         int page = 1;
-        if (args.length == 1) {
+        if (args.length == 0) {
             logs = plugin.getLogService().queryAllNewestFirst();
             scope = "all";
         } else {
-            String mode = args[1].toLowerCase(Locale.ROOT);
+            String mode = args[0].toLowerCase(Locale.ROOT);
             if (CommandUtil.isInt(mode)) {
                 logs = plugin.getLogService().queryAllNewestFirst();
                 scope = "all";
@@ -56,7 +56,7 @@ public final class AdminLogsSubcommand implements AdminSubcommand {
                 }
                 return handleExport(sender, args);
             } else {
-                AdminLogsParsedFilter f = parseCombinedLogsFilter(args, 1);
+                AdminLogsParsedFilter f = parseCombinedLogsFilter(args, 0);
                 if (!f.ok) {
                     plugin.getMessages().send(sender, f.errorKey == null ? "admin.logs.usage" : f.errorKey);
                     return true;
@@ -117,18 +117,18 @@ public final class AdminLogsSubcommand implements AdminSubcommand {
     private boolean handleExport(CommandSender sender, String[] args) {
         List<HavocLogEntry> data;
         String exportedScope;
-        if (args.length == 2 || "all".equalsIgnoreCase(args[2])) {
+        if (args.length == 1 || "all".equalsIgnoreCase(args[1])) {
             data = plugin.getLogService().queryAllNewestFirst();
             exportedScope = "all";
-        } else if ("user".equalsIgnoreCase(args[2]) && args.length >= 4) {
-            data = plugin.getLogService().queryByUserNewestFirst(args[3]);
-            exportedScope = "user:" + args[3];
-        } else if ("base".equalsIgnoreCase(args[2]) && args.length >= 4) {
-            data = plugin.getLogService().queryByBaseNewestFirst(args[3]);
-            exportedScope = "base:" + args[3];
-        } else if ("type".equalsIgnoreCase(args[2]) && args.length >= 4) {
-            data = plugin.getLogService().queryByTypeNewestFirst(args[3]);
-            exportedScope = "type:" + args[3];
+        } else if ("user".equalsIgnoreCase(args[1]) && args.length >= 3) {
+            data = plugin.getLogService().queryByUserNewestFirst(args[2]);
+            exportedScope = "user:" + args[2];
+        } else if ("base".equalsIgnoreCase(args[1]) && args.length >= 3) {
+            data = plugin.getLogService().queryByBaseNewestFirst(args[2]);
+            exportedScope = "base:" + args[2];
+        } else if ("type".equalsIgnoreCase(args[1]) && args.length >= 3) {
+            data = plugin.getLogService().queryByTypeNewestFirst(args[2]);
+            exportedScope = "type:" + args[2];
         } else {
             plugin.getMessages().send(sender, "admin.logs.export-usage");
             return true;

@@ -36,15 +36,15 @@ public final class AdminSalvageSubcommand implements AdminSubcommand {
 
     @Override
     public boolean execute(CommandSender sender, String[] args) {
-        if (args.length < 3) {
+        if (args.length < 2) {
             plugin.getMessages().send(sender, "admin.salvage.usage");
             return true;
         }
-        String mode = args[1].toLowerCase(Locale.ROOT);
-        OfflinePlayer target = Bukkit.getOfflinePlayer(args[2]);
+        String mode = args[0].toLowerCase(Locale.ROOT);
+        OfflinePlayer target = Bukkit.getOfflinePlayer(args[1]);
         if (target == null || (!target.isOnline() && !target.hasPlayedBefore())) {
             plugin.getMessages().send(sender, "admin.salvage.player-not-found",
-                    MessageVars.one(MessageKeys.PLAYER, args[2]));
+                    MessageVars.one(MessageKeys.PLAYER, args[1]));
             return true;
         }
         if ("show".equals(mode)) {
@@ -54,7 +54,7 @@ public final class AdminSalvageSubcommand implements AdminSubcommand {
             }
             int bal = plugin.getSalvageStore().get(target.getUniqueId());
             java.util.Map<String, String> vars = MessageVars.create()
-                    .put(MessageKeys.PLAYER, target.getName() == null ? args[2] : target.getName())
+                    .put(MessageKeys.PLAYER, target.getName() == null ? args[1] : target.getName())
                     .put(MessageKeys.BALANCE, bal)
                     .build();
             plugin.getMessages().send(sender, "admin.salvage.show", vars);
@@ -72,13 +72,13 @@ public final class AdminSalvageSubcommand implements AdminSubcommand {
             plugin.getMessages().send(sender, "command.no-permission");
             return true;
         }
-        if (args.length < 4) {
+        if (args.length < 3) {
             plugin.getMessages().send(sender, "admin.salvage.amount-required");
             return true;
         }
         int amount;
         try {
-            amount = Integer.parseInt(args[3]);
+            amount = Integer.parseInt(args[2]);
         } catch (NumberFormatException e) {
             plugin.getMessages().send(sender, "admin.salvage.invalid-amount");
             return true;
@@ -94,7 +94,7 @@ public final class AdminSalvageSubcommand implements AdminSubcommand {
         }
         int bal = plugin.getSalvageStore().get(target.getUniqueId());
         java.util.Map<String, String> vars = MessageVars.create()
-                .put(MessageKeys.PLAYER, target.getName() == null ? args[2] : target.getName())
+                .put(MessageKeys.PLAYER, target.getName() == null ? args[1] : target.getName())
                 .put(MessageKeys.AMOUNT, amount)
                 .put(MessageKeys.BALANCE, bal)
                 .build();

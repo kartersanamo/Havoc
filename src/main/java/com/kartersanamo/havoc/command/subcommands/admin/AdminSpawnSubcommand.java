@@ -36,13 +36,13 @@ public final class AdminSpawnSubcommand implements AdminSubcommand {
 
     @Override
     public boolean execute(CommandSender sender, String[] args) {
-        if (args.length < 2) {
+        if (args.length < 1) {
             plugin.getMessages().send(sender, "admin.spawn.usage");
             return true;
         }
         BaseDifficulty d;
         try {
-            d = BaseDifficulty.valueOf(args[1].toUpperCase(Locale.ROOT));
+            d = BaseDifficulty.valueOf(args[0].toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
             plugin.getMessages().send(sender, "admin.spawn.invalid-tier");
             return true;
