@@ -1,5 +1,6 @@
 package com.kartersanamo.havoc.audit;
 
+import com.kartersanamo.havoc.storage.DatabaseSupport;
 import org.bukkit.Location;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -20,6 +21,10 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -31,6 +36,7 @@ public final class HavocLogService {
     private final List<HavocLogEntry> entries = new ArrayList<HavocLogEntry>();
     private final SimpleDateFormat dateFmt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
     private final ExecutorService ioExecutor = Executors.newSingleThreadExecutor();
+    private DatabaseSupport database;
     private int maxLogLines = 100000;
     private int maxLogDays = 30;
     private boolean archiveOnRotate = true;
@@ -39,6 +45,10 @@ public final class HavocLogService {
         this.plugin = plugin;
         this.file = new File(plugin.getDataFolder(), "havoc-logs.log");
         this.archiveDir = new File(plugin.getDataFolder(), "log-archive");
+    }
+
+    public synchronized void setDatabase(DatabaseSupport database) {
+        this.database = database;
     }
 
     public synchronized void configureRetention(int maxLogLines, int maxLogDays, boolean archiveOnRotate) {
@@ -50,6 +60,11 @@ public final class HavocLogService {
 
     public synchronized void load() {
         entries.clear();
+        if (isDatabaseActive()) {
+            loadFromDatabase();
+            applyRetentionAndPersist(false);
+            return;
+        }
         if (!file.exists()) {
             return;
         }
@@ -90,7 +105,11 @@ public final class HavocLogService {
                 safe(message));
         entries.add(e);
         if (!applyRetentionAndPersist(true)) {
-            appendLineAsync(serialize(e));
+            if (isDatabaseActive()) {
+                appendDbAsync(e);
+            } else {
+                appendLineAsync(serialize(e));
+            }
         }
     }
 
@@ -268,9 +287,128 @@ public final class HavocLogService {
         if (trimmed) {
             entries.clear();
             entries.addAll(kept);
-            rewriteAllAsync(maybeArchive && archiveOnRotate);
+            if (isDatabaseActive()) {
+                rewriteAllDbAsync();
+            } else {
+                rewriteAllAsync(maybeArchive && archiveOnRotate);
+            }
         }
         return trimmed;
+    }
+
+    private boolean isDatabaseActive() {
+        return database != null && database.isEnabled();
+    }
+
+    private void loadFromDatabase() {
+        try (Connection c = database.openConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT epoch_ms, type, user_name, base_id, world_name, x, y, z, message FROM havoc_logs ORDER BY id ASC");
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                entries.add(new HavocLogEntry(
+                        rs.getLong(1),
+                        safe(rs.getString(2)),
+                        safe(rs.getString(3)),
+                        safe(rs.getString(4)),
+                        safe(rs.getString(5)),
+                        rs.getInt(6),
+                        rs.getInt(7),
+                        rs.getInt(8),
+                        safe(rs.getString(9))
+                ));
+            }
+            if (entries.isEmpty() && file.exists()) {
+                loadFromFileToEntries();
+                if (!entries.isEmpty()) {
+                    rewriteAllDbAsync();
+                    plugin.getLogger().info("Imported havoc-logs.log into MySQL (" + entries.size() + " entries).");
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("Could not load havoc logs from database: " + e.getMessage());
+        }
+    }
+
+    private void loadFromFileToEntries() {
+        BufferedReader br = null;
+        try {
+            br = new BufferedReader(new FileReader(file));
+            String line;
+            while ((line = br.readLine()) != null) {
+                HavocLogEntry e = parse(line);
+                if (e != null) {
+                    entries.add(e);
+                }
+            }
+        } catch (IOException e) {
+            plugin.getLogger().warning("Could not load havoc-logs.log for DB import: " + e.getMessage());
+        } finally {
+            if (br != null) {
+                try {
+                    br.close();
+                } catch (IOException ignored) {
+                }
+            }
+        }
+    }
+
+    private void appendDbAsync(final HavocLogEntry entry) {
+        ioExecutor.submit(new Runnable() {
+            @Override
+            public void run() {
+                try (Connection c = database.openConnection();
+                     PreparedStatement ps = c.prepareStatement(
+                             "INSERT INTO havoc_logs (epoch_ms, type, user_name, base_id, world_name, x, y, z, message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+                    ps.setLong(1, entry.epochMs);
+                    ps.setString(2, safe(entry.type));
+                    ps.setString(3, safe(entry.user));
+                    ps.setString(4, safe(entry.baseId));
+                    ps.setString(5, safe(entry.world));
+                    ps.setInt(6, entry.x);
+                    ps.setInt(7, entry.y);
+                    ps.setInt(8, entry.z);
+                    ps.setString(9, safe(entry.message));
+                    ps.executeUpdate();
+                } catch (SQLException e) {
+                    plugin.getLogger().warning("Could not append havoc log to database: " + e.getMessage());
+                }
+            }
+        });
+    }
+
+    private void rewriteAllDbAsync() {
+        final List<HavocLogEntry> snapshot = new ArrayList<HavocLogEntry>(entries);
+        ioExecutor.submit(new Runnable() {
+            @Override
+            public void run() {
+                try (Connection c = database.openConnection()) {
+                    c.setAutoCommit(false);
+                    try (PreparedStatement clear = c.prepareStatement("DELETE FROM havoc_logs")) {
+                        clear.executeUpdate();
+                    }
+                    try (PreparedStatement insert = c.prepareStatement(
+                            "INSERT INTO havoc_logs (epoch_ms, type, user_name, base_id, world_name, x, y, z, message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+                        for (HavocLogEntry e : snapshot) {
+                            insert.setLong(1, e.epochMs);
+                            insert.setString(2, safe(e.type));
+                            insert.setString(3, safe(e.user));
+                            insert.setString(4, safe(e.baseId));
+                            insert.setString(5, safe(e.world));
+                            insert.setInt(6, e.x);
+                            insert.setInt(7, e.y);
+                            insert.setInt(8, e.z);
+                            insert.setString(9, safe(e.message));
+                            insert.addBatch();
+                        }
+                        insert.executeBatch();
+                    }
+                    c.commit();
+                } catch (SQLException e) {
+                    plugin.getLogger().warning("Could not rewrite havoc logs in database: " + e.getMessage());
+                }
+            }
+        });
     }
 
     private void appendLineAsync(final String line) {

@@ -83,6 +83,7 @@ public final class SalvageShop {
             return;
         }
         store.add(player.getUniqueId(), -item.getPrice());
+        store.saveAsync();
         player.getInventory().addItem(item.createBoughtStack());
         int newBal = store.get(player.getUniqueId());
         plugin.getMessages().send(player, "shop.purchase.success", vars(item, newBal));

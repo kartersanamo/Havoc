@@ -17,6 +17,7 @@ import com.kartersanamo.havoc.event.EventSubscriber;
 import com.kartersanamo.havoc.event.InternalEventBus;
 import com.kartersanamo.havoc.shop.SalvageShop;
 import com.kartersanamo.havoc.storage.AsyncPersistenceQueue;
+import com.kartersanamo.havoc.storage.DatabaseSupport;
 import com.kartersanamo.havoc.storage.ProgressionStore;
 import com.kartersanamo.havoc.storage.SalvageStore;
 import org.bukkit.Bukkit;
@@ -40,6 +41,7 @@ public final class Havoc extends JavaPlugin {
     private MessageService messages;
     private InternalEventBus eventBus;
     private AsyncPersistenceQueue persistenceQueue;
+    private DatabaseSupport databaseSupport;
     private SalvageStore salvageStore;
     private ProgressionStore progressionStore;
     private SalvageShop salvageShop;
@@ -70,7 +72,9 @@ public final class Havoc extends JavaPlugin {
         persistenceQueue = new AsyncPersistenceQueue();
         havocConfig = new HavocConfig(this);
         havocConfig.reload();
+        configureDatabaseSupport();
         logService = new HavocLogService(this);
+        logService.setDatabase(databaseSupport);
         logService.configureRetention(havocConfig.getMaxLogLines(), havocConfig.getMaxLogDays(), havocConfig.isArchiveLogsOnRotate());
         logService.load();
 
@@ -78,8 +82,10 @@ public final class Havoc extends JavaPlugin {
             getLogger().severe("Havoc: world \"" + havocConfig.getWorldName() + "\" is not loaded — bases cannot spawn until Multiverse (or server.properties) loads that world.");
         }
         salvageStore = new SalvageStore(this, persistenceQueue);
+        salvageStore.setDatabase(databaseSupport);
         salvageStore.load();
         progressionStore = new ProgressionStore(this, persistenceQueue);
+        progressionStore.setDatabase(databaseSupport);
         progressionStore.load();
 
         factionsBridge = new FactionsBridge(this);
@@ -179,6 +185,37 @@ public final class Havoc extends JavaPlugin {
 
     public HavocConfig getHavocConfig() {
         return havocConfig;
+    }
+
+    public void reloadAllConfigsAndStorage() {
+        havocConfig.reload();
+        configureDatabaseSupport();
+        logService.setDatabase(databaseSupport);
+        logService.configureRetention(havocConfig.getMaxLogLines(), havocConfig.getMaxLogDays(), havocConfig.isArchiveLogsOnRotate());
+        logService.load();
+        messages.reload();
+        salvageShop.reload();
+        salvageStore.setDatabase(databaseSupport);
+        salvageStore.load();
+        progressionStore.setDatabase(databaseSupport);
+        progressionStore.load();
+        applyWorldBorder();
+    }
+
+    private void configureDatabaseSupport() {
+        DatabaseSupport candidate = new DatabaseSupport(this, havocConfig);
+        if (!candidate.isEnabled()) {
+            databaseSupport = null;
+            getLogger().info("Database storage disabled. Using YAML persistence.");
+            return;
+        }
+        if (!candidate.initialize()) {
+            databaseSupport = null;
+            getLogger().warning("Database storage could not initialize. Falling back to YAML persistence.");
+            return;
+        }
+        databaseSupport = candidate;
+        getLogger().info("Database storage enabled for Havoc persistence.");
     }
 
     public FactionsBridge getFactionsBridge() {

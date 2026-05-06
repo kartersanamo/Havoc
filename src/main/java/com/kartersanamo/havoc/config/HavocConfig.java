@@ -72,6 +72,13 @@ public final class HavocConfig {
     private long adminForceRestoreCooldownMs;
     private boolean adminForceRestoreRequireConfirmation;
     private long adminForceRestoreConfirmWindowMs;
+    private boolean databaseEnabled;
+    private String databaseHost;
+    private int databasePort;
+    private String databaseName;
+    private String databaseUsername;
+    private String databasePassword;
+    private boolean databaseUseSsl;
     private Set<Material> breachMaterials = new HashSet<Material>();
 
     public HavocConfig(JavaPlugin plugin) {
@@ -167,6 +174,13 @@ public final class HavocConfig {
         adminForceRestoreCooldownMs = Math.max(0L, c.getLong("admin-actions.force-restore.cooldown-ms", 3000L));
         adminForceRestoreRequireConfirmation = c.getBoolean("admin-actions.force-restore.require-confirmation", true);
         adminForceRestoreConfirmWindowMs = Math.max(250L, c.getLong("admin-actions.force-restore.confirm-window-ms", 5000L));
+        databaseEnabled = c.getBoolean("database.enabled", false);
+        databaseHost = c.getString("database.host", "127.0.0.1");
+        databasePort = Math.max(1, c.getInt("database.port", 3306));
+        databaseName = c.getString("database.name", "havoc");
+        databaseUsername = c.getString("database.username", "root");
+        databasePassword = c.getString("database.password", "");
+        databaseUseSsl = c.getBoolean("database.use-ssl", false);
         ConfigurationSection sp = c.getConfigurationSection("spawn");
         if (sp != null) {
             spawnWorld = sp.getString("world", worldName);
@@ -486,5 +500,33 @@ public final class HavocConfig {
 
     public long getAdminForceRestoreConfirmWindowMs() {
         return adminForceRestoreConfirmWindowMs;
+    }
+
+    public boolean isDatabaseEnabled() {
+        return databaseEnabled;
+    }
+
+    public String getDatabaseHost() {
+        return databaseHost;
+    }
+
+    public int getDatabasePort() {
+        return databasePort;
+    }
+
+    public String getDatabaseName() {
+        return databaseName;
+    }
+
+    public String getDatabaseUsername() {
+        return databaseUsername;
+    }
+
+    public String getDatabasePassword() {
+        return databasePassword;
+    }
+
+    public boolean isDatabaseUseSsl() {
+        return databaseUseSsl;
     }
 }

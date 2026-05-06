@@ -1,7 +1,6 @@
 package com.kartersanamo.havoc.command.subcommands.admin;
 
 import com.kartersanamo.havoc.Havoc;
-import com.kartersanamo.havoc.config.HavocConfig;
 import com.kartersanamo.havoc.permission.PermissionNodes;
 import org.bukkit.command.CommandSender;
 
@@ -28,14 +27,7 @@ public final class AdminReloadSubcommand implements AdminSubcommand {
 
     @Override
     public boolean execute(CommandSender sender, String[] args) {
-        HavocConfig c = plugin.getHavocConfig();
-        c.reload();
-        plugin.getLogService().configureRetention(c.getMaxLogLines(), c.getMaxLogDays(), c.isArchiveLogsOnRotate());
-        plugin.getMessages().reload();
-        plugin.getSalvageShop().reload();
-        plugin.getSalvageStore().load();
-        plugin.getProgressionStore().load();
-        plugin.applyWorldBorder();
+        plugin.reloadAllConfigsAndStorage();
         plugin.getMessages().send(sender, "admin.reload.success");
         plugin.getLogService().log("ADMIN_RELOAD", sender.getName(), "", null, "reload configs");
         return true;
