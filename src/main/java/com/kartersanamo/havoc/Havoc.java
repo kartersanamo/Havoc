@@ -8,7 +8,16 @@ import com.kartersanamo.havoc.command.HavocCommandExecutor;
 import com.kartersanamo.havoc.config.HavocConfig;
 import com.kartersanamo.havoc.debug.HavocDebug;
 import com.kartersanamo.havoc.faction.FactionsBridge;
-import com.kartersanamo.havoc.listener.HavocListener;
+import com.kartersanamo.havoc.listener.BlockBreakListener;
+import com.kartersanamo.havoc.listener.BlockPlaceListener;
+import com.kartersanamo.havoc.listener.ExplosionBreachListener;
+import com.kartersanamo.havoc.listener.ExplosionLockListener;
+import com.kartersanamo.havoc.listener.InventoryClickRouterListener;
+import com.kartersanamo.havoc.listener.PlayerMoveDenyListener;
+import com.kartersanamo.havoc.listener.RaidLockNotifier;
+import com.kartersanamo.havoc.listener.TntAttributionTracker;
+import com.kartersanamo.havoc.listener.TntDispenseListener;
+import com.kartersanamo.havoc.listener.TntSpawnListener;
 import com.kartersanamo.havoc.leaderboard.LeaderboardGui;
 import com.kartersanamo.havoc.message.MessageService;
 import com.kartersanamo.havoc.event.BaseBreachedEvent;
@@ -110,7 +119,16 @@ public final class Havoc extends JavaPlugin {
         salvageShop = new SalvageShop(this);
         leaderboardGui = new LeaderboardGui(this);
 
-        Bukkit.getPluginManager().registerEvents(new HavocListener(this), this);
+        RaidLockNotifier raidLockNotifier = new RaidLockNotifier(this);
+        TntAttributionTracker tntAttributionTracker = new TntAttributionTracker(this);
+        Bukkit.getPluginManager().registerEvents(new ExplosionBreachListener(this, tntAttributionTracker), this);
+        Bukkit.getPluginManager().registerEvents(new TntDispenseListener(tntAttributionTracker), this);
+        Bukkit.getPluginManager().registerEvents(new TntSpawnListener(tntAttributionTracker), this);
+        Bukkit.getPluginManager().registerEvents(new ExplosionLockListener(this), this);
+        Bukkit.getPluginManager().registerEvents(new BlockBreakListener(this, raidLockNotifier), this);
+        Bukkit.getPluginManager().registerEvents(new BlockPlaceListener(this, raidLockNotifier), this);
+        Bukkit.getPluginManager().registerEvents(new PlayerMoveDenyListener(this, raidLockNotifier), this);
+        Bukkit.getPluginManager().registerEvents(new InventoryClickRouterListener(this), this);
         if (getCommand("havoc") != null) {
             HavocCommandExecutor ex = new HavocCommandExecutor(this);
             getCommand("havoc").setExecutor(ex);
