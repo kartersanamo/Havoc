@@ -10,8 +10,11 @@ import java.util.Arrays;
 /**
  * Builds a {@link CuboidClipboard} from a {@link BaseTemplateDefinition}.
  * <p>
- * Layout: Y=0 stone floor full footprint; inner {@code sizeChunks * 16} region is hollow air from Y=2 up.
- * Walls expand outward in Chebyshev (square) rings. Flat/sand: air gap, water, then solid shell.
+ * Layout: Y=0 stone floor full footprint; inner {@code sizeChunks * 16} region is hollow air from Y=1 up,
+ * plus a roof at the top only over the inner main box.
+ * Walls expand outward in Chebyshev (square) rings.
+ * Flat walls alternate obsidian/water with outermost water.
+ * Sand walls are unchanged in V1 (air gap, water, then sand shell).
  * Regen: air, lava, obsidian, water (outside to inside relative to base center).
  * Optional bottom slabs at Y=1 in gap/water columns to reduce sand falling.
  */
@@ -34,7 +37,8 @@ public final class BaseTemplateGenerator {
         int margin = def.totalThicknessBlocks();
         int w = innerBlocks + 2 * margin;
         int l = w;
-        int h = Math.max(8, wallHeightBlocks);
+        // Build full-height defensive shells by default (1.8 build limit is 256).
+        int h = Math.max(256, Math.max(8, wallHeightBlocks));
 
         CuboidClipboard clip = new CuboidClipboard(new Vector(w, h, l));
         clip.setOrigin(new Vector(0, 0, 0));
@@ -54,12 +58,19 @@ public final class BaseTemplateGenerator {
             }
         }
 
-        // Hollow interior (loot room)
+        // Hollow interior (loot room), leave roof layer for explicit cap.
         for (int x = ix0; x <= ix1; x++) {
             for (int z = iz0; z <= iz1; z++) {
-                for (int y = 2; y < h; y++) {
+                for (int y = 1; y < h - 1; y++) {
                     clip.setBlock(new Vector(x, y, z), new BaseBlock(AIR));
                 }
+            }
+        }
+
+        // Roof only over the main inner box.
+        for (int x = ix0; x <= ix1; x++) {
+            for (int z = iz0; z <= iz1; z++) {
+                clip.setBlock(new Vector(x, h - 1, z), new BaseBlock(OBSIDIAN));
             }
         }
 
@@ -116,7 +127,7 @@ public final class BaseTemplateGenerator {
                     continue;
                 }
                 BaseBlock columnBlock = ringBlock(type, dist, thickness);
-                for (int y = 2; y < h; y++) {
+                for (int y = 1; y < h; y++) {
                     clip.setBlock(new Vector(x, y, z), columnBlock);
                 }
                 if (type == DefenseType.FLAT_WALL || type == DefenseType.SAND_WALL) {
@@ -159,7 +170,7 @@ public final class BaseTemplateGenerator {
     private static BaseBlock ringBlock(DefenseType type, int dist, int thickness) {
         switch (type) {
             case REGEN_WALL:
-                // Outside (large dist): water; then obsidian; lava; air gap against inner box
+                // Outside (large dist): water; then obsidian; lava; air gap against inner box.
                 if (dist == thickness) {
                     return new BaseBlock(STATIONARY_WATER);
                 }
@@ -171,22 +182,22 @@ public final class BaseTemplateGenerator {
                 }
                 return new BaseBlock(AIR);
             case SAND_WALL:
-                if (dist == thickness) {
+                // Alternate from the inner edge outward:
+                // dist=1 sand, dist=2 water, dist=3 sand, dist=4 water ...
+                // This guarantees water between sand walls and at the outer edge.
+                if ((dist % 2) == 1) {
                     return new BaseBlock(SAND);
                 }
-                if (dist == thickness - 1) {
-                    return new BaseBlock(STATIONARY_WATER);
-                }
-                return new BaseBlock(AIR);
+                return new BaseBlock(STATIONARY_WATER);
             case FLAT_WALL:
             default:
-                if (dist == thickness) {
+                // Alternate from the inner edge outward:
+                // dist=1 obsidian, dist=2 water, dist=3 obsidian, dist=4 water ...
+                // This guarantees water both between flat walls and at the very outside.
+                if ((dist % 2) == 1) {
                     return new BaseBlock(OBSIDIAN);
                 }
-                if (dist == thickness - 1) {
-                    return new BaseBlock(STATIONARY_WATER);
-                }
-                return new BaseBlock(AIR);
+                return new BaseBlock(STATIONARY_WATER);
         }
     }
 

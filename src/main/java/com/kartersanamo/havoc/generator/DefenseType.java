@@ -13,7 +13,9 @@ public enum DefenseType {
             case REGEN_WALL:
                 return 4;
             case FLAT_WALL:
+                return 2;
             case SAND_WALL:
+                return 2;
             default:
                 return 3;
         }
