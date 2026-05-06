@@ -52,13 +52,12 @@ public final class StatsSubcommand implements HavocSubcommand {
         }
         String targetName = target.getName() == null ? target.getUniqueId().toString().substring(0, 8) : target.getName();
         PlayerStats stats = plugin.getPlayerStatsStore().get(target.getUniqueId());
-        viewer.sendMessage(ChatColor.DARK_PURPLE + "======== " + ChatColor.LIGHT_PURPLE + "Havoc Stats: " + targetName + ChatColor.DARK_PURPLE + " ========");
+        viewer.sendMessage(ChatColor.LIGHT_PURPLE + "Havoc Stats: " + targetName);
         viewer.sendMessage(ChatColor.GRAY + "Breaches Participated: " + ChatColor.AQUA + stats.breachesParticipated);
         viewer.sendMessage(ChatColor.GRAY + "Breaches Triggered: " + ChatColor.AQUA + stats.breachesTriggered);
         viewer.sendMessage(ChatColor.GRAY + "Salvage Earned: " + ChatColor.GOLD + stats.salvageEarned);
         viewer.sendMessage(ChatColor.GRAY + "Salvage Spent: " + ChatColor.GOLD + stats.salvageSpent);
         viewer.sendMessage(ChatColor.GRAY + "Shop Purchases: " + ChatColor.GREEN + stats.shopPurchases);
-        viewer.sendMessage(ChatColor.DARK_PURPLE + "==========================================");
         return true;
     }
 

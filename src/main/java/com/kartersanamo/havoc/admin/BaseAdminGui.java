@@ -135,10 +135,10 @@ public final class BaseAdminGui {
     private void openDetail(Player player, ActiveHavocBase b, int returnPage, BaseAdminGuiSortMode returnSortMode) {
         Inventory inv = Bukkit.createInventory(new BaseAdminDetailHolder(b.id, returnPage, returnSortMode), 27,
                 ChatColor.DARK_BLUE + "Base " + shortId(b.id));
-        inv.setItem(11, createBaseItem(b));
-        inv.setItem(15, createControlItem(Material.ENDER_PEARL, ChatColor.GREEN + "Teleport To Base",
+        inv.setItem(13, createBaseItem(b));
+        inv.setItem(12, createControlItem(Material.ENDER_PEARL, ChatColor.GREEN + "Teleport To Base",
                 ChatColor.GRAY + "Teleport above obsidian center."));
-        inv.setItem(16, createControlItem(Material.REDSTONE, ChatColor.RED + "Force Restore",
+        inv.setItem(14, createControlItem(Material.REDSTONE, ChatColor.RED + "Force Restore",
                 ChatColor.GRAY + "Immediately start restore phase."));
         inv.setItem(22, createControlItem(Material.ARROW, ChatColor.AQUA + "Back To List",
                 ChatColor.GRAY + "Return to base list."));

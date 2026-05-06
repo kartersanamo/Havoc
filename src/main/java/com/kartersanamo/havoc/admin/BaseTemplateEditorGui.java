@@ -28,25 +28,25 @@ import java.util.Locale;
 public final class BaseTemplateEditorGui {
 
     private static final int SIZE = 54;
-    private static final int SLOT_ADD_FLAT = 0;
-    private static final int SLOT_ADD_REGEN = 1;
-    private static final int SLOT_ADD_SAND = 2;
-    private static final int SLOT_REMOVE = 3;
-    private static final int SLOT_REP_MINUS = 4;
-    private static final int SLOT_REP_PLUS = 5;
-    private static final int SLOT_SIZE = 6;
-    private static final int SLOT_SLABS = 7;
-    private static final int SLOT_SAVE = 8;
-    private static final int SLOT_BACK = 9;
-    private static final int SLOT_PAGE_PREV = 10;
-    private static final int SLOT_PAGE_NEXT = 11;
+    private static final int SLOT_ADD_FLAT = 3;
+    private static final int SLOT_ADD_REGEN = 4;
+    private static final int SLOT_ADD_SAND = 5;
+    private static final int SLOT_REMOVE = 35;
+    private static final int SLOT_REP_MINUS = 11;
+    private static final int SLOT_REP_PLUS = 2;
+    private static final int SLOT_SIZE = 7;
+    private static final int SLOT_SLABS = 1;
+    private static final int SLOT_SAVE = 53;
+    private static final int SLOT_BACK = 49;
+    private static final int SLOT_PAGE_PREV = 48;
+    private static final int SLOT_PAGE_NEXT = 50;
     private static final int SLOT_INS_BEFORE_FLAT = 12;
     private static final int SLOT_INS_BEFORE_REGEN = 13;
     private static final int SLOT_INS_BEFORE_SAND = 14;
-    private static final int SLOT_MOVE_UP = 15;
-    private static final int SLOT_MOVE_DOWN = 16;
-    private static final int SLOT_SECTIONS_START = 18;
-    private static final int SECTIONS_PER_PAGE = 9;
+    private static final int SLOT_MOVE_UP = 6;
+    private static final int SLOT_MOVE_DOWN = 15;
+    private static final int SLOT_SECTIONS_START = 27;
+    private static final int SECTIONS_PER_PAGE = 8;
 
     private final Havoc plugin;
 
@@ -87,12 +87,14 @@ public final class BaseTemplateEditorGui {
                 line("Append SAND segment (or insert after selection)")));
         inv.setItem(SLOT_REMOVE, icon(Material.BARRIER, ChatColor.DARK_RED + "Remove selected",
                 line("Removes highlighted section")));
-        inv.setItem(SLOT_REP_MINUS, icon(Material.REDSTONE_TORCH_OFF, ChatColor.RED + "Repeats -1",
+        // Use plain REDSTONE here for broader compatibility across server versions where
+        // REDSTONE_TORCH_OFF may not render correctly (item may appear as empty).
+        inv.setItem(SLOT_REP_MINUS, icon(Material.REDSTONE, ChatColor.RED + "Repeats -1",
                 line("Selected section")));
         inv.setItem(SLOT_REP_PLUS, icon(Material.REDSTONE_TORCH_ON, ChatColor.GREEN + "Repeats +1",
                 line("Selected section")));
-        inv.setItem(SLOT_SIZE, icon(Material.MAP, ChatColor.AQUA + "Footprint: " + draft.getSizeChunksOdd() + "x" + chunkLabel(draft.getSizeChunksOdd()),
-                line("Click to cycle 1 -> 3 -> 5 chunks")));
+        inv.setItem(SLOT_SIZE, icon(Material.MAP, ChatColor.AQUA + "Base Size: " + draft.getSizeChunksOdd() + "x" + chunkLabel(draft.getSizeChunksOdd()),
+                line("Click to cycle 1x1 -> 3x3 -> 5x5 chunks")));
         inv.setItem(SLOT_SLABS, icon(draft.isSlabFloorBetweenWalls() ? Material.STEP : Material.WOOD_STEP,
                 ChatColor.GRAY + "Slab floor (Y=1): " + onOff(draft.isSlabFloorBetweenWalls()),
                 line("Bottom slabs between walls to reduce sand falling")));
