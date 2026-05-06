@@ -115,6 +115,10 @@ public final class BaseTemplateGenerator {
 
     private static void applyRing(CuboidClipboard clip, boolean[] slabMask, int w, int l, int h,
             int boxX0, int boxX1, int boxZ0, int boxZ1, DefenseType type) {
+        if (type == DefenseType.REGEN_WALL) {
+            applyRegenCardinalBands(clip, slabMask, w, l, h, boxX0, boxX1, boxZ0, boxZ1);
+            return;
+        }
         int thickness = type.thicknessPerRepeat();
         for (int x = 0; x < w; x++) {
             for (int z = 0; z < l; z++) {
@@ -134,6 +138,68 @@ public final class BaseTemplateGenerator {
                     if (dist >= 1 && dist <= 3) {
                         slabMask[x + z * w] = true;
                     }
+                }
+            }
+        }
+    }
+
+    /**
+     * Regen walls are generated only on the 4 cardinal fronts of the base footprint,
+     * not as a full square ring through corners.
+     *
+     * Thickness (inside -> outside):
+     * 1: OBSIDIAN
+     * 2: alternating LAVA / OBSIDIAN pillars across the full side width
+     * 3: OBSIDIAN
+     * 4: WATER (outer wash)
+     */
+    private static void applyRegenCardinalBands(CuboidClipboard clip, boolean[] slabMask, int w, int l, int h,
+            int boxX0, int boxX1, int boxZ0, int boxZ1) {
+        for (int x = 0; x < w; x++) {
+            for (int z = 0; z < l; z++) {
+                int northDist = boxZ0 - z;
+                int southDist = z - boxZ1;
+                int westDist = boxX0 - x;
+                int eastDist = x - boxX1;
+
+                boolean inXSpan = x >= boxX0 && x <= boxX1;
+                boolean inZSpan = z >= boxZ0 && z <= boxZ1;
+
+                int dist = 0;
+                int axisKey = 0;
+                if (northDist >= 1 && northDist <= 4 && inXSpan) {
+                    dist = northDist;
+                    axisKey = x;
+                } else if (southDist >= 1 && southDist <= 4 && inXSpan) {
+                    dist = southDist;
+                    axisKey = x;
+                } else if (westDist >= 1 && westDist <= 4 && inZSpan) {
+                    dist = westDist;
+                    axisKey = z;
+                } else if (eastDist >= 1 && eastDist <= 4 && inZSpan) {
+                    dist = eastDist;
+                    axisKey = z;
+                } else {
+                    continue;
+                }
+
+                BaseBlock block;
+                if (dist == 4) {
+                    block = new BaseBlock(STATIONARY_WATER);
+                } else if (dist == 3 || dist == 1) {
+                    block = new BaseBlock(OBSIDIAN);
+                } else {
+                    // dist == 2: repeating lava cores with obsidian separators/wrap.
+                    block = ((axisKey & 1) == 0) ? new BaseBlock(STATIONARY_LAVA) : new BaseBlock(OBSIDIAN);
+                }
+
+                for (int y = 1; y < h; y++) {
+                    clip.setBlock(new Vector(x, y, z), block);
+                }
+
+                // Slab support only marks the innermost air-adjacent gap lane.
+                if (dist == 1) {
+                    slabMask[x + z * w] = true;
                 }
             }
         }
