@@ -17,7 +17,7 @@ bases-per-difficulty:
 min-center-separation-chunks: 20
 
 # Broadcast [Havoc] ... to the whole server for spawn/breach/restore/disable (very noisy on purpose)
-debug-broadcast-game: true
+debug-broadcast-game: false
 
 timers:
   maintainer-initial-delay-ticks: 40

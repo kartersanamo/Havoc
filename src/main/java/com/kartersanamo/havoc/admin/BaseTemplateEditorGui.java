@@ -13,13 +13,17 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 
 public final class BaseTemplateEditorGui {
 
@@ -53,12 +57,9 @@ public final class BaseTemplateEditorGui {
     public void openDifficultyList(Player player) {
         Inventory inv = Bukkit.createInventory(new BaseTemplateDifficultyListHolder(), 27,
                 ChatColor.DARK_GREEN + "Havoc Base Templates");
-        inv.setItem(11, icon(Material.EMERALD_BLOCK, ChatColor.GREEN + "EASY",
-                Collections.singletonList(ChatColor.GRAY + "Edit EASY wall template")));
-        inv.setItem(13, icon(Material.GOLD_BLOCK, ChatColor.GOLD + "MEDIUM",
-                Collections.singletonList(ChatColor.GRAY + "Edit MEDIUM wall template")));
-        inv.setItem(15, icon(Material.REDSTONE_BLOCK, ChatColor.RED + "HARD",
-                Collections.singletonList(ChatColor.GRAY + "Edit HARD wall template")));
+        inv.setItem(11, createDifficultyItem(BaseDifficulty.EASY, Material.EMERALD_BLOCK, ChatColor.GREEN));
+        inv.setItem(13, createDifficultyItem(BaseDifficulty.MEDIUM, Material.GOLD_BLOCK, ChatColor.GOLD));
+        inv.setItem(15, createDifficultyItem(BaseDifficulty.HARD, Material.REDSTONE_BLOCK, ChatColor.RED));
         player.openInventory(inv);
     }
 
@@ -150,14 +151,14 @@ public final class BaseTemplateEditorGui {
         return inv != null && inv.getHolder() instanceof BaseTemplateEditorHolder;
     }
 
-    public void handleClick(Player player, Inventory top, int rawSlot) {
+    public void handleClick(Player player, Inventory top, int rawSlot, ClickType click) {
         if (top.getHolder() instanceof BaseTemplateDifficultyListHolder) {
             if (rawSlot == 11) {
-                openEditor(player, BaseDifficulty.EASY);
+                handleDifficultyListClick(player, BaseDifficulty.EASY, click);
             } else if (rawSlot == 13) {
-                openEditor(player, BaseDifficulty.MEDIUM);
+                handleDifficultyListClick(player, BaseDifficulty.MEDIUM, click);
             } else if (rawSlot == 15) {
-                openEditor(player, BaseDifficulty.HARD);
+                handleDifficultyListClick(player, BaseDifficulty.HARD, click);
             }
             return;
         }
@@ -356,6 +357,156 @@ public final class BaseTemplateEditorGui {
         int insertAt = selectedIndex < 0 ? 0 : Math.max(0, selectedIndex);
         list.add(insertAt, section);
         return insertAt;
+    }
+
+    private void handleDifficultyListClick(Player player, BaseDifficulty difficulty, ClickType click) {
+        if (click == null) {
+            return;
+        }
+        if (click.isShiftClick()) {
+            openEditor(player, difficulty);
+            return;
+        }
+        if (click == ClickType.MIDDLE) {
+            if (deleteCurrentlySelectedVariant(difficulty)) {
+                player.sendMessage(ChatColor.YELLOW + "Deleted selected " + difficulty.name() + " variant.");
+            } else {
+                player.sendMessage(ChatColor.RED + "No selected generated variant to delete for " + difficulty.name() + ".");
+            }
+            openDifficultyList(player);
+            return;
+        }
+        if (click == ClickType.LEFT) {
+            moveSelection(difficulty, -1);
+            openDifficultyList(player);
+            return;
+        }
+        if (click == ClickType.RIGHT) {
+            moveSelection(difficulty, 1);
+            openDifficultyList(player);
+            return;
+        }
+    }
+
+    private ItemStack createDifficultyItem(BaseDifficulty difficulty, Material material, ChatColor color) {
+        List<String> variants = listGeneratedVariants(difficulty);
+        String selected = plugin.getHavocConfig().getGeneratedSchematicRelative(difficulty);
+        int selectedIdx = indexOfVariant(variants, selected);
+
+        List<String> lore = new ArrayList<String>();
+        lore.add(ChatColor.GRAY + "Shift-click: edit wall layout");
+        lore.add(ChatColor.GRAY + "Left: selector up  | Right: selector down");
+        lore.add(ChatColor.GRAY + "Middle: delete currently selected");
+        lore.add(ChatColor.DARK_GRAY + " ");
+        if (variants.isEmpty()) {
+            lore.add(ChatColor.DARK_GRAY + "No generated variants yet.");
+        } else {
+            for (int i = 0; i < variants.size(); i++) {
+                String prefix = i == selectedIdx ? ChatColor.GOLD + "-> " : ChatColor.GRAY + "   ";
+                lore.add(prefix + ChatColor.WHITE + shortVariantName(variants.get(i)));
+            }
+        }
+        return icon(material, color + difficulty.name(), lore);
+    }
+
+    private List<String> listGeneratedVariants(BaseDifficulty difficulty) {
+        List<String> out = new ArrayList<String>();
+        File dir = new File(plugin.getDataFolder(), plugin.getHavocConfig().getSchematicsFolder() + "/generated");
+        if (!dir.isDirectory()) {
+            return out;
+        }
+        String prefix = difficulty.name().toLowerCase(Locale.ROOT) + "-generated-";
+        File[] files = dir.listFiles();
+        if (files == null) {
+            return out;
+        }
+        for (File f : files) {
+            if (!f.isFile()) {
+                continue;
+            }
+            String n = f.getName().toLowerCase(Locale.ROOT);
+            if (!n.endsWith(".schematic")) {
+                continue;
+            }
+            if (!n.startsWith(prefix)) {
+                continue;
+            }
+            out.add("generated/" + f.getName());
+        }
+        Collections.sort(out, new Comparator<String>() {
+            @Override
+            public int compare(String a, String b) {
+                return a.compareToIgnoreCase(b);
+            }
+        });
+        return out;
+    }
+
+    private int indexOfVariant(List<String> variants, String selected) {
+        if (selected == null || selected.isEmpty()) {
+            return -1;
+        }
+        for (int i = 0; i < variants.size(); i++) {
+            if (selected.equalsIgnoreCase(variants.get(i))) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private void moveSelection(BaseDifficulty difficulty, int delta) {
+        List<String> variants = listGeneratedVariants(difficulty);
+        if (variants.isEmpty()) {
+            return;
+        }
+        int idx = indexOfVariant(variants, plugin.getHavocConfig().getGeneratedSchematicRelative(difficulty));
+        if (idx < 0) {
+            idx = 0;
+        } else {
+            idx += delta;
+            if (idx < 0) {
+                idx = 0;
+            }
+            if (idx >= variants.size()) {
+                idx = variants.size() - 1;
+            }
+        }
+        setActiveVariant(difficulty, variants.get(idx));
+    }
+
+    private boolean deleteCurrentlySelectedVariant(BaseDifficulty difficulty) {
+        List<String> variants = listGeneratedVariants(difficulty);
+        if (variants.isEmpty()) {
+            return false;
+        }
+        int idx = indexOfVariant(variants, plugin.getHavocConfig().getGeneratedSchematicRelative(difficulty));
+        if (idx < 0 || idx >= variants.size()) {
+            return false;
+        }
+        String rel = variants.get(idx);
+        File file = new File(plugin.getDataFolder(), plugin.getHavocConfig().getSchematicsFolder() + "/" + rel);
+        if (file.isFile() && !file.delete()) {
+            return false;
+        }
+        variants.remove(idx);
+        if (variants.isEmpty()) {
+            setActiveVariant(difficulty, "");
+        } else {
+            int next = Math.min(idx, variants.size() - 1);
+            setActiveVariant(difficulty, variants.get(next));
+        }
+        return true;
+    }
+
+    private void setActiveVariant(BaseDifficulty difficulty, String relPath) {
+        plugin.getConfig().set("generated-schematics." + difficulty.name(), relPath == null ? "" : relPath);
+        plugin.saveConfig();
+        plugin.getHavocConfig().reload();
+    }
+
+    private String shortVariantName(String relPath) {
+        int slash = relPath.lastIndexOf('/');
+        return slash >= 0 ? relPath.substring(slash + 1) : relPath;
     }
 
     private static List<String> line(String one) {

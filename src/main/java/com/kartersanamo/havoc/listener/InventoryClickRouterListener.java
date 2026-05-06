@@ -25,7 +25,7 @@ public final class InventoryClickRouterListener implements Listener {
             event.setCancelled(true);
             if (event.getClickedInventory() != null && event.getClickedInventory().equals(event.getView().getTopInventory())) {
                 plugin.getBaseTemplateEditorGui().handleClick((org.bukkit.entity.Player) event.getWhoClicked(),
-                        event.getView().getTopInventory(), event.getRawSlot());
+                        event.getView().getTopInventory(), event.getRawSlot(), event.getClick());
             }
             return;
         }
