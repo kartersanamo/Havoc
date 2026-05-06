@@ -306,6 +306,7 @@ public final class BaseService {
             }
         }
         tryBreachExplosionEpicenterInCoreChunk(epicenter, progressionCredit);
+        tryBreachExplosionInsideBaseFootprint(epicenter, progressionCredit);
     }
 
     /**
@@ -327,6 +328,38 @@ public final class BaseService {
         }
         Location breachLoc = new Location(world, epicenter.getBlockX(), epicenter.getBlockY(), epicenter.getBlockZ());
         breach(base, breachLoc, progressionCredit);
+    }
+
+    /**
+     * Secondary breach condition: if TNT explodes inside any active base footprint, breach that base.
+     * Primary breach remains obsidian-wall/core checks first.
+     */
+    private void tryBreachExplosionInsideBaseFootprint(Location epicenter, Player progressionCredit) {
+        World world = epicenter.getWorld();
+        if (world == null) {
+            return;
+        }
+        ActiveHavocBase base = findActiveBaseContaining(world.getName(), epicenter.getBlockX(), epicenter.getBlockZ());
+        if (base == null) {
+            return;
+        }
+        Location breachLoc = new Location(world, epicenter.getBlockX(), epicenter.getBlockY(), epicenter.getBlockZ());
+        breach(base, breachLoc, progressionCredit);
+    }
+
+    private ActiveHavocBase findActiveBaseContaining(String worldName, int x, int z) {
+        for (ActiveHavocBase base : basesById.values()) {
+            if (base.state != BaseState.ACTIVE) {
+                continue;
+            }
+            if (!base.worldName.equals(worldName)) {
+                continue;
+            }
+            if (base.containsBlockColumn(x, z)) {
+                return base;
+            }
+        }
+        return null;
     }
 
     private synchronized void breach(ActiveHavocBase base, Location breachLoc, Player progressionCredit) {
