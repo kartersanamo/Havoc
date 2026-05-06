@@ -40,6 +40,14 @@ public final class SchematicService {
     }
 
     /**
+     * Writes a MCEdit schematic using WorldEdit's native clipboard writer ({@link CuboidClipboard#saveSchematic}).
+     */
+    public void saveClipboard(File schematicFile, CuboidClipboard clipboard) throws IOException, com.sk89q.worldedit.world.DataException {
+        schematicFile.getParentFile().mkdirs();
+        clipboard.saveSchematic(schematicFile);
+    }
+
+    /**
      * @param addWorldEditOffset if true, paste vector = origin + WE offset + extra; if false, origin - WE offset + extra.
      * @param extraX extra blocks added after WE offset (fixes small systematic XZ shifts from different //copy pivots).
      */

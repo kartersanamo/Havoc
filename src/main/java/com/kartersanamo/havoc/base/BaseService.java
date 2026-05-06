@@ -487,7 +487,7 @@ public final class BaseService {
             plugin.getLogger().warning("Configured world not loaded: " + cfg.getWorldName());
             return false;
         }
-        File schem = new File(plugin.getDataFolder(), cfg.getSchematicsFolder() + "/" + cfg.schematicFileName(d));
+        File schem = cfg.resolveSchematicFile(d);
         if (!schem.isFile()) {
             HavocDebug.announce(plugin, "Missing schematic file: " + schem.getAbsolutePath());
             return false;

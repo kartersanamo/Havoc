@@ -166,7 +166,7 @@ final class SpawnPlan implements SpawnPlanner.SpawnTask {
             plugin.getLogger().warning("Configured world not loaded: " + cfg.getWorldName());
             return false;
         }
-        File schem = new File(plugin.getDataFolder(), cfg.getSchematicsFolder() + "/" + cfg.schematicFileName(difficulty));
+        File schem = cfg.resolveSchematicFile(difficulty);
         if (!schem.isFile()) {
             HavocDebug.announce(plugin, "Missing schematic file: " + schem.getAbsolutePath());
             return false;

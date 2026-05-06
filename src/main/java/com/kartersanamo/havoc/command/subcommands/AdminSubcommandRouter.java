@@ -1,6 +1,7 @@
 package com.kartersanamo.havoc.command.subcommands;
 
 import com.kartersanamo.havoc.Havoc;
+import com.kartersanamo.havoc.command.subcommands.admin.AdminBasesSubcommand;
 import com.kartersanamo.havoc.command.subcommands.admin.AdminListSubcommand;
 import com.kartersanamo.havoc.command.subcommands.admin.AdminLogsSubcommand;
 import com.kartersanamo.havoc.command.subcommands.admin.AdminPerfSubcommand;
@@ -26,6 +27,7 @@ public final class AdminSubcommandRouter implements HavocSubcommand {
     public AdminSubcommandRouter(Havoc plugin) {
         this.plugin = plugin;
         register(new AdminListSubcommand(plugin));
+        register(new AdminBasesSubcommand(plugin));
         register(new AdminReloadSubcommand(plugin));
         register(new AdminSpawnSubcommand(plugin));
         register(new AdminSalvageSubcommand(plugin));

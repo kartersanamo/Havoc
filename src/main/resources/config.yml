@@ -108,6 +108,19 @@ schematic-paste-extra-world-delta: "0,0,0"
 # Folder under the plugin data folder containing .schematic files
 schematics-folder: schematics
 
+# When set to a path relative to schematics-folder, that file overrides easy/medium/hard-schematic for spawning.
+# Updated automatically when an admin saves from /havoc admin bases.
+generated-schematics:
+  EASY: ""
+  MEDIUM: ""
+  HARD: ""
+
+# Procedural base generator (wall templates). Used when exporting from /havoc admin bases.
+base-generator:
+  wall-height-blocks: 22
+  max-editor-sections: 24
+  max-repeat-per-section: 12
+
 easy-schematic: EasyBase.schematic
 medium-schematic: MediumBase.schematic
 hard-schematic: HardBase.schematic

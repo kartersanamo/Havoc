@@ -15,12 +15,13 @@ command:
       - "&e/havoc admin logs date <today|yesterday|last7d|from to> [page] &7- filter by date range"
       - "&e/havoc admin logs export ... &7- export logs to a file"
       - "&e/havoc admin perf &7- show spawn worker performance"
+      - "&e/havoc admin bases &7- edit generated base wall templates (GUI)"
       - "&e/havoc admin reload &7- reload Havoc, shop, and messages configs"
       - "&e/havoc admin salvage <add|set|show> <player> [amount] &7- manage Salvage"
   players-only: "&cPlayers only."
   no-permission: "&cNo permission."
   salvage-balance: "&6Salvage: &e{balance}"
-  admin-usage: "&7Try: /havoc admin list | /havoc admin reload | /havoc admin spawn <tier>"
+  admin-usage: "&7Try: /havoc admin list | /havoc admin bases | /havoc admin reload | /havoc admin spawn <tier>"
   unknown-subcommand: "&cUnknown subcommand."
 
 admin:
@@ -60,6 +61,10 @@ admin:
     show: "&e{player}&7 has &6{balance}&7 Salvage."
     add-success: "&aAdded &e{amount}&a Salvage to &f{player}&a. New balance: &e{balance}&a."
     set-success: "&aSet &f{player}&a Salvage to &e{balance}&a."
+  bases:
+    max-sections: "&cMaximum wall sections for this editor ({count}). Remove one or raise base-generator.max-editor-sections in config."
+    save-success: "&aExported schematic and activated for spawns: &f{file}"
+    save-failed: "&cTemplate save failed: &f{reason}"
   perf:
     header: "&6Havoc Perf &7(spawn worker)"
     queue: "&7Queue size: &f{count}"
