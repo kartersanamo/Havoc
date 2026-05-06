@@ -367,7 +367,7 @@ public final class BaseTemplateEditorGui {
             openEditor(player, difficulty);
             return;
         }
-        if (click == ClickType.MIDDLE) {
+        if (click == ClickType.RIGHT) {
             if (deleteCurrentlySelectedVariant(difficulty)) {
                 player.sendMessage(ChatColor.YELLOW + "Deleted selected " + difficulty.name() + " variant.");
             } else {
@@ -377,12 +377,7 @@ public final class BaseTemplateEditorGui {
             return;
         }
         if (click == ClickType.LEFT) {
-            moveSelection(difficulty, -1);
-            openDifficultyList(player);
-            return;
-        }
-        if (click == ClickType.RIGHT) {
-            moveSelection(difficulty, 1);
+            cycleSelectionWrap(difficulty);
             openDifficultyList(player);
             return;
         }
@@ -395,8 +390,8 @@ public final class BaseTemplateEditorGui {
 
         List<String> lore = new ArrayList<String>();
         lore.add(ChatColor.GRAY + "Shift-click: edit wall layout");
-        lore.add(ChatColor.GRAY + "Left: selector up  | Right: selector down");
-        lore.add(ChatColor.GRAY + "Middle: delete currently selected");
+        lore.add(ChatColor.GRAY + "Left: cycle selected (wrap)");
+        lore.add(ChatColor.GRAY + "Right: delete currently selected");
         lore.add(ChatColor.DARK_GRAY + " ");
         if (variants.isEmpty()) {
             lore.add(ChatColor.DARK_GRAY + "No generated variants yet.");
@@ -454,7 +449,7 @@ public final class BaseTemplateEditorGui {
         return -1;
     }
 
-    private void moveSelection(BaseDifficulty difficulty, int delta) {
+    private void cycleSelectionWrap(BaseDifficulty difficulty) {
         List<String> variants = listGeneratedVariants(difficulty);
         if (variants.isEmpty()) {
             return;
@@ -463,13 +458,7 @@ public final class BaseTemplateEditorGui {
         if (idx < 0) {
             idx = 0;
         } else {
-            idx += delta;
-            if (idx < 0) {
-                idx = 0;
-            }
-            if (idx >= variants.size()) {
-                idx = variants.size() - 1;
-            }
+            idx = (idx + 1) % variants.size();
         }
         setActiveVariant(difficulty, variants.get(idx));
     }
