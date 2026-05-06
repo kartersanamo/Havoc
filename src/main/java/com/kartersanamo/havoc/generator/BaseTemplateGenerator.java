@@ -94,6 +94,10 @@ public final class BaseTemplateGenerator {
                     if (x >= ix0 && x <= ix1 && z >= iz0 && z <= iz1) {
                         continue;
                     }
+                    BaseBlock existing = clip.getBlock(new Vector(x, 1, z));
+                    if (existing == null || !existing.isAir()) {
+                        continue;
+                    }
                     clip.setBlock(new Vector(x, 1, z), new BaseBlock(BlockID.STEP, STONE_SLAB_BOTTOM));
                 }
             }
