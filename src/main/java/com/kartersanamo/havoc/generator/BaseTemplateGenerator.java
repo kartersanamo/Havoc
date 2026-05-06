@@ -10,7 +10,7 @@ import java.util.Arrays;
 /**
  * Builds a {@link CuboidClipboard} from a {@link BaseTemplateDefinition}.
  * <p>
- * Layout: Y=0 stone floor full footprint; inner {@code sizeChunks * 16} region is hollow air from Y=1 up,
+ * Layout: Y=0 is left untouched by generated solids; inner {@code sizeChunks * 16} region is hollow air from Y=1 up,
  * plus a roof at the top only over the inner main box.
  * Walls expand outward in Chebyshev (square) rings.
  * Flat walls alternate obsidian/water with outermost water.
@@ -20,7 +20,6 @@ import java.util.Arrays;
  */
 public final class BaseTemplateGenerator {
 
-    private static final int STONE = BlockID.STONE;
     private static final int AIR = BlockID.AIR;
     private static final int STATIONARY_WATER = BlockID.STATIONARY_WATER;
     private static final int STATIONARY_LAVA = BlockID.STATIONARY_LAVA;
@@ -50,13 +49,6 @@ public final class BaseTemplateGenerator {
         int iz0 = margin;
         int ix1 = margin + innerBlocks - 1;
         int iz1 = margin + innerBlocks - 1;
-
-        // Floor
-        for (int x = 0; x < w; x++) {
-            for (int z = 0; z < l; z++) {
-                clip.setBlock(new Vector(x, 0, z), new BaseBlock(STONE));
-            }
-        }
 
         // Hollow interior (loot room), leave roof layer for explicit cap.
         for (int x = ix0; x <= ix1; x++) {
