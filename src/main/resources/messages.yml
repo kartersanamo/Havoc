@@ -3,8 +3,11 @@ command:
     player:
       - "&e/havoc shop &7- open the Salvage shop"
       - "&e/havoc salvage &7- check your Salvage balance"
+      - "&e/havoc stats &7- view your Havoc profile stats"
+      - "&e/havoc leaderboards &7- open all Havoc leaderboards"
     admin:
       - "&e/havoc admin list &7- list active Havoc bases"
+      - "&e/havoc stats <player> &7- view a player's Havoc stats"
       - "&e/havoc admin spawn <EASY|MEDIUM|HARD> &7- force-spawn one base"
       - "&e/havoc admin logs [page] &7- view audit logs"
       - "&e/havoc admin logs [user <u>] [base <b>] [type <t>] [date ...] [page] &7- filter audit logs"

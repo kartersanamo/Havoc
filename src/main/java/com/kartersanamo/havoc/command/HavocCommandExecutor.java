@@ -3,8 +3,10 @@ package com.kartersanamo.havoc.command;
 import com.kartersanamo.havoc.Havoc;
 import com.kartersanamo.havoc.command.subcommands.AdminSubcommandRouter;
 import com.kartersanamo.havoc.command.subcommands.HavocSubcommand;
+import com.kartersanamo.havoc.command.subcommands.LeaderboardsSubcommand;
 import com.kartersanamo.havoc.command.subcommands.SalvageBalanceSubcommand;
 import com.kartersanamo.havoc.command.subcommands.ShopSubcommand;
+import com.kartersanamo.havoc.command.subcommands.StatsSubcommand;
 import com.kartersanamo.havoc.permission.PermissionNodes;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -28,6 +30,8 @@ public final class HavocCommandExecutor implements CommandExecutor, TabCompleter
         this.plugin = plugin;
         register(new ShopSubcommand(plugin));
         register(new SalvageBalanceSubcommand(plugin));
+        register(new StatsSubcommand(plugin));
+        register(new LeaderboardsSubcommand(plugin));
         register(new AdminSubcommandRouter(plugin));
     }
 
@@ -67,6 +71,12 @@ public final class HavocCommandExecutor implements CommandExecutor, TabCompleter
             }
             if (sender.hasPermission(PermissionNodes.SALVAGE_BALANCE)) {
                 opts.add("salvage");
+            }
+            if (sender.hasPermission(PermissionNodes.STATS_VIEW)) {
+                opts.add("stats");
+            }
+            if (sender.hasPermission(PermissionNodes.LEADERBOARDS_VIEW)) {
+                opts.add("leaderboards");
             }
             if (sender.hasPermission(PermissionNodes.ADMIN)) {
                 opts.add("admin");

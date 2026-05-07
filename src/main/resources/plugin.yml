@@ -7,7 +7,7 @@ softdepend: [WorldEdit]
 commands:
   havoc:
     description: Havoc salvage shop and admin tools
-    usage: /<command> [shop|salvage|admin list|reload|spawn|salvage|logs ...]
+    usage: /<command> [shop|salvage|stats|leaderboards|admin ...]
 
 permissions:
   havoc.use:
@@ -21,6 +21,12 @@ permissions:
     default: true
   havoc.salvage.balance:
     description: Check own salvage balance.
+    default: true
+  havoc.stats.view:
+    description: View own Havoc stats.
+    default: true
+  havoc.leaderboards.view:
+    description: Open Havoc leaderboards GUI.
     default: true
   havoc.admin:
     description: Access Havoc admin command space.
@@ -40,6 +46,7 @@ permissions:
       havoc.admin.logs: true
       havoc.admin.logs.export: true
       havoc.admin.perf: true
+      havoc.admin.stats.view: true
   havoc.admin.list:
     description: Use /havoc admin list.
     default: op
@@ -81,4 +88,7 @@ permissions:
     default: op
   havoc.admin.perf:
     description: View Havoc performance readout.
+    default: op
+  havoc.admin.stats.view:
+    description: View other players' Havoc stats.
     default: op

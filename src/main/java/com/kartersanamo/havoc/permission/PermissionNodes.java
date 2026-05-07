@@ -5,6 +5,9 @@ public final class PermissionNodes {
     public static final String SHOP_OPEN = "havoc.shop.open";
     public static final String SHOP_PURCHASE = "havoc.shop.purchase";
     public static final String SALVAGE_BALANCE = "havoc.salvage.balance";
+    public static final String STATS_VIEW = "havoc.stats.view";
+    public static final String ADMIN_STATS_VIEW = "havoc.admin.stats.view";
+    public static final String LEADERBOARDS_VIEW = "havoc.leaderboards.view";
 
     public static final String ADMIN = "havoc.admin";
     public static final String ADMIN_LIST = "havoc.admin.list";

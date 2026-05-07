@@ -68,6 +68,34 @@ public final class DatabaseSupport {
                     "z INT NOT NULL," +
                     "message TEXT NOT NULL" +
                     ")");
+            s.execute("CREATE TABLE IF NOT EXISTS havoc_player_stats (" +
+                    "player_uuid VARCHAR(36) PRIMARY KEY," +
+                    "breaches_participated INT NOT NULL," +
+                    "breaches_triggered INT NOT NULL," +
+                    "salvage_earned INT NOT NULL," +
+                    "salvage_spent INT NOT NULL," +
+                    "shop_purchases INT NOT NULL" +
+                    ")");
+            s.execute("CREATE TABLE IF NOT EXISTS havoc_player_stats_weekly (" +
+                    "player_uuid VARCHAR(36) PRIMARY KEY," +
+                    "breaches_participated INT NOT NULL," +
+                    "breaches_triggered INT NOT NULL," +
+                    "salvage_earned INT NOT NULL," +
+                    "salvage_spent INT NOT NULL," +
+                    "shop_purchases INT NOT NULL" +
+                    ")");
+            s.execute("CREATE TABLE IF NOT EXISTS havoc_player_stats_monthly (" +
+                    "player_uuid VARCHAR(36) PRIMARY KEY," +
+                    "breaches_participated INT NOT NULL," +
+                    "breaches_triggered INT NOT NULL," +
+                    "salvage_earned INT NOT NULL," +
+                    "salvage_spent INT NOT NULL," +
+                    "shop_purchases INT NOT NULL" +
+                    ")");
+            s.execute("CREATE TABLE IF NOT EXISTS havoc_stats_meta (" +
+                    "meta_key VARCHAR(64) PRIMARY KEY," +
+                    "meta_value VARCHAR(255) NOT NULL" +
+                    ")");
             return true;
         } catch (SQLException e) {
             plugin.getLogger().severe("Could not initialize database schema: " + e.getMessage());

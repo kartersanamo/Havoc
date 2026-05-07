@@ -9,6 +9,7 @@ import com.kartersanamo.havoc.config.HavocConfig;
 import com.kartersanamo.havoc.debug.HavocDebug;
 import com.kartersanamo.havoc.faction.FactionsBridge;
 import com.kartersanamo.havoc.listener.HavocListener;
+import com.kartersanamo.havoc.leaderboard.LeaderboardGui;
 import com.kartersanamo.havoc.message.MessageService;
 import com.kartersanamo.havoc.event.BaseBreachedEvent;
 import com.kartersanamo.havoc.event.BaseRestoredEvent;
@@ -20,6 +21,7 @@ import com.kartersanamo.havoc.storage.AsyncPersistenceQueue;
 import com.kartersanamo.havoc.storage.DatabaseSupport;
 import com.kartersanamo.havoc.storage.ProgressionStore;
 import com.kartersanamo.havoc.storage.SalvageStore;
+import com.kartersanamo.havoc.stats.PlayerStatsStore;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.WorldBorder;
@@ -45,6 +47,8 @@ public final class Havoc extends JavaPlugin {
     private SalvageStore salvageStore;
     private ProgressionStore progressionStore;
     private SalvageShop salvageShop;
+    private PlayerStatsStore playerStatsStore;
+    private LeaderboardGui leaderboardGui;
     private int progressionResetTaskId = -1;
 
     public static Havoc getInstance() {
@@ -87,6 +91,9 @@ public final class Havoc extends JavaPlugin {
         progressionStore = new ProgressionStore(this, persistenceQueue);
         progressionStore.setDatabase(databaseSupport);
         progressionStore.load();
+        playerStatsStore = new PlayerStatsStore(this, persistenceQueue);
+        playerStatsStore.setDatabase(databaseSupport);
+        playerStatsStore.load();
 
         factionsBridge = new FactionsBridge(this);
         if (!factionsBridge.init()) {
@@ -101,6 +108,7 @@ public final class Havoc extends JavaPlugin {
         
         baseAdminGui = new BaseAdminGui(this);
         salvageShop = new SalvageShop(this);
+        leaderboardGui = new LeaderboardGui(this);
 
         Bukkit.getPluginManager().registerEvents(new HavocListener(this), this);
         if (getCommand("havoc") != null) {
@@ -135,6 +143,9 @@ public final class Havoc extends JavaPlugin {
         }
         if (progressionStore != null) {
             progressionStore.save();
+        }
+        if (playerStatsStore != null) {
+            playerStatsStore.save();
         }
         if (logService != null) {
             logService.shutdown();
@@ -199,6 +210,8 @@ public final class Havoc extends JavaPlugin {
         salvageStore.load();
         progressionStore.setDatabase(databaseSupport);
         progressionStore.load();
+        playerStatsStore.setDatabase(databaseSupport);
+        playerStatsStore.load();
         applyWorldBorder();
     }
 
@@ -236,6 +249,14 @@ public final class Havoc extends JavaPlugin {
 
     public SalvageShop getSalvageShop() {
         return salvageShop;
+    }
+
+    public PlayerStatsStore getPlayerStatsStore() {
+        return playerStatsStore;
+    }
+
+    public LeaderboardGui getLeaderboardGui() {
+        return leaderboardGui;
     }
 
     public MessageService getMessages() {

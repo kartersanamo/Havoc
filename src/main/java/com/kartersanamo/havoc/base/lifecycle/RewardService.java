@@ -47,11 +47,13 @@ public final class RewardService {
 
         BaseDifficulty nextTier = base.difficulty;
         if (progressionCredit != null) {
+            plugin.getPlayerStatsStore().addBreachTrigger(progressionCredit.getUniqueId());
             nextTier = prog.nextHintDifficulty(progressionCredit.getUniqueId(), base.difficulty);
         }
         final ActiveHavocBase target = picker.pick(nextTier, base.id);
         for (Player p : rewarded) {
             salvage.add(p.getUniqueId(), salvageAmt);
+            plugin.getPlayerStatsStore().addBreachParticipation(p.getUniqueId(), salvageAmt);
             java.util.Map<String, String> rewardVars = new java.util.HashMap<String, String>();
             rewardVars.put("amount", String.valueOf(salvageAmt));
             rewardVars.put("balance", String.valueOf(salvage.get(p.getUniqueId())));
@@ -72,5 +74,6 @@ public final class RewardService {
         }
         salvage.saveAsync();
         prog.saveAsync();
+        plugin.getPlayerStatsStore().saveAsync();
     }
 }
