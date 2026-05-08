@@ -158,6 +158,22 @@ public final class PlayerStatsStore {
         return rows;
     }
 
+    public synchronized long millisUntilNextRollover(LeaderboardPeriod period) {
+        ensureRollingWindowsCurrent();
+        if (period == LeaderboardPeriod.LIFETIME) {
+            return -1L;
+        }
+        ZoneId zone = zoneId();
+        ZonedDateTime now = ZonedDateTime.now(zone);
+        if (period == LeaderboardPeriod.WEEKLY) {
+            int day = now.getDayOfWeek().getValue(); // 1=Mon .. 7=Sun
+            ZonedDateTime nextWeekStart = now.toLocalDate().plusDays(8 - day).atStartOfDay(zone);
+            return Math.max(0L, java.time.Duration.between(now, nextWeekStart).toMillis());
+        }
+        ZonedDateTime nextMonthStart = now.toLocalDate().withDayOfMonth(1).plusMonths(1).atStartOfDay(zone);
+        return Math.max(0L, java.time.Duration.between(now, nextMonthStart).toMillis());
+    }
+
     public void saveAsync() {
         synchronized (this) {
             dirty = true;

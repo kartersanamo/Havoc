@@ -62,7 +62,7 @@ public final class LeaderboardGui {
         }
 
         inv.setItem(46, createMetricItem(metric));
-        inv.setItem(48, createSummaryItem(allRows.size(), page + 1, pages));
+        inv.setItem(48, createSummaryItem(period, allRows.size(), page + 1, pages));
         inv.setItem(SLOT_PREV_METRIC, control(Material.HOPPER, ChatColor.GOLD + "Previous Metric",
                 ChatColor.GRAY + metricBefore(metric).label));
         inv.setItem(SLOT_REFRESH, control(Material.COMPASS, ChatColor.AQUA + "Refresh",
@@ -158,19 +158,29 @@ public final class LeaderboardGui {
         return control(Material.NETHER_STAR, ChatColor.GOLD + "Current Metric", ChatColor.AQUA + metric.label);
     }
 
-    private ItemStack createSummaryItem(int totalPlayers, int page, int pages) {
-        return control(Material.BOOK, ChatColor.YELLOW + "Leaderboard Summary",
-                ChatColor.GRAY + "Tracked players: " + ChatColor.WHITE + totalPlayers
-                        + ChatColor.DARK_GRAY + " | "
-                        + ChatColor.GRAY + "Page: " + ChatColor.WHITE + page + "/" + pages);
+    private ItemStack createSummaryItem(PlayerStatsStore.LeaderboardPeriod period, int totalPlayers, int page, int pages) {
+        List<String> lore = new ArrayList<String>();
+        lore.add(ChatColor.GRAY + "Tracked players: " + ChatColor.WHITE + totalPlayers);
+        lore.add(ChatColor.GRAY + "Page: " + ChatColor.WHITE + page + "/" + pages);
+        long ms = plugin.getPlayerStatsStore().millisUntilNextRollover(period);
+        if (ms >= 0L) {
+            lore.add(ChatColor.GRAY + "Resets in: " + ChatColor.LIGHT_PURPLE + formatDuration(ms));
+        } else {
+            lore.add(ChatColor.GRAY + "Resets in: " + ChatColor.WHITE + "Never (lifetime)");
+        }
+        return control(Material.BOOK, ChatColor.YELLOW + "Leaderboard Summary", lore);
     }
 
     private ItemStack control(Material material, String name, String loreLine) {
+        return control(material, name, Collections.singletonList(loreLine));
+    }
+
+    private ItemStack control(Material material, String name, List<String> loreLines) {
         ItemStack item = new ItemStack(material, 1);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(name);
-            meta.setLore(Collections.singletonList(loreLine));
+            meta.setLore(loreLines);
             item.setItemMeta(meta);
         }
         return item;
@@ -227,5 +237,19 @@ public final class LeaderboardGui {
             default:
                 return stats.salvageEarned;
         }
+    }
+
+    private static String formatDuration(long millis) {
+        long totalSeconds = Math.max(0L, millis / 1000L);
+        long days = totalSeconds / 86400L;
+        long hours = (totalSeconds % 86400L) / 3600L;
+        long minutes = (totalSeconds % 3600L) / 60L;
+        if (days > 0L) {
+            return days + "d " + hours + "h " + minutes + "m";
+        }
+        if (hours > 0L) {
+            return hours + "h " + minutes + "m";
+        }
+        return minutes + "m";
     }
 }
