@@ -294,18 +294,17 @@ public final class BaseService {
         return true;
     }
 
-    public void tryBreachFromExplosion(List<Block> blocks, Location epicenter) {
+    public void tryBreachFromExplosion(List<Block> blocks, Location epicenter, Player progressionCredit) {
         World world = epicenter.getWorld();
         if (world == null) {
             return;
         }
-        Player credit = findNearestNonHavoc(world, epicenter, plugin.getHavocConfig().getRewardRadius() * 2.0);
         for (Block b : blocks) {
-            if (tryBreachBlock(b, credit)) {
+            if (tryBreachBlock(b, progressionCredit)) {
                 return;
             }
         }
-        tryBreachExplosionEpicenterInCoreChunk(epicenter, credit);
+        tryBreachExplosionEpicenterInCoreChunk(epicenter, progressionCredit);
     }
 
     /**
@@ -327,30 +326,6 @@ public final class BaseService {
         }
         Location breachLoc = new Location(world, epicenter.getBlockX(), epicenter.getBlockY(), epicenter.getBlockZ());
         breach(base, breachLoc, progressionCredit);
-    }
-
-    private Player findNearestNonHavoc(World world, Location loc, double maxDistance) {
-        if (havocFaction == null) {
-            return null;
-        }
-        double best = maxDistance * maxDistance;
-        Player pick = null;
-        for (Player p : world.getPlayers()) {
-            try {
-                Object pf = plugin.getFactionsBridge().getPlayerFaction(p);
-                if (pf != null && plugin.getFactionsBridge().factionsEqual(pf, havocFaction)) {
-                    continue;
-                }
-            } catch (Exception e) {
-                continue;
-            }
-            double d = p.getLocation().distanceSquared(loc);
-            if (d < best) {
-                best = d;
-                pick = p;
-            }
-        }
-        return pick;
     }
 
     private synchronized void breach(ActiveHavocBase base, Location breachLoc, Player progressionCredit) {

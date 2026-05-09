@@ -30,19 +30,23 @@ public final class RewardService {
         SalvageStore salvage = plugin.getSalvageStore();
         ProgressionStore prog = plugin.getProgressionStore();
         List<Player> rewarded = new ArrayList<Player>();
-        double rsq = (double) plugin.getHavocConfig().getRewardRadius() * plugin.getHavocConfig().getRewardRadius();
-        for (Player p : world.getPlayers()) {
-            if (p.getLocation().distanceSquared(breachLoc) > rsq) {
-                continue;
-            }
-            try {
-                Object pf = plugin.getFactionsBridge().getPlayerFaction(p);
-                if (pf != null && plugin.getFactionsBridge().factionsEqual(pf, havocFaction)) {
+        if (progressionCredit != null) {
+            rewarded.add(progressionCredit);
+        } else {
+            double rsq = (double) plugin.getHavocConfig().getRewardRadius() * plugin.getHavocConfig().getRewardRadius();
+            for (Player p : world.getPlayers()) {
+                if (p.getLocation().distanceSquared(breachLoc) > rsq) {
                     continue;
                 }
-            } catch (Exception ignored) {
+                try {
+                    Object pf = plugin.getFactionsBridge().getPlayerFaction(p);
+                    if (pf != null && plugin.getFactionsBridge().factionsEqual(pf, havocFaction)) {
+                        continue;
+                    }
+                } catch (Exception ignored) {
+                }
+                rewarded.add(p);
             }
-            rewarded.add(p);
         }
 
         BaseDifficulty nextTier = base.difficulty;
