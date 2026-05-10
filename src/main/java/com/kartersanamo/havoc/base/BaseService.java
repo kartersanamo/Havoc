@@ -49,6 +49,7 @@ public final class BaseService {
         }
     };
 
+
     private final Havoc plugin;
     private final Random random = new Random();
     private final Map<ChunkKey, UUID> chunkOwners = new ConcurrentHashMap<ChunkKey, UUID>();
