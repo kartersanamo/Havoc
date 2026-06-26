@@ -77,12 +77,12 @@ public final class BaseService {
             return;
         }
         try {
-            havocFaction = fb.getHavocFaction(cfg.getHavocFactionTag());
+            havocFaction = fb.ensureHavocFaction(cfg.getHavocFactionTag());
             if (havocFaction == null || fb.isWilderness(havocFaction)) {
-                plugin.getLogger().severe("No Havoc faction with tag \"" + cfg.getHavocFactionTag() + "\". Create it in SaberFactions first.");
+                plugin.getLogger().severe("Could not resolve or create Havoc faction with tag \"" + cfg.getHavocFactionTag() + "\".");
                 HavocDebug.announce(plugin, "Havoc faction missing or wilderness — bases will not spawn.");
             } else {
-                HavocDebug.announce(plugin, "Hooked Havoc faction tag \"" + cfg.getHavocFactionTag() + "\".");
+                HavocDebug.announce(plugin, "Using Havoc faction tag \"" + cfg.getHavocFactionTag() + "\".");
             }
         } catch (Exception e) {
             plugin.getLogger().severe("Could not resolve Havoc faction: " + e.getMessage());

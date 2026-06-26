@@ -1,7 +1,7 @@
 # World where bases spawn, world border is applied, and schematic pastes run (must match a multiverse world name)
 world-name: Havoc
 
-# SaberFactions tag (usually 4 letters; set to match your server "Havoc" system faction)
+# SaberFactions tag for Havoc base claims (created automatically as a permanent faction if missing)
 havoc-faction-tag: Havoc
 
 # World border is centered at 0,0 with total edge length = 2 * border-half-size (default 5000 => +/- 2500)

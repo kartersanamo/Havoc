@@ -23,8 +23,14 @@ public final class FactionsBridge {
     private Object factionsInstance;
     private Method factionsGetByTag;
     private Method factionsGetWilderness;
+    private Method factionsIsTagTaken;
+    private Method factionsCreateFaction;
+    private Method factionsForceSave;
     private Method factionIsWilderness;
     private Method factionGetId;
+    private Method factionSetTag;
+    private Method factionSetPermanent;
+    private Method factionSetOpen;
     private Object fPlayersInstance;
     private Method fPlayersGetByPlayer;
     private Method fPlayerGetFaction;
@@ -50,11 +56,25 @@ public final class FactionsBridge {
             factionsInstance = factionsClass.getMethod("getInstance").invoke(null);
             factionsGetByTag = factionsClass.getMethod("getByTag", String.class);
             factionsGetWilderness = factionsClass.getMethod("getWilderness");
+            factionsIsTagTaken = factionsClass.getMethod("isTagTaken", String.class);
+            factionsCreateFaction = factionsClass.getMethod("createFaction");
+            try {
+                factionsForceSave = factionsClass.getMethod("forceSave");
+            } catch (NoSuchMethodException ignored) {
+                factionsForceSave = null;
+            }
 
             Class<?> factionClass = Class.forName("com.massivecraft.factions.Faction");
             factionIsWilderness = factionClass.getMethod("isWilderness");
             // Do not reflect Object.equals — Faction is often an interface; use stable string ids instead.
             factionGetId = factionClass.getMethod("getId");
+            factionSetTag = factionClass.getMethod("setTag", String.class);
+            factionSetPermanent = factionClass.getMethod("setPermanent", boolean.class);
+            try {
+                factionSetOpen = factionClass.getMethod("setOpen", boolean.class);
+            } catch (NoSuchMethodException ignored) {
+                factionSetOpen = null;
+            }
 
             Class<?> fPlayersClass = Class.forName("com.massivecraft.factions.FPlayers");
             fPlayersInstance = fPlayersClass.getMethod("getInstance").invoke(null);
@@ -88,6 +108,39 @@ public final class FactionsBridge {
 
     public Object getHavocFaction(String tag) throws Exception {
         return factionsGetByTag.invoke(factionsInstance, tag);
+    }
+
+    /**
+     * Returns the Havoc faction for {@code tag}, creating a permanent closed faction when missing.
+     */
+    public Object ensureHavocFaction(String tag) throws Exception {
+        Object faction = factionsGetByTag.invoke(factionsInstance, tag);
+        if (faction != null && !isWilderness(faction)) {
+            return faction;
+        }
+        if ((Boolean) factionsIsTagTaken.invoke(factionsInstance, tag)) {
+            faction = factionsGetByTag.invoke(factionsInstance, tag);
+            if (faction != null && !isWilderness(faction)) {
+                return faction;
+            }
+            plugin.getLogger().severe("Faction tag \"" + tag + "\" is taken but could not be resolved.");
+            return null;
+        }
+        faction = factionsCreateFaction.invoke(factionsInstance);
+        if (faction == null) {
+            plugin.getLogger().severe("Factions.createFaction() returned null for tag \"" + tag + "\".");
+            return null;
+        }
+        factionSetTag.invoke(faction, tag);
+        factionSetPermanent.invoke(faction, true);
+        if (factionSetOpen != null) {
+            factionSetOpen.invoke(faction, false);
+        }
+        if (factionsForceSave != null) {
+            factionsForceSave.invoke(factionsInstance);
+        }
+        plugin.getLogger().info("Created permanent Havoc faction with tag \"" + tag + "\".");
+        return faction;
     }
 
     public Object getWilderness() throws Exception {
