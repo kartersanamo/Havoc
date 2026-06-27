@@ -85,7 +85,7 @@ public final class BaseAdminGui {
             return;
         }
         player.closeInventory();
-        player.teleport(new Location(w, b.obsidianCenterX + 0.5, b.obsidianCenterY + 2.0, b.obsidianCenterZ + 0.5));
+        player.teleport(new Location(w, b.obsidianCenterX + 0.5, 256.0, b.obsidianCenterZ + 0.5));
         plugin.getMessages().send(player, "admin.list.teleport-success",
                 MessageVars.one(MessageKeys.ID, shortId(b.id)));
         plugin.getLogService().log("ADMIN_BASE_TELEPORT", player.getName(), shortId(b.id),
