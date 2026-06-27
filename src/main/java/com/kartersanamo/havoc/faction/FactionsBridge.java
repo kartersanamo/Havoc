@@ -5,6 +5,7 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 
 /**
@@ -20,6 +21,8 @@ public final class FactionsBridge {
     private Method boardSetFactionAt;
     private Method boardRemoveAt;
     private Method fLocationWrapChunk;
+    private Constructor<?> fLocationFromChunkConstructor;
+    private Constructor<?> fLocationFromCoordsConstructor;
     private Object factionsInstance;
     private Method factionsGetByTag;
     private Method factionsGetWilderness;
@@ -50,7 +53,18 @@ public final class FactionsBridge {
             boardRemoveAt = boardClass.getMethod("removeAt", Class.forName("com.massivecraft.factions.FLocation"));
 
             Class<?> fLocationClass = Class.forName("com.massivecraft.factions.FLocation");
-            fLocationWrapChunk = fLocationClass.getMethod("wrap", Chunk.class);
+            try {
+                fLocationWrapChunk = fLocationClass.getMethod("wrap", Chunk.class);
+            } catch (NoSuchMethodException ignored) {
+                try {
+                    fLocationFromChunkConstructor = fLocationClass.getConstructor(Chunk.class);
+                } catch (NoSuchMethodException ignored2) {
+                    fLocationFromCoordsConstructor = fLocationClass.getConstructor(String.class, int.class, int.class);
+                }
+            }
+            if (fLocationWrapChunk == null && fLocationFromChunkConstructor == null && fLocationFromCoordsConstructor == null) {
+                throw new NoSuchMethodException("FLocation has no wrap(Chunk), FLocation(Chunk), or FLocation(String,int,int)");
+            }
 
             Class<?> factionsClass = Class.forName("com.massivecraft.factions.Factions");
             factionsInstance = factionsClass.getMethod("getInstance").invoke(null);
@@ -94,9 +108,18 @@ public final class FactionsBridge {
         return ok;
     }
 
+    private Object toFLocation(Chunk chunk) throws Exception {
+        if (fLocationWrapChunk != null) {
+            return fLocationWrapChunk.invoke(null, chunk);
+        }
+        if (fLocationFromChunkConstructor != null) {
+            return fLocationFromChunkConstructor.newInstance(chunk);
+        }
+        return fLocationFromCoordsConstructor.newInstance(chunk.getWorld().getName(), chunk.getX(), chunk.getZ());
+    }
+
     public Object getFactionAtChunk(Chunk chunk) throws Exception {
-        Object floc = fLocationWrapChunk.invoke(null, chunk);
-        return boardGetFactionAt.invoke(boardInstance, floc);
+        return boardGetFactionAt.invoke(boardInstance, toFLocation(chunk));
     }
 
     public Object getFactionAtLocation(Location loc) throws Exception {
@@ -148,13 +171,11 @@ public final class FactionsBridge {
     }
 
     public void claimChunkForFaction(Chunk chunk, Object faction) throws Exception {
-        Object floc = fLocationWrapChunk.invoke(null, chunk);
-        boardSetFactionAt.invoke(boardInstance, faction, floc);
+        boardSetFactionAt.invoke(boardInstance, faction, toFLocation(chunk));
     }
 
     public void unclaimChunk(Chunk chunk) throws Exception {
-        Object floc = fLocationWrapChunk.invoke(null, chunk);
-        boardRemoveAt.invoke(boardInstance, floc);
+        boardRemoveAt.invoke(boardInstance, toFLocation(chunk));
     }
 
     public boolean isWilderness(Object faction) throws Exception {
