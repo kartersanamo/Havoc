@@ -11,6 +11,7 @@ import com.kartersanamo.havoc.permission.PermissionNodes;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.bukkit.command.TabCompleter;
 
 import java.util.ArrayList;
@@ -42,6 +43,10 @@ public final class HavocCommandExecutor implements CommandExecutor, TabCompleter
             return true;
         }
         if (args.length == 0) {
+            if (sender instanceof Player) {
+                plugin.getHavocMenuGui().open((Player) sender);
+                return true;
+            }
             if (sender.hasPermission(PermissionNodes.SHOP_OPEN) || sender.hasPermission(PermissionNodes.SALVAGE_BALANCE)) {
                 plugin.getMessages().sendList(sender, "command.help.player", null);
             }

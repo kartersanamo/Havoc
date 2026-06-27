@@ -19,6 +19,13 @@ public final class InventoryClickRouterListener implements Listener {
         if (!(event.getWhoClicked() instanceof org.bukkit.entity.Player)) {
             return;
         }
+        if (event.getView().getTopInventory() != null && plugin.getHavocMenuGui().isMenuInventory(event.getView().getTopInventory())) {
+            event.setCancelled(true);
+            if (event.getClickedInventory() != null && event.getClickedInventory().equals(event.getView().getTopInventory())) {
+                plugin.getHavocMenuGui().handleClick((org.bukkit.entity.Player) event.getWhoClicked(), event.getRawSlot());
+            }
+            return;
+        }
         if (event.getView().getTopInventory() != null && plugin.getBaseAdminGui().isAdminInventory(event.getView().getTopInventory())) {
             event.setCancelled(true);
             if (event.getClickedInventory() != null && event.getClickedInventory().equals(event.getView().getTopInventory())) {

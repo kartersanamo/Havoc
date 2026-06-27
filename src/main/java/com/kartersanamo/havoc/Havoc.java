@@ -19,6 +19,7 @@ import com.kartersanamo.havoc.listener.TntAttributionTracker;
 import com.kartersanamo.havoc.listener.TntDispenseListener;
 import com.kartersanamo.havoc.listener.TntSpawnListener;
 import com.kartersanamo.havoc.leaderboard.LeaderboardGui;
+import com.kartersanamo.havoc.menu.HavocMenuGui;
 import com.kartersanamo.havoc.message.MessageService;
 import com.kartersanamo.havoc.event.BaseBreachedEvent;
 import com.kartersanamo.havoc.event.BaseRestoredEvent;
@@ -58,6 +59,7 @@ public final class Havoc extends JavaPlugin {
     private SalvageShop salvageShop;
     private PlayerStatsStore playerStatsStore;
     private LeaderboardGui leaderboardGui;
+    private HavocMenuGui havocMenuGui;
     private int progressionResetTaskId = -1;
 
     public static Havoc getInstance() {
@@ -118,6 +120,7 @@ public final class Havoc extends JavaPlugin {
         baseAdminGui = new BaseAdminGui(this);
         salvageShop = new SalvageShop(this);
         leaderboardGui = new LeaderboardGui(this);
+        havocMenuGui = new HavocMenuGui(this);
 
         RaidLockNotifier raidLockNotifier = new RaidLockNotifier(this);
         TntAttributionTracker tntAttributionTracker = new TntAttributionTracker(this);
@@ -275,6 +278,10 @@ public final class Havoc extends JavaPlugin {
 
     public LeaderboardGui getLeaderboardGui() {
         return leaderboardGui;
+    }
+
+    public HavocMenuGui getHavocMenuGui() {
+        return havocMenuGui;
     }
 
     public MessageService getMessages() {

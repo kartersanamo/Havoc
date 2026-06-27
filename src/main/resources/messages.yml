@@ -3,6 +3,7 @@ prefix: "&4&lHavoc &8&l»&f "
 command:
   help:
     player:
+      - "&e/havoc &7- open the Havoc warp menu"
       - "&e/havoc shop &7- open the Salvage shop"
       - "&e/havoc salvage &7- check your Salvage balance"
       - "&e/havoc stats &7- view your profile stats"
@@ -20,6 +21,10 @@ command:
   salvage-balance: "&6Salvage: &e{balance}"
   admin-usage: "&7Try: /havoc admin list | /havoc admin reload | /havoc admin spawn <tier>"
   unknown-subcommand: "&cUnknown subcommand."
+
+menu:
+  warp-success: "&aWarped to Havoc spawn."
+  warp-failed: "&cHavoc spawn world is not loaded."
 
 stats:
   unknown-player: "&cUnknown player: &f{player}"

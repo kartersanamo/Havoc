@@ -123,7 +123,7 @@ salvage-reward:
 # Players within this radius (blocks) of the breach block get rewards / progression
 reward-radius: 32
 
-# Where raiders inside the Havoc claim get sent
+# Warp destination when players click TNT in the /havoc menu (also used when raiders are ejected from a base)
 spawn:
   world: Havoc
   x: 0.5
