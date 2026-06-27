@@ -7,6 +7,9 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -14,9 +17,7 @@ import java.util.List;
 public final class ShopConfig {
 
     private final JavaPlugin plugin;
-    private String title = ChatColor.DARK_RED + "" + ChatColor.BOLD + "Havoc "
-            + ChatColor.DARK_GRAY + "" + ChatColor.BOLD + "» "
-            + ChatColor.GRAY + "Shop";
+    private String title = "Havoc Shop";
     private int rows = 3;
     private boolean fillEmptySlots = true;
     private boolean closeOnPurchase = false;
@@ -34,10 +35,9 @@ public final class ShopConfig {
     }
 
     public void reload() {
-        File f = new File(plugin.getDataFolder(), "shop.yml");
-        YamlConfiguration y = YamlConfiguration.loadConfiguration(f);
+        YamlConfiguration y = loadShopConfiguration();
 
-        title = color(y.getString("title", "&4&lHavoc &8&l»&7 Shop"));
+        title = y.getString("title", "Havoc Shop");
         rows = clampRows(y.getInt("rows", 3));
         fillEmptySlots = y.getBoolean("fill-empty-slots", true);
         closeOnPurchase = y.getBoolean("close-on-purchase", false);
@@ -76,6 +76,36 @@ public final class ShopConfig {
                 items.add(new ShopItem(slot, mat, data, amount, price, name, lore, commands, giveItem));
             }
         }
+        if (items.isEmpty()) {
+            plugin.getLogger().warning("No shop items loaded from shop.yml.");
+        }
+    }
+
+    private YamlConfiguration loadShopConfiguration() {
+        File file = new File(plugin.getDataFolder(), "shop.yml");
+        YamlConfiguration loaded = YamlConfiguration.loadConfiguration(file);
+        if (hasShopItems(loaded)) {
+            return loaded;
+        }
+        YamlConfiguration defaults = loadDefaultShopConfiguration();
+        if (defaults != null && hasShopItems(defaults)) {
+            plugin.getLogger().warning("shop.yml has no usable items; using defaults from plugin jar.");
+            return defaults;
+        }
+        return loaded;
+    }
+
+    private YamlConfiguration loadDefaultShopConfiguration() {
+        InputStream in = plugin.getResource("shop.yml");
+        if (in == null) {
+            return null;
+        }
+        return YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8));
+    }
+
+    private static boolean hasShopItems(YamlConfiguration config) {
+        ConfigurationSection itemsSection = config.getConfigurationSection("items");
+        return itemsSection != null && !itemsSection.getKeys(false).isEmpty();
     }
 
     public String getTitle() {

@@ -1,6 +1,7 @@
 package com.kartersanamo.havoc.base;
 
 import com.kartersanamo.havoc.world.ColumnBoxSnapshot;
+import com.kartersanamo.havoc.world.InnerBreachRegion;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +27,9 @@ public final class ActiveHavocBase {
     public int obsidianCenterX;
     public int obsidianCenterY;
     public int obsidianCenterZ;
+
+    /** Inner obsidian shell positions (relative to paste origin) that can trigger a breach. */
+    public InnerBreachRegion innerBreachRegion = InnerBreachRegion.empty();
 
     public final List<ChunkKey> claimedChunks = new ArrayList<ChunkKey>();
 

@@ -11,6 +11,7 @@ import com.kartersanamo.havoc.event.BaseSpawnedEvent;
 import com.kartersanamo.havoc.event.InternalEventBus;
 import com.kartersanamo.havoc.faction.FactionsBridge;
 import com.kartersanamo.havoc.world.ColumnBoxSnapshot;
+import com.kartersanamo.havoc.world.InnerBreachRegion;
 import com.kartersanamo.havoc.world.SchematicAnalysis;
 import com.kartersanamo.havoc.world.SchematicBlockPlacer;
 import com.kartersanamo.havoc.world.SchematicPlacement;
@@ -285,14 +286,23 @@ public final class BaseService {
         if (base == null || base.state != BaseState.ACTIVE) {
             return false;
         }
-        if (!base.isCenterChunk(block.getChunk())) {
+        if (!plugin.getHavocConfig().getBreachMaterials().contains(block.getType())) {
             return false;
         }
-        if (!plugin.getHavocConfig().getBreachMaterials().contains(block.getType())) {
+        if (!isInnerBreachBlock(base, block)) {
             return false;
         }
         breach(base, block.getLocation(), progressionCredit);
         return true;
+    }
+
+    private boolean isInnerBreachBlock(ActiveHavocBase base, Block block) {
+        InnerBreachRegion region = base.innerBreachRegion;
+        if (region == null || region.isEmpty()) {
+            return false;
+        }
+        return region.containsWorldBlock(block.getX(), block.getY(), block.getZ(),
+                base.pasteOriginX, base.pasteOriginY, base.pasteOriginZ);
     }
 
     public void tryBreachFromExplosion(List<Block> blocks, Player progressionCredit) {
@@ -595,6 +605,8 @@ public final class BaseService {
         base.obsidianCenterZ = oz + schematicCenterFromMin[2];
         base.centerChunkX = Math.floorDiv(base.obsidianCenterX, 16);
         base.centerChunkZ = Math.floorDiv(base.obsidianCenterZ, 16);
+        base.innerBreachRegion = InnerBreachRegion.fromSchematic(clip);
+        logInnerBreachRegion(d, base);
 
         int minCx = Math.floorDiv(ox, 16);
         int maxCx = Math.floorDiv(ox + w - 1, 16);
@@ -663,6 +675,15 @@ public final class BaseService {
         eventBus.publish(new BaseSpawnedEvent(base,
                 new Location(world, base.obsidianCenterX, base.obsidianCenterY, base.obsidianCenterZ)));
         return true;
+    }
+
+    private void logInnerBreachRegion(BaseDifficulty d, ActiveHavocBase base) {
+        if (base.innerBreachRegion == null || base.innerBreachRegion.isEmpty()) {
+            plugin.getLogger().warning("No inner obsidian breach shell mapped for " + d + " base ~" + shortId(base.id));
+            return;
+        }
+        HavocDebug.announce(plugin, "Inner breach shell mapped for ~" + shortId(base.id)
+                + " (" + base.innerBreachRegion.size() + " obsidian positions).");
     }
 
 }

@@ -47,10 +47,9 @@ items:
     amount: 3
     price: 300
     display-name: "&eSilverfish &fSpawner"
-    lore:
-    # give-item: false
+    lore: []
     commands:
-       - "silkspawners give {player} silverfish 3"
+      - "silkspawners give {player} silverfish 3"
 
   lucky_creeper:
     slot: 12
@@ -78,7 +77,7 @@ items:
     display-name: "&e&lCollection &2&lCreeper Egg"
     lore:
       - "&7"
-      - "&7This creeper will make nearby
+      - "&7This creeper will make nearby"
       - "&7collection chests accesible"
       - "&7to everyone for a limited time."
       - "&7"
@@ -96,7 +95,7 @@ items:
     display-name: "&b&lColossal &2&lCreeper Egg"
     lore:
       - "&7"
-      - "&7This creeper has a large
+      - "&7This creeper has a large"
       - "&7explosion radius causing"
       - "&7mass amounts of damage."
       - "&7"
@@ -112,7 +111,6 @@ items:
     amount: 16
     price: 200
     display-name: "&eCreeper &fSpawner"
-    lore:
-    # give-item: false
+    lore: []
     commands:
-       - "silkspawners give {player} creeper 16"
+      - "silkspawners give {player} creeper 16"

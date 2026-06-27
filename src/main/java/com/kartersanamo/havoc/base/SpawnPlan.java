@@ -8,6 +8,7 @@ import com.kartersanamo.havoc.debug.HavocDebug;
 import com.kartersanamo.havoc.event.BaseSpawnedEvent;
 import com.kartersanamo.havoc.event.InternalEventBus;
 import com.kartersanamo.havoc.world.ColumnBoxSnapshot;
+import com.kartersanamo.havoc.world.InnerBreachRegion;
 import com.kartersanamo.havoc.world.SchematicAnalysis;
 import com.kartersanamo.havoc.world.SchematicBlockPlacer;
 import com.kartersanamo.havoc.world.SchematicPlacement;
@@ -280,6 +281,7 @@ final class SpawnPlan implements SpawnPlanner.SpawnTask {
         base.obsidianCenterZ = oz + off[2];
         base.centerChunkX = Math.floorDiv(base.obsidianCenterX, 16);
         base.centerChunkZ = Math.floorDiv(base.obsidianCenterZ, 16);
+        base.innerBreachRegion = InnerBreachRegion.fromSchematic(clip);
 
         sortedClaims = new ArrayList<ChunkKey>(claimSet);
         Collections.sort(sortedClaims, CHUNK_KEY_ORDER);
@@ -403,7 +405,8 @@ final class SpawnPlan implements SpawnPlanner.SpawnTask {
         int minCz = Math.floorDiv(oz, 16);
         int maxCz = Math.floorDiv(oz + len - 1, 16);
         HavocDebug.announce(plugin, "Spawned " + difficulty + " base ~" + shortId(base.id) + " envelope chunks " + minCx + "," + minCz + " → " + maxCx + "," + maxCz
-                + " (obsidian center chunk " + base.centerChunkX + "," + base.centerChunkZ + ", faction claims=" + base.claimedChunks.size() + ").");
+                + " (obsidian center chunk " + base.centerChunkX + "," + base.centerChunkZ + ", faction claims=" + base.claimedChunks.size()
+                + ", inner breach blocks=" + (base.innerBreachRegion == null ? 0 : base.innerBreachRegion.size()) + ").");
         plugin.getLogger().info("Spawned " + difficulty + " Havoc base ~" + shortId(base.id) + " at chunk " + base.centerChunkX + "," + base.centerChunkZ);
         eventBus.publish(new BaseSpawnedEvent(base,
                 new Location(world, base.obsidianCenterX, base.obsidianCenterY, base.obsidianCenterZ)));

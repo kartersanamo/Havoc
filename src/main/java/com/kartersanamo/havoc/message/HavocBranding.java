@@ -30,11 +30,11 @@ public final class HavocBranding {
         return chatPrefix + text;
     }
 
-    public static String formatGuiTitle(String title) {
-        String t = title == null ? "" : title;
-        return ChatColor.DARK_RED + "" + ChatColor.BOLD + "Havoc "
-                + ChatColor.DARK_GRAY + "" + ChatColor.BOLD + "» "
-                + ChatColor.WHITE + t;
+    public static String formatGuiTitle(String suffix) {
+        if (suffix == null || suffix.trim().isEmpty()) {
+            return "Havoc";
+        }
+        return "Havoc " + suffix.trim();
     }
 
     private static String color(String raw) {

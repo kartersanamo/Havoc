@@ -30,7 +30,8 @@ timers:
 # Chunks around each base (Manhattan radius from each base chunk) snapshotted at breach for later reset
 watch-chunk-radius: 5
 
-# Wall breach: TNT/explosion or break must touch these materials in the CENTER chunk column (middle of 3x3)
+# Breach: breaking or exploding one of the inner obsidian shell blocks mapped from the schematic starts restore.
+# Outer perimeter obsidian does not count; only the inner box detected at spawn time.
 breach-materials:
   - OBSIDIAN
   - STATIONARY_WATER
