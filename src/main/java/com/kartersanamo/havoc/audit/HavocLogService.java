@@ -12,7 +12,6 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -20,7 +19,6 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import java.util.TimeZone;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -119,30 +117,6 @@ public final class HavocLogService {
         return out;
     }
 
-    public synchronized List<HavocLogEntry> queryByUserNewestFirst(String user) {
-        String u = safe(user).toLowerCase(Locale.ROOT);
-        List<HavocLogEntry> out = new ArrayList<HavocLogEntry>();
-        for (HavocLogEntry e : entries) {
-            if (!e.user.isEmpty() && e.user.toLowerCase(Locale.ROOT).contains(u)) {
-                out.add(e);
-            }
-        }
-        sortNewestFirst(out);
-        return out;
-    }
-
-    public synchronized List<HavocLogEntry> queryByBaseNewestFirst(String base) {
-        String b = safe(base).toLowerCase(Locale.ROOT);
-        List<HavocLogEntry> out = new ArrayList<HavocLogEntry>();
-        for (HavocLogEntry e : entries) {
-            if (!e.baseId.isEmpty() && e.baseId.toLowerCase(Locale.ROOT).contains(b)) {
-                out.add(e);
-            }
-        }
-        sortNewestFirst(out);
-        return out;
-    }
-
     public String formatForChat(HavocLogEntry e) {
         String t = dateFmt.format(new Date(e.epochMs));
         String loc = e.world.isEmpty() ? "-" : e.world + "@" + e.x + "," + e.y + "," + e.z;
@@ -151,114 +125,6 @@ public final class HavocLogService {
                 + " §7base=§f" + (e.baseId.isEmpty() ? "-" : e.baseId)
                 + " §7loc=§f" + loc
                 + " §7- " + e.message;
-    }
-
-    public synchronized List<HavocLogEntry> queryByTypeNewestFirst(String type) {
-        String t = safe(type).toLowerCase(Locale.ROOT);
-        List<HavocLogEntry> out = new ArrayList<HavocLogEntry>();
-        for (HavocLogEntry e : entries) {
-            if (!e.type.isEmpty() && e.type.toLowerCase(Locale.ROOT).contains(t)) {
-                out.add(e);
-            }
-        }
-        sortNewestFirst(out);
-        return out;
-    }
-
-    public synchronized List<HavocLogEntry> queryByDateRangeNewestFirst(long fromEpochMsInclusive, long toEpochMsInclusive) {
-        List<HavocLogEntry> out = new ArrayList<HavocLogEntry>();
-        for (HavocLogEntry e : entries) {
-            if (e.epochMs >= fromEpochMsInclusive && e.epochMs <= toEpochMsInclusive) {
-                out.add(e);
-            }
-        }
-        sortNewestFirst(out);
-        return out;
-    }
-
-    public synchronized List<HavocLogEntry> queryFilteredNewestFirst(String user, String base, String type, Long fromEpochMsInclusive, Long toEpochMsInclusive) {
-        String u = safe(user).toLowerCase(Locale.ROOT);
-        String b = safe(base).toLowerCase(Locale.ROOT);
-        String t = safe(type).toLowerCase(Locale.ROOT);
-        List<HavocLogEntry> out = new ArrayList<HavocLogEntry>();
-        for (HavocLogEntry e : entries) {
-            if (!u.isEmpty() && (e.user.isEmpty() || !e.user.toLowerCase(Locale.ROOT).contains(u))) {
-                continue;
-            }
-            if (!b.isEmpty() && (e.baseId.isEmpty() || !e.baseId.toLowerCase(Locale.ROOT).contains(b))) {
-                continue;
-            }
-            if (!t.isEmpty() && (e.type.isEmpty() || !e.type.toLowerCase(Locale.ROOT).contains(t))) {
-                continue;
-            }
-            if (fromEpochMsInclusive != null && e.epochMs < fromEpochMsInclusive.longValue()) {
-                continue;
-            }
-            if (toEpochMsInclusive != null && e.epochMs > toEpochMsInclusive.longValue()) {
-                continue;
-            }
-            out.add(e);
-        }
-        sortNewestFirst(out);
-        return out;
-    }
-
-    public synchronized int exportToFile(File outFile, List<HavocLogEntry> data) {
-        BufferedWriter bw = null;
-        try {
-            bw = new BufferedWriter(new FileWriter(outFile, false));
-            for (HavocLogEntry e : data) {
-                bw.write(serialize(e));
-                bw.newLine();
-            }
-            return data.size();
-        } catch (IOException e) {
-            plugin.getLogger().warning("Could not export havoc logs: " + e.getMessage());
-            return -1;
-        } finally {
-            if (bw != null) {
-                try {
-                    bw.close();
-                } catch (IOException ignored) {
-                }
-            }
-        }
-    }
-
-    public static Long parseDateStartEpochMs(String yyyyMmDd) {
-        return parseDateEpoch(yyyyMmDd, true);
-    }
-
-    public static Long parseDateEndEpochMs(String yyyyMmDd) {
-        return parseDateEpoch(yyyyMmDd, false);
-    }
-
-    /**
-     * Supported: today, yesterday, last7d (server local timezone).
-     */
-    public static long[] parseRelativeRange(String raw) {
-        if (raw == null) {
-            return null;
-        }
-        String k = raw.trim().toLowerCase(Locale.ROOT);
-        long now = System.currentTimeMillis();
-        long day = 24L * 60L * 60L * 1000L;
-        if ("last7d".equals(k)) {
-            return new long[]{now - 7L * day, now};
-        }
-        Long startToday = parseDateStartEpochMs(formatYmd(now));
-        if (startToday == null) {
-            return null;
-        }
-        if ("today".equals(k)) {
-            return new long[]{startToday.longValue(), now};
-        }
-        if ("yesterday".equals(k)) {
-            long from = startToday.longValue() - day;
-            long to = startToday.longValue() - 1L;
-            return new long[]{from, to};
-        }
-        return null;
     }
 
     private void sortNewestFirst(List<HavocLogEntry> out) {
@@ -542,32 +408,5 @@ public final class HavocLogService {
 
     private static String safe(String s) {
         return s == null ? "" : s;
-    }
-
-    private static Long parseDateEpoch(String raw, boolean start) {
-        if (raw == null) {
-            return null;
-        }
-        SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
-        f.setLenient(false);
-        try {
-            Date d = f.parse(raw);
-            if (d == null) {
-                return null;
-            }
-            long base = d.getTime();
-            if (start) {
-                return base;
-            }
-            return base + (24L * 60L * 60L * 1000L) - 1L;
-        } catch (ParseException e) {
-            return null;
-        }
-    }
-
-    private static String formatYmd(long epochMs) {
-        SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
-        f.setTimeZone(TimeZone.getDefault());
-        return f.format(new Date(epochMs));
     }
 }

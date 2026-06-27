@@ -44,7 +44,6 @@ permissions:
       havoc.admin.salvage.set: true
       havoc.admin.salvage.show: true
       havoc.admin.logs: true
-      havoc.admin.logs.export: true
       havoc.admin.perf: true
       havoc.admin.stats.view: true
   havoc.admin.list:
@@ -82,9 +81,6 @@ permissions:
     default: op
   havoc.admin.logs:
     description: View Havoc logs.
-    default: op
-  havoc.admin.logs.export:
-    description: Export Havoc logs.
     default: op
   havoc.admin.perf:
     description: View Havoc performance readout.
