@@ -19,16 +19,6 @@ public final class InventoryClickRouterListener implements Listener {
         if (!(event.getWhoClicked() instanceof org.bukkit.entity.Player)) {
             return;
         }
-        if (event.getView().getTopInventory() != null
-                && (plugin.getBaseTemplateEditorGui().isTemplateDifficultyList(event.getView().getTopInventory())
-                || plugin.getBaseTemplateEditorGui().isTemplateEditor(event.getView().getTopInventory()))) {
-            event.setCancelled(true);
-            if (event.getClickedInventory() != null && event.getClickedInventory().equals(event.getView().getTopInventory())) {
-                plugin.getBaseTemplateEditorGui().handleClick((org.bukkit.entity.Player) event.getWhoClicked(),
-                        event.getView().getTopInventory(), event.getRawSlot(), event.getClick());
-            }
-            return;
-        }
         if (event.getView().getTopInventory() != null && plugin.getBaseAdminGui().isAdminInventory(event.getView().getTopInventory())) {
             event.setCancelled(true);
             if (event.getClickedInventory() != null && event.getClickedInventory().equals(event.getView().getTopInventory())) {
@@ -46,10 +36,6 @@ public final class InventoryClickRouterListener implements Listener {
         }
         if (event.getView().getTopInventory() != null && plugin.getLeaderboardGui().isLeaderboardInventory(event.getView().getTopInventory())) {
             event.setCancelled(true);
-            if (event.getClickedInventory() != null && event.getClickedInventory().equals(event.getView().getTopInventory())) {
-                plugin.getLeaderboardGui().handleClick((org.bukkit.entity.Player) event.getWhoClicked(),
-                        event.getView().getTopInventory(), event.getRawSlot());
-            }
         }
     }
 }

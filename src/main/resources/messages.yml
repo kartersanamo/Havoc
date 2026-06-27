@@ -1,13 +1,15 @@
+prefix: "&4&lHavoc &8&l»&f "
+
 command:
   help:
     player:
       - "&e/havoc shop &7- open the Salvage shop"
       - "&e/havoc salvage &7- check your Salvage balance"
-      - "&e/havoc stats &7- view your Havoc profile stats"
-      - "&e/havoc leaderboards &7- open all Havoc leaderboards"
+      - "&e/havoc stats &7- view your profile stats"
+      - "&e/havoc leaderboards &7- open leaderboards"
     admin:
-      - "&e/havoc admin list &7- list active Havoc bases"
-      - "&e/havoc stats <player> &7- view a player's Havoc stats"
+      - "&e/havoc admin list &7- list active bases"
+      - "&e/havoc stats <player> &7- view a player's stats"
       - "&e/havoc admin spawn <EASY|MEDIUM|HARD> &7- force-spawn one base"
       - "&e/havoc admin logs [page] &7- view audit logs"
       - "&e/havoc admin logs [user <u>] [base <b>] [type <t>] [date ...] [page] &7- filter audit logs"
@@ -15,22 +17,33 @@ command:
       - "&e/havoc admin logs date <today|yesterday|last7d|from to> [page] &7- filter by date range"
       - "&e/havoc admin logs export ... &7- export logs to a file"
       - "&e/havoc admin perf &7- show spawn worker performance"
-      - "&e/havoc admin bases &7- edit generated base wall templates (GUI)"
       - "&e/havoc admin reload &7- reload Havoc, shop, and messages configs"
       - "&e/havoc admin salvage <add|set|show> <player> [amount] &7- manage Salvage"
   players-only: "&cPlayers only."
   no-permission: "&cNo permission."
   salvage-balance: "&6Salvage: &e{balance}"
-  admin-usage: "&7Try: /havoc admin list | /havoc admin bases | /havoc admin reload | /havoc admin spawn <tier>"
+  admin-usage: "&7Try: /havoc admin list | /havoc admin reload | /havoc admin spawn <tier>"
   unknown-subcommand: "&cUnknown subcommand."
+
+stats:
+  unknown-player: "&cUnknown player: &f{player}"
+  header: "&dStats: &f{player}"
+  breaches-participated: "&7Breaches Participated: &b{value}"
+  breaches-triggered: "&7Breaches Triggered: &b{value}"
+  salvage-earned: "&7Salvage Earned: &6{value}"
+  salvage-spent: "&7Salvage Spent: &6{value}"
+  shop-purchases: "&7Shop Purchases: &a{value}"
 
 admin:
   list:
-    empty: "&7No Havoc bases loaded."
-    header: "&6Havoc bases (&e{count}&6):"
+    empty: "&7No bases loaded."
+    header: "&6Bases (&e{count}&6):"
     line: "&f- &b{difficulty} &7({state}) &f{world} &e{x}, {y}, {z} &8[~{id}] &8({claims} chunks)"
+    base-missing: "&cThat base no longer exists."
+    world-not-loaded: "&cBase world is not loaded."
+    teleport-success: "&aTeleported to base &f{id}&a."
   reload:
-    success: "&aHavoc config, shop.yml, and messages.yml reloaded."
+    success: "&aConfig, shop.yml, and messages.yml reloaded."
   spawn:
     usage: "&7Usage: /havoc admin spawn <EASY|MEDIUM|HARD>"
     invalid-tier: "&cInvalid tier."
@@ -48,7 +61,7 @@ admin:
     usage: "&7Usage: /havoc admin logs [page] | /havoc admin logs [user <u>] [base <b>] [type <t>] [date <today|yesterday|last7d|from to>] [page <n>|n]"
     export-usage: "&7Usage: /havoc admin logs export [all|user <name>|base <id>|type <event>]"
     empty: "&7No logs found."
-    header: "&6Havoc Logs &7(scope: &f{scope}&7) &8- &7Page &f{page}&7/&f{pages}&7, total: &f{count}"
+    header: "&6Logs &7(scope: &f{scope}&7) &8- &7Page &f{page}&7/&f{pages}&7, total: &f{count}"
     invalid-date: "&cInvalid date format. Use yyyy-MM-dd."
     export-failed: "&cFailed to export logs."
     export-success: "&aExported &e{count}&a logs for &f{scope}&a to &f{file}&a."
@@ -61,12 +74,8 @@ admin:
     show: "&e{player}&7 has &6{balance}&7 Salvage."
     add-success: "&aAdded &e{amount}&a Salvage to &f{player}&a. New balance: &e{balance}&a."
     set-success: "&aSet &f{player}&a Salvage to &e{balance}&a."
-  bases:
-    max-sections: "&cMaximum wall sections for this editor ({count}). Remove one or raise base-generator.max-editor-sections in config."
-    save-success: "&aExported schematic and activated for spawns: &f{file}"
-    save-failed: "&cTemplate save failed: &f{reason}"
   perf:
-    header: "&6Havoc Perf &7(spawn worker)"
+    header: "&6Perf &7(spawn worker)"
     queue: "&7Queue size: &f{count}"
     active: "&7Active task: &f{difficulty} &8/ &f{phase}"
     spawn-worker: "&7Avg ms/tick: &f{avg_ms} &8(&7samples: &f{samples}&8)"
@@ -78,9 +87,9 @@ shop:
 
 raid:
   locked:
-    block-change: "&cThis area is currently locked while Havoc restores."
-    entry-denied: "&cYou cannot enter this restoring Havoc base yet."
+    block-change: "&cThis area is currently locked while the base restores."
+    entry-denied: "&cYou cannot enter this restoring base yet."
   reward:
     salvage: "&6+{amount} Salvage &7(New balance: &e{balance}&7)"
-    next-lead: "&bNext Havoc lead (&3{difficulty}&b): &f{x}, {y}, {z}"
-    no-next-lead: "&7No active {difficulty} Havoc base to point you to yet."
+    next-lead: "&bNext lead (&3{difficulty}&b): &f{x}, {y}, {z}"
+    no-next-lead: "&7No active {difficulty} base to point you to yet."

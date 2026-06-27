@@ -4,6 +4,7 @@ import com.kartersanamo.havoc.Havoc;
 import com.kartersanamo.havoc.audit.HavocLogEntry;
 import com.kartersanamo.havoc.audit.HavocLogService;
 import com.kartersanamo.havoc.command.subcommands.CommandUtil;
+import com.kartersanamo.havoc.message.HavocBranding;
 import com.kartersanamo.havoc.message.MessageKeys;
 import com.kartersanamo.havoc.message.MessageVars;
 import com.kartersanamo.havoc.permission.PermissionNodes;
@@ -88,7 +89,7 @@ public final class AdminLogsSubcommand implements AdminSubcommand {
                 .build();
         plugin.getMessages().send(sender, "admin.logs.header", hdr);
         for (int i = from; i < to; i++) {
-            sender.sendMessage(plugin.getLogService().formatForChat(logs.get(i)));
+            sender.sendMessage(HavocBranding.formatChat(plugin.getLogService().formatForChat(logs.get(i))));
         }
         return true;
     }

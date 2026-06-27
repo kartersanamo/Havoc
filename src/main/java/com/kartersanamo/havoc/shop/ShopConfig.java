@@ -14,7 +14,9 @@ import java.util.List;
 public final class ShopConfig {
 
     private final JavaPlugin plugin;
-    private String title = ChatColor.DARK_GREEN + "Havoc Salvage Shop";
+    private String title = ChatColor.DARK_RED + "" + ChatColor.BOLD + "Havoc "
+            + ChatColor.DARK_GRAY + "" + ChatColor.BOLD + "» "
+            + ChatColor.WHITE + "Shop";
     private int rows = 3;
     private boolean fillEmptySlots = true;
     private boolean closeOnPurchase = false;
@@ -35,7 +37,7 @@ public final class ShopConfig {
         File f = new File(plugin.getDataFolder(), "shop.yml");
         YamlConfiguration y = YamlConfiguration.loadConfiguration(f);
 
-        title = color(y.getString("title", "&2Havoc Salvage Shop"));
+        title = color(y.getString("title", "&4&lHavoc &8&l»&f Shop"));
         rows = clampRows(y.getInt("rows", 3));
         fillEmptySlots = y.getBoolean("fill-empty-slots", true);
         closeOnPurchase = y.getBoolean("close-on-purchase", false);

@@ -26,6 +26,7 @@ public final class MessageService {
     public void reload() {
         File file = new File(plugin.getDataFolder(), "messages.yml");
         cfg = YamlConfiguration.loadConfiguration(file);
+        HavocBranding.reload(cfg.getString("prefix"));
     }
 
     public void send(CommandSender to, String key) {
@@ -38,7 +39,7 @@ public final class MessageService {
             to.sendMessage(ChatColor.RED + "Missing message key: " + key);
             return;
         }
-        to.sendMessage(apply(raw, placeholders));
+        to.sendMessage(HavocBranding.formatChat(apply(raw, placeholders)));
     }
 
     public void sendList(CommandSender to, String key, Map<String, String> placeholders) {
@@ -46,12 +47,12 @@ public final class MessageService {
         if (lines == null || lines.isEmpty()) {
             String single = cfg.getString(key);
             if (single != null) {
-                to.sendMessage(apply(single, placeholders));
+                to.sendMessage(HavocBranding.formatChat(apply(single, placeholders)));
             }
             return;
         }
         for (String line : lines) {
-            to.sendMessage(apply(line, placeholders));
+            to.sendMessage(HavocBranding.formatChat(apply(line, placeholders)));
         }
     }
 

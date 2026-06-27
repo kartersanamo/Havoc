@@ -1,8 +1,8 @@
 package com.kartersanamo.havoc.debug;
 
 import com.kartersanamo.havoc.Havoc;
+import com.kartersanamo.havoc.message.HavocBranding;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.plugin.java.JavaPlugin;
 
 /**
@@ -22,6 +22,6 @@ public final class HavocDebug {
         if (!h.getHavocConfig().isDebugBroadcastGame()) {
             return;
         }
-        Bukkit.broadcastMessage(ChatColor.DARK_GRAY + "[Havoc] " + ChatColor.GRAY + message);
+        Bukkit.broadcastMessage(HavocBranding.formatChat(message));
     }
 }

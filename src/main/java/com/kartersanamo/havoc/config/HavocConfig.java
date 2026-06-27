@@ -38,11 +38,6 @@ public final class HavocConfig {
     private String easySchematic;
     private String mediumSchematic;
     private String hardSchematic;
-    /** Relative to {@link #schematicsFolder}; when present and file exists, overrides easy/medium/hard-schematic for spawning. */
-    private EnumMap<BaseDifficulty, String> generatedSchematicRelative = new EnumMap<BaseDifficulty, String>(BaseDifficulty.class);
-    private int baseGeneratorWallHeightBlocks = 22;
-    private int baseGeneratorMaxEditorSections = 24;
-    private int baseGeneratorMaxRepeatPerSection = 12;
     private int salvageEasyMin;
     private int salvageEasyMax;
     private int salvageMediumMin;
@@ -146,23 +141,6 @@ public final class HavocConfig {
         easySchematic = c.getString("easy-schematic", "EasyBase.schematic");
         mediumSchematic = c.getString("medium-schematic", "MediumBase.schematic");
         hardSchematic = c.getString("hard-schematic", "HardBase.schematic");
-        generatedSchematicRelative.clear();
-        ConfigurationSection genSchem = c.getConfigurationSection("generated-schematics");
-        if (genSchem != null) {
-            for (String key : genSchem.getKeys(false)) {
-                try {
-                    BaseDifficulty d = BaseDifficulty.valueOf(key.toUpperCase(Locale.ROOT));
-                    String p = genSchem.getString(key);
-                    if (p != null && !p.trim().isEmpty()) {
-                        generatedSchematicRelative.put(d, p.trim());
-                    }
-                } catch (IllegalArgumentException ignored) {
-                }
-            }
-        }
-        baseGeneratorWallHeightBlocks = Math.max(6, c.getInt("base-generator.wall-height-blocks", 22));
-        baseGeneratorMaxEditorSections = Math.max(1, c.getInt("base-generator.max-editor-sections", 24));
-        baseGeneratorMaxRepeatPerSection = Math.max(1, c.getInt("base-generator.max-repeat-per-section", 12));
         ConfigurationSection sr = c.getConfigurationSection("salvage-reward");
         if (sr != null) {
             salvageEasyMin = sr.getInt("EASY_MIN", 15);
@@ -305,37 +283,8 @@ public final class HavocConfig {
         }
     }
 
-    /**
-     * Resolved schematic file for spawning: uses {@code generated-schematics.<DIFFICULTY>} when the file exists,
-     * otherwise the classic {@code easy-schematic} / {@code medium-schematic} / {@code hard-schematic} path.
-     */
     public File resolveSchematicFile(BaseDifficulty d) {
-        String rel = generatedSchematicRelative.get(d);
-        if (rel != null && !rel.isEmpty()) {
-            File f = new File(plugin.getDataFolder(), schematicsFolder + "/" + rel);
-            if (f.isFile()) {
-                return f;
-            }
-            plugin.getLogger().warning("Generated schematic not found for " + d + ", falling back to default: " + f.getAbsolutePath());
-        }
         return new File(plugin.getDataFolder(), schematicsFolder + "/" + schematicFileName(d));
-    }
-
-    public String getGeneratedSchematicRelative(BaseDifficulty d) {
-        String s = generatedSchematicRelative.get(d);
-        return s == null ? "" : s;
-    }
-
-    public int getBaseGeneratorWallHeightBlocks() {
-        return baseGeneratorWallHeightBlocks;
-    }
-
-    public int getBaseGeneratorMaxEditorSections() {
-        return baseGeneratorMaxEditorSections;
-    }
-
-    public int getBaseGeneratorMaxRepeatPerSection() {
-        return baseGeneratorMaxRepeatPerSection;
     }
 
     public int basesToSpawn(BaseDifficulty d) {

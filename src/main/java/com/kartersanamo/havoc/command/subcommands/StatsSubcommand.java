@@ -1,11 +1,12 @@
 package com.kartersanamo.havoc.command.subcommands;
 
 import com.kartersanamo.havoc.Havoc;
+import com.kartersanamo.havoc.message.MessageKeys;
+import com.kartersanamo.havoc.message.MessageVars;
 import com.kartersanamo.havoc.permission.PermissionNodes;
 import com.kartersanamo.havoc.stats.PlayerStats;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
-import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -46,18 +47,24 @@ public final class StatsSubcommand implements HavocSubcommand {
             }
             target = Bukkit.getOfflinePlayer(args[0]);
             if (target == null || target.getUniqueId() == null) {
-                viewer.sendMessage(ChatColor.RED + "Unknown player: " + args[0]);
+                plugin.getMessages().send(viewer, "stats.unknown-player",
+                        MessageVars.one(MessageKeys.PLAYER, args[0]));
                 return true;
             }
         }
         String targetName = target.getName() == null ? target.getUniqueId().toString().substring(0, 8) : target.getName();
         PlayerStats stats = plugin.getPlayerStatsStore().get(target.getUniqueId());
-        viewer.sendMessage(ChatColor.LIGHT_PURPLE + "Havoc Stats: " + targetName);
-        viewer.sendMessage(ChatColor.GRAY + "Breaches Participated: " + ChatColor.AQUA + stats.breachesParticipated);
-        viewer.sendMessage(ChatColor.GRAY + "Breaches Triggered: " + ChatColor.AQUA + stats.breachesTriggered);
-        viewer.sendMessage(ChatColor.GRAY + "Salvage Earned: " + ChatColor.GOLD + stats.salvageEarned);
-        viewer.sendMessage(ChatColor.GRAY + "Salvage Spent: " + ChatColor.GOLD + stats.salvageSpent);
-        viewer.sendMessage(ChatColor.GRAY + "Shop Purchases: " + ChatColor.GREEN + stats.shopPurchases);
+        plugin.getMessages().send(viewer, "stats.header", MessageVars.one(MessageKeys.PLAYER, targetName));
+        plugin.getMessages().send(viewer, "stats.breaches-participated",
+                MessageVars.one("value", String.valueOf(stats.breachesParticipated)));
+        plugin.getMessages().send(viewer, "stats.breaches-triggered",
+                MessageVars.one("value", String.valueOf(stats.breachesTriggered)));
+        plugin.getMessages().send(viewer, "stats.salvage-earned",
+                MessageVars.one("value", String.valueOf(stats.salvageEarned)));
+        plugin.getMessages().send(viewer, "stats.salvage-spent",
+                MessageVars.one("value", String.valueOf(stats.salvageSpent)));
+        plugin.getMessages().send(viewer, "stats.shop-purchases",
+                MessageVars.one("value", String.valueOf(stats.shopPurchases)));
         return true;
     }
 

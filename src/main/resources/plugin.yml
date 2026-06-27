@@ -46,7 +46,6 @@ permissions:
       havoc.admin.logs: true
       havoc.admin.logs.export: true
       havoc.admin.perf: true
-      havoc.admin.bases: true
       havoc.admin.stats.view: true
   havoc.admin.list:
     description: Use /havoc admin list.
@@ -89,9 +88,6 @@ permissions:
     default: op
   havoc.admin.perf:
     description: View Havoc performance readout.
-    default: op
-  havoc.admin.bases:
-    description: Open GUI to edit generated Havoc base wall templates.
     default: op
   havoc.admin.stats.view:
     description: View other players' Havoc stats.

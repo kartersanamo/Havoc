@@ -24,7 +24,6 @@ public final class PermissionNodes {
     public static final String ADMIN_LOGS = "havoc.admin.logs";
     public static final String ADMIN_LOGS_EXPORT = "havoc.admin.logs.export";
     public static final String ADMIN_PERF = "havoc.admin.perf";
-    public static final String ADMIN_BASES = "havoc.admin.bases";
 
     private PermissionNodes() {
     }

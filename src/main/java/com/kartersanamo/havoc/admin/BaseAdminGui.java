@@ -6,6 +6,7 @@ import com.kartersanamo.havoc.base.BaseState;
 import com.kartersanamo.havoc.config.HavocConfig;
 import com.kartersanamo.havoc.message.MessageKeys;
 import com.kartersanamo.havoc.message.MessageVars;
+import com.kartersanamo.havoc.message.HavocBranding;
 import com.kartersanamo.havoc.permission.PermissionNodes;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -53,7 +54,7 @@ public final class BaseAdminGui {
         int page = clampPage(requestedPage, totalPages);
 
         Inventory inv = Bukkit.createInventory(new BaseAdminListHolder(sortedBases, page, sortMode), LIST_SIZE,
-                ChatColor.DARK_AQUA + "Havoc Bases");
+                HavocBranding.formatGuiTitle("Bases"));
         int start = page * LIST_PAGE_SIZE;
         int end = Math.min(start + LIST_PAGE_SIZE, sortedBases.size());
         int slot = 0;
@@ -125,7 +126,7 @@ public final class BaseAdminGui {
         UUID id = holder.baseIds.get(index);
         ActiveHavocBase b = plugin.getBaseService().getBaseById(id);
         if (b == null) {
-            player.sendMessage(ChatColor.RED + "That base no longer exists.");
+            plugin.getMessages().send(player, "admin.list.base-missing");
             openList(player, holder.page, holder.sortMode);
             return;
         }
@@ -148,7 +149,7 @@ public final class BaseAdminGui {
     private void handleDetailClick(Player player, BaseAdminDetailHolder holder, int rawSlot) {
         ActiveHavocBase b = plugin.getBaseService().getBaseById(holder.baseId);
         if (b == null) {
-            player.sendMessage(ChatColor.RED + "That base no longer exists.");
+            plugin.getMessages().send(player, "admin.list.base-missing");
             openList(player, holder.returnPage, holder.returnSortMode);
             return;
         }
@@ -159,11 +160,12 @@ public final class BaseAdminGui {
             }
             World w = Bukkit.getWorld(b.worldName);
             if (w == null) {
-                player.sendMessage(ChatColor.RED + "Base world is not loaded.");
+                plugin.getMessages().send(player, "admin.list.world-not-loaded");
                 return;
             }
             player.teleport(new Location(w, b.obsidianCenterX + 0.5, b.obsidianCenterY + 2.0, b.obsidianCenterZ + 0.5));
-            player.sendMessage(ChatColor.GREEN + "Teleported to base " + shortId(b.id) + ".");
+            plugin.getMessages().send(player, "admin.list.teleport-success",
+                    MessageVars.one(MessageKeys.ID, shortId(b.id)));
             plugin.getLogService().log("ADMIN_BASE_TELEPORT", player.getName(), shortId(b.id),
                     new Location(w, b.obsidianCenterX, b.obsidianCenterY, b.obsidianCenterZ), "teleport via GUI");
             return;

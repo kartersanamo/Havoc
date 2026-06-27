@@ -3,13 +3,11 @@ package com.kartersanamo.havoc;
 import com.kartersanamo.havoc.base.BaseService;
 import com.kartersanamo.havoc.base.BaseLifecycleEventHandler;
 import com.kartersanamo.havoc.admin.BaseAdminGui;
-import com.kartersanamo.havoc.admin.BaseTemplateEditorGui;
 import com.kartersanamo.havoc.audit.HavocLogService;
 import com.kartersanamo.havoc.command.HavocCommandExecutor;
 import com.kartersanamo.havoc.config.HavocConfig;
 import com.kartersanamo.havoc.debug.HavocDebug;
 import com.kartersanamo.havoc.faction.FactionsBridge;
-import com.kartersanamo.havoc.generator.BaseTemplateStore;
 import com.kartersanamo.havoc.listener.BlockBreakListener;
 import com.kartersanamo.havoc.listener.BlockPlaceListener;
 import com.kartersanamo.havoc.listener.ExplosionBreachListener;
@@ -50,8 +48,6 @@ public final class Havoc extends JavaPlugin {
     private FactionsBridge factionsBridge;
     private BaseService baseService;
     private BaseAdminGui baseAdminGui;
-    private BaseTemplateStore baseTemplateStore;
-    private BaseTemplateEditorGui baseTemplateEditorGui;
     private HavocLogService logService;
     private MessageService messages;
     private InternalEventBus eventBus;
@@ -78,10 +74,6 @@ public final class Havoc extends JavaPlugin {
         File schemDir = new File(getDataFolder(), "schematics");
         if (!schemDir.exists()) {
             schemDir.mkdirs();
-        }
-        File templatesDir = new File(getDataFolder(), "templates");
-        if (!templatesDir.exists()) {
-            templatesDir.mkdirs();
         }
 
         saveDefaultConfig();
@@ -124,8 +116,6 @@ public final class Havoc extends JavaPlugin {
         baseService.start();
         
         baseAdminGui = new BaseAdminGui(this);
-        baseTemplateStore = new BaseTemplateStore(this);
-        baseTemplateEditorGui = new BaseTemplateEditorGui(this);
         salvageShop = new SalvageShop(this);
         leaderboardGui = new LeaderboardGui(this);
 
@@ -293,14 +283,6 @@ public final class Havoc extends JavaPlugin {
 
     public BaseAdminGui getBaseAdminGui() {
         return baseAdminGui;
-    }
-
-    public BaseTemplateStore getBaseTemplateStore() {
-        return baseTemplateStore;
-    }
-
-    public BaseTemplateEditorGui getBaseTemplateEditorGui() {
-        return baseTemplateEditorGui;
     }
 
     public HavocLogService getLogService() {
