@@ -1,3 +1,4 @@
+config-version: 2
 title: "Havoc Shop"
 rows: 2
 fill-empty-slots: false
