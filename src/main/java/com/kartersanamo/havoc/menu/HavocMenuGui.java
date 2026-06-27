@@ -1,10 +1,8 @@
 package com.kartersanamo.havoc.menu;
 
-import com.kartersanamo.havoc.Havoc;
-import com.kartersanamo.havoc.base.ActiveHavocBase;
-import com.kartersanamo.havoc.base.BaseDifficulty;
-import com.kartersanamo.havoc.base.BaseState;
-import com.kartersanamo.havoc.config.HavocConfig;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -16,13 +14,16 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.kartersanamo.havoc.Havoc;
+import com.kartersanamo.havoc.base.ActiveHavocBase;
+import com.kartersanamo.havoc.base.BaseState;
+import com.kartersanamo.havoc.config.HavocConfig;
 
 public final class HavocMenuGui {
 
     private static final int SIZE = 9;
     private static final int WARP_SLOT = 4;
+    private static final short GRAY_STAINED_GLASS_DATA = 7;
 
     private final Havoc plugin;
 
@@ -32,6 +33,12 @@ public final class HavocMenuGui {
 
     public void open(Player player) {
         Inventory inv = Bukkit.createInventory(new HavocMenuGuiHolder(), SIZE, menuTitle());
+        ItemStack filler = createFillerItem();
+        for (int i = 0; i < SIZE; i++) {
+            if (i != WARP_SLOT) {
+                inv.setItem(i, filler.clone());
+            }
+        }
         inv.setItem(WARP_SLOT, createWarpItem());
         player.openInventory(inv);
     }
@@ -61,6 +68,16 @@ public final class HavocMenuGui {
         plugin.getMessages().send(player, "menu.warp-success");
     }
 
+    private ItemStack createFillerItem() {
+        ItemStack item = new ItemStack(Material.STAINED_GLASS_PANE, 1, GRAY_STAINED_GLASS_DATA);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(" ");
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
     private ItemStack createWarpItem() {
         BaseSnapshot snapshot = snapshotBases();
         HavocConfig cfg = plugin.getHavocConfig();
@@ -70,12 +87,10 @@ public final class HavocMenuGui {
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(ChatColor.DARK_RED + "" + ChatColor.BOLD + "Havoc");
-            List<String> lore = new ArrayList<String>();
-            lore.add(ChatColor.DARK_RED + "" + ChatColor.BOLD + "Havoc (#" + formatCount(snapshot.activeTotal) + ")");
-            lore.add(" ");
-            lore.add(ChatColor.WHITE + "Raid procedurally spawned faction bases across the "
-                    + ChatColor.GRAY + cfg.getWorldName() + ChatColor.WHITE + ". Breach obsidian walls with TNT, "
-                    + "earn Salvage, and climb the leaderboards.");
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.WHITE + "Raid procedurally spawned faction bases across the ");
+            lore.add(ChatColor.GRAY + cfg.getWorldName() + " world" + ChatColor.WHITE + ". Breach obsidian walls with TNT, ");
+            lore.add(ChatColor.WHITE + "earn Salvage, and climb the leaderboards.");
             lore.add(" ");
             lore.add(ChatColor.DARK_RED + "" + ChatColor.BOLD + "Information:");
             lore.add(ChatColor.GRAY + "- " + ChatColor.WHITE + borderSize + "x" + borderSize + " world border");
@@ -110,19 +125,27 @@ public final class HavocMenuGui {
             if (base.state != BaseState.ACTIVE) {
                 continue;
             }
-            if (base.difficulty == BaseDifficulty.EASY) {
-                easy++;
-            } else if (base.difficulty == BaseDifficulty.MEDIUM) {
-                medium++;
-            } else if (base.difficulty == BaseDifficulty.HARD) {
-                hard++;
+            if (null != base.difficulty) {
+                switch (base.difficulty) {
+                    case EASY:
+                        easy++;
+                        break;
+                    case MEDIUM:
+                        medium++;
+                        break;
+                    case HARD:
+                        hard++;
+                        break;
+                    default:
+                        break;
+                }
             }
         }
         return new BaseSnapshot(easy + medium + hard, easy, medium, hard, restoring);
     }
 
     private static String menuTitle() {
-        return ChatColor.DARK_RED + "" + ChatColor.BOLD + "Havoc";
+        return "Havoc";
     }
 
     private static String formatCount(int count) {
@@ -139,6 +162,7 @@ public final class HavocMenuGui {
     }
 
     private static final class BaseSnapshot {
+
         final int activeTotal;
         final int easy;
         final int medium;

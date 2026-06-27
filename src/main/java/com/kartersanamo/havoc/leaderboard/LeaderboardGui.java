@@ -1,7 +1,6 @@
 package com.kartersanamo.havoc.leaderboard;
 
 import com.kartersanamo.havoc.Havoc;
-import com.kartersanamo.havoc.message.HavocBranding;
 import com.kartersanamo.havoc.stats.PlayerStats;
 import com.kartersanamo.havoc.stats.PlayerStatsStore;
 import org.bukkit.Bukkit;
@@ -22,7 +21,8 @@ import java.util.UUID;
 public final class LeaderboardGui {
 
     private static final int SIZE = 27;
-    private static final int[] METRIC_SLOTS = {10, 11, 12, 19, 20};
+    private static final int[] METRIC_SLOTS = {11, 12, 13, 14, 15};
+    private static final short GRAY_STAINED_GLASS_DATA = 7;
     private static final PlayerStatsStore.LeaderboardPeriod PERIOD = PlayerStatsStore.LeaderboardPeriod.LIFETIME;
 
     private final Havoc plugin;
@@ -33,7 +33,14 @@ public final class LeaderboardGui {
 
     public void open(Player player) {
         Inventory inv = Bukkit.createInventory(new LeaderboardGuiHolder(), SIZE,
-                HavocBranding.formatGuiTitle("Leaderboards"));
+                "Havoc Leaderboards");
+
+        ItemStack filler = createFillerItem();
+        for (int i = 0; i < SIZE; i++) {
+            if (isBorderSlot(i)) {
+                inv.setItem(i, filler.clone());
+            }
+        }
 
         PlayerStatsStore.LeaderboardMetric[] metrics = PlayerStatsStore.LeaderboardMetric.values();
         for (int i = 0; i < metrics.length && i < METRIC_SLOTS.length; i++) {
@@ -55,17 +62,37 @@ public final class LeaderboardGui {
         // View-only GUI.
     }
 
+    private static boolean isBorderSlot(int slot) {
+        if (slot < 9 || slot >= 18) {
+            return true;
+        }
+        return slot == 9 || slot == 17;
+    }
+
+    private static ItemStack createFillerItem() {
+        ItemStack item = new ItemStack(Material.STAINED_GLASS_PANE, 1, GRAY_STAINED_GLASS_DATA);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(" ");
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
     private ItemStack createMetricItem(PlayerStatsStore.LeaderboardMetric metric) {
         List<Map.Entry<UUID, PlayerStats>> rows = plugin.getPlayerStatsStore().top(metric, PERIOD, 10);
         int trackedPlayers = plugin.getPlayerStatsStore().top(metric, PERIOD, Integer.MAX_VALUE).size();
 
         ItemStack item = new ItemStack(metricIcon(metric), 1);
         ItemMeta meta = item.getItemMeta();
+
+        ChatColor darkColor = getDarkColor(metric);
+        ChatColor lightColor = getLightColor(metric);
+
         if (meta != null) {
-            meta.setDisplayName(ChatColor.GREEN + metric.label + " Leaderboard");
+            meta.setDisplayName(lightColor + metric.label + " Leaderboard");
             List<String> lore = new ArrayList<String>();
-            lore.add(ChatColor.GREEN + metric.label + " Leaderboard (#" + formatTrackedCount(trackedPlayers) + ")");
-            lore.add(ChatColor.WHITE + "─────────────────");
+            lore.add(ChatColor.WHITE + "" + ChatColor.STRIKETHROUGH + "─────────────────");
             if (rows.isEmpty()) {
                 lore.add(ChatColor.GREEN + "No entries yet.");
             } else {
@@ -76,7 +103,7 @@ public final class LeaderboardGui {
                             ? op.getName()
                             : row.getKey().toString().substring(0, 8);
                     int value = metricValue(row.getValue(), metric);
-                    lore.add(ChatColor.GREEN + "" + (i + 1) + ". " + name + " [" + value + "]");
+                    lore.add(ChatColor.GRAY + "" + (i + 1) + ". " + darkColor + name + ChatColor.GRAY + " [" + lightColor + value + ChatColor.GRAY + "]");
                 }
             }
             meta.setLore(lore);
@@ -117,16 +144,37 @@ public final class LeaderboardGui {
         }
     }
 
-    private static String formatTrackedCount(int count) {
-        String raw = String.valueOf(Math.max(0, count));
-        if (raw.length() >= 4) {
-            return raw;
+    private static ChatColor getDarkColor(PlayerStatsStore.LeaderboardMetric metric) {
+        switch (metric) {
+            case SALVAGE_SPENT:
+                return ChatColor.DARK_RED;
+            case BREACHES_PARTICIPATED:
+                return ChatColor.DARK_AQUA;
+            case BREACHES_TRIGGERED:
+                return ChatColor.DARK_PURPLE;
+            case SHOP_PURCHASES:
+                return ChatColor.DARK_BLUE;
+            case SALVAGE_EARNED:
+                return ChatColor.DARK_GREEN;
+            default:
+                return ChatColor.DARK_GRAY;
         }
-        StringBuilder padded = new StringBuilder();
-        for (int i = raw.length(); i < 4; i++) {
-            padded.append('0');
+    }
+
+    private static ChatColor getLightColor(PlayerStatsStore.LeaderboardMetric metric) {
+        switch (metric) {
+            case SALVAGE_SPENT:
+                return ChatColor.RED;
+            case BREACHES_PARTICIPATED:
+                return ChatColor.AQUA;
+            case BREACHES_TRIGGERED:
+                return ChatColor.LIGHT_PURPLE;
+            case SHOP_PURCHASES:
+                return ChatColor.BLUE;
+            case SALVAGE_EARNED:
+                return ChatColor.GREEN;
+            default:
+                return ChatColor.GRAY;
         }
-        padded.append(raw);
-        return padded.toString();
     }
 }

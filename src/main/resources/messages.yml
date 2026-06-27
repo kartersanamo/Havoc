@@ -18,22 +18,20 @@ command:
       - "&e/havoc admin salvage <add|set|show> <player> [amount] &7- manage Salvage"
   players-only: "&cPlayers only."
   no-permission: "&cNo permission."
-  salvage-balance: "&6Salvage: &e{balance}"
-  admin-usage: "&7Try: /havoc admin list | /havoc admin reload | /havoc admin spawn <tier>"
+  salvage-balance: "&7Salvage: &e{balance}"
+  admin-usage: "&7Try: /havoc admin list | reload | spawn <tier> | logs [page] | perf | salvage <add|set|show> <player> [amount]"
   unknown-subcommand: "&cUnknown subcommand."
 
 menu:
-  warp-success: "&aWarped to Havoc spawn."
+  warp-success: "&fWarped to Havoc spawn."
   warp-failed: "&cHavoc spawn world is not loaded."
 
 stats:
   unknown-player: "&cUnknown player: &f{player}"
-  header: "&dStats: &f{player}"
-  breaches-participated: "&7Breaches Participated: &b{value}"
-  breaches-triggered: "&7Breaches Triggered: &b{value}"
-  salvage-earned: "&7Salvage Earned: &6{value}"
-  salvage-spent: "&7Salvage Spent: &6{value}"
-  shop-purchases: "&7Shop Purchases: &a{value}"
+  header: "&4&lHavoc Stats: &r&f{player}"
+  breaches-participated: "&7  - Breaches Participated: &b{value}"
+  breaches-triggered: "&7  - Breaches Triggered: &b{value}"
+  salvage-earned: "&7  - Salvage Earned: &6{value}"
 
 admin:
   list:
@@ -42,21 +40,21 @@ admin:
     line: "&f- &b{difficulty} &7({state}) &f{world} &e{x}, {y}, {z} &8[~{id}] &8({claims} chunks)"
     base-missing: "&cThat base no longer exists."
     world-not-loaded: "&cBase world is not loaded."
-    teleport-success: "&aTeleported to base &f{id}&a."
+    teleport-success: "&fTeleported to base &e{id}&f."
   reload:
-    success: "&aConfig, shop.yml, and messages.yml reloaded."
+    success: "&fConfig, shop.yml, and messages.yml reloaded."
   spawn:
     usage: "&7Usage: /havoc admin spawn <EASY|MEDIUM|HARD>"
     invalid-tier: "&cInvalid tier."
     confirm: "&eRun the same spawn command again within &f{seconds}&es to confirm."
     cooldown: "&cPlease wait &f{seconds}&cs before spawning another base."
-    success: "&aSpawned one {difficulty} base."
+    success: "&fSpawned one {difficulty} base."
     failed: "&cSpawn failed (see console)."
   force-restore:
     confirm: "&eClick Force Restore again within &f{seconds}&es to confirm."
     cooldown: "&cPlease wait &f{seconds}&cs before force-restoring another base."
     already-restoring: "&cBase is already restoring."
-    success: "&aForced restore for base &f{id}&a."
+    success: "&fForced restore for base &e{id}&f."
     failed: "&cCould not force restore that base."
   logs:
     usage: "&7Usage: /havoc admin logs [page]"
@@ -69,8 +67,8 @@ admin:
     amount-required: "&cAmount is required for add/set."
     invalid-amount: "&cInvalid amount."
     show: "&e{player}&7 has &6{balance}&7 Salvage."
-    add-success: "&aAdded &e{amount}&a Salvage to &f{player}&a. New balance: &e{balance}&a."
-    set-success: "&aSet &f{player}&a Salvage to &e{balance}&a."
+    add-success: "&fAdded &e{amount}&f Salvage to &e{player}&f. New balance: &e{balance}&f."
+    set-success: "&fSet &e{player}&f Salvage to &e{balance}&f."
   perf:
     header: "&6Perf &7(spawn worker)"
     queue: "&7Queue size: &f{count}"
@@ -79,7 +77,7 @@ admin:
 
 shop:
   purchase:
-    success: "&aPurchased &f{amount}x {name} &afor &e{price} Salvage&a. &7(New balance: &f{balance}&7)"
+    success: "&fPurchased &e{amount}x {name} &ffor &e{price} Salvage&f. &7(New balance: &f{balance}&7)"
     insufficient-funds: "&cYou need &e{price}&c Salvage for {name}&c. You only have &e{balance}&c."
 
 raid:

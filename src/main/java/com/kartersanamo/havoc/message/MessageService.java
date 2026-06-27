@@ -42,6 +42,19 @@ public final class MessageService {
         to.sendMessage(HavocBranding.formatChat(apply(raw, placeholders)));
     }
 
+    public void sendRaw(CommandSender to, String key) {
+        sendRaw(to, key, null);
+    }
+
+    public void sendRaw(CommandSender to, String key, Map<String, String> placeholders) {
+        String raw = cfg.getString(key);
+        if (raw == null) {
+            to.sendMessage(ChatColor.RED + "Missing message key: " + key);
+            return;
+        }
+        to.sendMessage(apply(raw, placeholders));
+    }
+
     public void sendList(CommandSender to, String key, Map<String, String> placeholders) {
         List<String> lines = cfg.getStringList(key);
         if (lines == null || lines.isEmpty()) {
