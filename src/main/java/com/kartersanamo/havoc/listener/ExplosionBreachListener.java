@@ -20,6 +20,6 @@ public final class ExplosionBreachListener implements Listener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onExplodeBreach(EntityExplodeEvent event) {
         Player winner = tntAttributionTracker.resolveExplosionWinner(event);
-        plugin.getBaseService().tryBreachFromExplosion(event.blockList(), event.getLocation(), winner);
+        plugin.getBaseService().tryBreachFromExplosion(event.blockList(), winner);
     }
 }
