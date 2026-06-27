@@ -30,8 +30,8 @@ timers:
 # Chunks around each base (Manhattan radius from each base chunk) snapshotted at breach for later reset
 watch-chunk-radius: 5
 
-# Breach: breaking or exploding one of the inner obsidian shell blocks mapped from the schematic starts restore.
-# Outer perimeter obsidian does not count; only the inner box detected at spawn time.
+# Breach: restore and rewards begin only after an inner obsidian shell block is destroyed.
+# Outer perimeter obsidian/water does not count.
 breach-materials:
   - OBSIDIAN
   - STATIONARY_WATER

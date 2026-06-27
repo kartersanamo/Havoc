@@ -11,9 +11,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Schematic-relative positions of the inner obsidian shell used for breach detection.
- * Nested shells are resolved by peeling blocks on the outermost obsidian AABB; the
- * remaining obsidian blocks form the inner breach surface.
+ * Schematic-relative positions of the innermost obsidian shell used for breach detection.
  */
 public final class InnerBreachRegion {
 
@@ -42,11 +40,11 @@ public final class InnerBreachRegion {
 
     public static InnerBreachRegion fromSchematic(CuboidClipboard clip) {
         List<int[]> obsidian = collectObsidian(clip);
-        return new InnerBreachRegion(detectInnerShell(obsidian));
+        return new InnerBreachRegion(detectInnermostShell(obsidian));
     }
 
     static InnerBreachRegion fromObsidianPositions(List<int[]> obsidian) {
-        return new InnerBreachRegion(detectInnerShell(obsidian));
+        return new InnerBreachRegion(detectInnermostShell(obsidian));
     }
 
     private static List<int[]> collectObsidian(CuboidClipboard clip) {
@@ -72,46 +70,48 @@ public final class InnerBreachRegion {
         return out;
     }
 
-    private static Set<Long> detectInnerShell(List<int[]> obsidian) {
+    private static Set<Long> detectInnermostShell(List<int[]> obsidian) {
         if (obsidian.isEmpty()) {
             return new HashSet<Long>();
         }
-        int minX = Integer.MAX_VALUE;
-        int minY = Integer.MAX_VALUE;
-        int minZ = Integer.MAX_VALUE;
-        int maxX = Integer.MIN_VALUE;
-        int maxY = Integer.MIN_VALUE;
-        int maxZ = Integer.MIN_VALUE;
+        Set<Long> remaining = new HashSet<Long>();
         for (int[] p : obsidian) {
-            minX = Math.min(minX, p[0]);
-            minY = Math.min(minY, p[1]);
-            minZ = Math.min(minZ, p[2]);
-            maxX = Math.max(maxX, p[0]);
-            maxY = Math.max(maxY, p[1]);
-            maxZ = Math.max(maxZ, p[2]);
+            remaining.add(pack(p[0], p[1], p[2]));
         }
-
-        Set<Long> outerShell = new HashSet<Long>();
-        for (int[] p : obsidian) {
-            if (isOnBounds(p[0], p[1], p[2], minX, minY, minZ, maxX, maxY, maxZ)) {
-                outerShell.add(pack(p[0], p[1], p[2]));
+        while (!remaining.isEmpty()) {
+            int minX = Integer.MAX_VALUE;
+            int minY = Integer.MAX_VALUE;
+            int minZ = Integer.MAX_VALUE;
+            int maxX = Integer.MIN_VALUE;
+            int maxY = Integer.MIN_VALUE;
+            int maxZ = Integer.MIN_VALUE;
+            for (long key : remaining) {
+                int x = unpackX(key);
+                int y = unpackY(key);
+                int z = unpackZ(key);
+                minX = Math.min(minX, x);
+                minY = Math.min(minY, y);
+                minZ = Math.min(minZ, z);
+                maxX = Math.max(maxX, x);
+                maxY = Math.max(maxY, y);
+                maxZ = Math.max(maxZ, z);
             }
-        }
 
-        Set<Long> inner = new HashSet<Long>();
-        for (int[] p : obsidian) {
-            long key = pack(p[0], p[1], p[2]);
-            if (!outerShell.contains(key)) {
-                inner.add(key);
+            Set<Long> interior = new HashSet<Long>();
+            for (long key : remaining) {
+                int x = unpackX(key);
+                int y = unpackY(key);
+                int z = unpackZ(key);
+                if (!isOnBounds(x, y, z, minX, minY, minZ, maxX, maxY, maxZ)) {
+                    interior.add(key);
+                }
             }
+            if (interior.isEmpty()) {
+                return remaining;
+            }
+            remaining = interior;
         }
-        if (!inner.isEmpty()) {
-            return inner;
-        }
-        for (int[] p : obsidian) {
-            inner.add(pack(p[0], p[1], p[2]));
-        }
-        return inner;
+        return remaining;
     }
 
     private static boolean isOnBounds(int x, int y, int z,
@@ -125,5 +125,17 @@ public final class InnerBreachRegion {
 
     static long pack(int x, int y, int z) {
         return ((long) (x & 0x3FFFF) << 36) | ((long) (y & 0xFFF) << 24) | (z & 0xFFFFFFL);
+    }
+
+    private static int unpackX(long packed) {
+        return (int) ((packed >> 36) & 0x3FFFF);
+    }
+
+    private static int unpackY(long packed) {
+        return (int) ((packed >> 24) & 0xFFF);
+    }
+
+    private static int unpackZ(long packed) {
+        return (int) (packed & 0xFFFFFFL);
     }
 }

@@ -22,6 +22,7 @@ import com.sk89q.worldedit.data.DataException;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
@@ -281,36 +282,112 @@ public final class BaseService {
         return true;
     }
 
+    public boolean isInnerBreachLocation(Location location) {
+        if (location == null) {
+            return false;
+        }
+        ActiveHavocBase base = findByChunk(location.getChunk());
+        if (base == null || base.state != BaseState.ACTIVE) {
+            return false;
+        }
+        return isInnerBreachLocation(base, location);
+    }
+
     public boolean tryBreachBlock(Block block, Player progressionCredit) {
+        if (block == null || block.getType() != Material.OBSIDIAN) {
+            return false;
+        }
+        return tryBreachBrokenInnerObsidian(block.getLocation(), progressionCredit);
+    }
+
+    public boolean tryBreachBrokenInnerObsidian(Location location, Player progressionCredit) {
+        if (location == null || location.getWorld() == null) {
+            return false;
+        }
+        Block block = location.getBlock();
+        if (block.getType() != Material.AIR) {
+            return false;
+        }
         ActiveHavocBase base = findByChunk(block.getChunk());
         if (base == null || base.state != BaseState.ACTIVE) {
             return false;
         }
-        if (!plugin.getHavocConfig().getBreachMaterials().contains(block.getType())) {
+        if (!isInnerBreachLocation(base, location)) {
             return false;
         }
-        if (!isInnerBreachBlock(base, block)) {
-            return false;
-        }
-        breach(base, block.getLocation(), progressionCredit);
+        breach(base, location, resolveBreachCredit(base, location, progressionCredit));
         return true;
     }
 
-    private boolean isInnerBreachBlock(ActiveHavocBase base, Block block) {
+    private boolean isInnerBreachLocation(ActiveHavocBase base, Location location) {
         InnerBreachRegion region = base.innerBreachRegion;
         if (region == null || region.isEmpty()) {
             return false;
         }
-        return region.containsWorldBlock(block.getX(), block.getY(), block.getZ(),
+        return region.containsWorldBlock(location.getBlockX(), location.getBlockY(), location.getBlockZ(),
                 base.pasteOriginX, base.pasteOriginY, base.pasteOriginZ);
     }
 
     public void tryBreachFromExplosion(List<Block> blocks, Player progressionCredit) {
-        for (Block b : blocks) {
-            if (tryBreachBlock(b, progressionCredit)) {
-                return;
+        if (blocks == null || blocks.isEmpty()) {
+            return;
+        }
+        List<Location> innerObsidianBreaks = new ArrayList<Location>();
+        for (Block block : blocks) {
+            if (block == null || block.getType() != Material.OBSIDIAN) {
+                continue;
+            }
+            if (!isInnerBreachLocation(block.getLocation())) {
+                continue;
+            }
+            innerObsidianBreaks.add(block.getLocation().clone());
+        }
+        if (innerObsidianBreaks.isEmpty()) {
+            return;
+        }
+        final Player credit = progressionCredit;
+        final List<Location> pending = innerObsidianBreaks;
+        Bukkit.getScheduler().runTask(plugin, new Runnable() {
+            @Override
+            public void run() {
+                for (Location location : pending) {
+                    if (tryBreachBrokenInnerObsidian(location, credit)) {
+                        return;
+                    }
+                }
+            }
+        });
+    }
+
+    private Player resolveBreachCredit(ActiveHavocBase base, Location breachLoc, Player preferred) {
+        if (preferred != null) {
+            return preferred;
+        }
+        World world = breachLoc.getWorld();
+        if (world == null) {
+            return null;
+        }
+        double rsq = (double) plugin.getHavocConfig().getRewardRadius() * plugin.getHavocConfig().getRewardRadius();
+        Player best = null;
+        double bestDist = Double.MAX_VALUE;
+        for (Player player : world.getPlayers()) {
+            if (player.getLocation().distanceSquared(breachLoc) > rsq) {
+                continue;
+            }
+            try {
+                Object playerFaction = plugin.getFactionsBridge().getPlayerFaction(player);
+                if (playerFaction != null && plugin.getFactionsBridge().factionsEqual(playerFaction, havocFaction)) {
+                    continue;
+                }
+            } catch (Exception ignored) {
+            }
+            double dist = player.getLocation().distanceSquared(breachLoc);
+            if (dist < bestDist) {
+                bestDist = dist;
+                best = player;
             }
         }
+        return best;
     }
 
     private synchronized void breach(ActiveHavocBase base, Location breachLoc, Player progressionCredit) {

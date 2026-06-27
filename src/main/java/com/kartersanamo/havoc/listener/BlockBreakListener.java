@@ -18,13 +18,16 @@ public final class BlockBreakListener implements Listener {
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onBreak(BlockBreakEvent event) {
+    public void onBreakCancel(BlockBreakEvent event) {
         BaseService bases = plugin.getBaseService();
         if (bases.shouldCancelBlockChange(event.getBlock().getLocation())) {
             event.setCancelled(true);
             raidLockNotifier.notifyLocked(event.getPlayer(), "raid.locked.block-change");
-            return;
         }
-        bases.tryBreachBlock(event.getBlock(), event.getPlayer());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onBreakBreach(BlockBreakEvent event) {
+        plugin.getBaseService().tryBreachBrokenInnerObsidian(event.getBlock().getLocation(), event.getPlayer());
     }
 }
