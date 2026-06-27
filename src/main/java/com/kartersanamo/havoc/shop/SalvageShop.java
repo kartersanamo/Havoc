@@ -86,7 +86,15 @@ public final class SalvageShop {
         plugin.getPlayerStatsStore().addShopPurchase(player.getUniqueId(), item.getPrice());
         plugin.getPlayerStatsStore().saveAsync();
         store.saveAsync();
-        player.getInventory().addItem(item.createBoughtStack());
+        if (item.shouldGiveItem()) {
+            player.getInventory().addItem(item.createBoughtStack());
+        }
+        for (String command : item.getCommands()) {
+            if (command == null || command.trim().isEmpty()) {
+                continue;
+            }
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), item.resolveCommand(command.trim(), player));
+        }
         int newBal = store.get(player.getUniqueId());
         plugin.getMessages().send(player, "shop.purchase.success", vars(item, newBal));
         if (config.isCloseOnPurchase()) {

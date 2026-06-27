@@ -4,7 +4,7 @@ import org.bukkit.ChatColor;
 
 public final class HavocBranding {
 
-    private static final String DEFAULT_CHAT_PREFIX = "&4&lHavoc &8&l»&f ";
+    private static final String DEFAULT_CHAT_PREFIX = "&4&lHavoc &8&l»&7 ";
     private static volatile String chatPrefix = color(DEFAULT_CHAT_PREFIX);
 
     private HavocBranding() {

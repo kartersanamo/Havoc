@@ -9,9 +9,9 @@ border-half-size: 2500
 
 # How many active bases to keep per difficulty (respawns after one is fully restored)
 bases-per-difficulty:
-  EASY: 3
-  MEDIUM: 2
-  HARD: 1
+  EASY: 10
+  MEDIUM: 5
+  HARD: 3
 
 # Minimum chunk Chebyshev distance between center chunks, plus each base's schematic chunk radius
 min-center-separation-chunks: 20
@@ -127,7 +127,9 @@ reward-radius: 32
 spawn:
   world: Havoc
   x: 0.5
-  y: 64.0
+  y: 155.0
   z: 0.5
+  yaw: -90.0
+  pitch: 0.0
 
 # Shop UI is configured in shop.yml

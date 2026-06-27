@@ -16,13 +16,13 @@ public final class ShopConfig {
     private final JavaPlugin plugin;
     private String title = ChatColor.DARK_RED + "" + ChatColor.BOLD + "Havoc "
             + ChatColor.DARK_GRAY + "" + ChatColor.BOLD + "» "
-            + ChatColor.WHITE + "Shop";
+            + ChatColor.GRAY + "Shop";
     private int rows = 3;
     private boolean fillEmptySlots = true;
     private boolean closeOnPurchase = false;
     private boolean refreshAfterPurchase = true;
     private String priceLoreLine = "&7Price: &6{price} &eSalvage";
-    private String balanceLoreLine = "&7Your Balance: &f{balance}";
+    private String balanceLoreLine = "&7Your Balance: &7{balance}";
     private String canAffordLoreLine = "&aClick to purchase.";
     private String cannotAffordLoreLine = "&cYou cannot afford this.";
     private ShopDisplayItem fillerItem;
@@ -37,7 +37,7 @@ public final class ShopConfig {
         File f = new File(plugin.getDataFolder(), "shop.yml");
         YamlConfiguration y = YamlConfiguration.loadConfiguration(f);
 
-        title = color(y.getString("title", "&4&lHavoc &8&l»&f Shop"));
+        title = color(y.getString("title", "&4&lHavoc &8&l»&7 Shop"));
         rows = clampRows(y.getInt("rows", 3));
         fillEmptySlots = y.getBoolean("fill-empty-slots", true);
         closeOnPurchase = y.getBoolean("close-on-purchase", false);
@@ -64,9 +64,16 @@ public final class ShopConfig {
                 short data = (short) i.getInt("data", 0);
                 int amount = clampAmount(i.getInt("amount", 1));
                 int price = Math.max(0, i.getInt("price", 0));
-                String name = color(i.getString("display-name", "&f" + mat.name()));
+                String name = color(i.getString("display-name", "&7" + mat.name()));
                 List<String> lore = colorList(i.getStringList("lore"));
-                items.add(new ShopItem(slot, mat, data, amount, price, name, lore));
+                List<String> commands = i.getStringList("commands");
+                if (commands == null) {
+                    commands = Collections.emptyList();
+                }
+                boolean giveItem = i.contains("give-item")
+                        ? i.getBoolean("give-item")
+                        : commands.isEmpty();
+                items.add(new ShopItem(slot, mat, data, amount, price, name, lore, commands, giveItem));
             }
         }
     }

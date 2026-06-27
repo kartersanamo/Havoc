@@ -49,6 +49,8 @@ public final class HavocConfig {
     private double spawnX;
     private double spawnY;
     private double spawnZ;
+    private double spawnYaw;
+    private double spawnPitch;
     private int maintainerInitialDelayTicks;
     private int maintainerPeriodTicks;
     private int restoreTickerPeriodTicks;
@@ -186,13 +188,17 @@ public final class HavocConfig {
         if (sp != null) {
             spawnWorld = sp.getString("world", worldName);
             spawnX = sp.getDouble("x", 0.5);
-            spawnY = sp.getDouble("y", 64);
+            spawnY = sp.getDouble("y", 115);
             spawnZ = sp.getDouble("z", 0.5);
+            spawnPitch = sp.getDouble("pitch", -90);
+            spawnYaw = sp.getDouble("yaw", 0);
         } else {
             spawnWorld = worldName;
             spawnX = 0.5;
             spawnY = 64;
             spawnZ = 0.5;
+            spawnPitch = -90;
+            spawnYaw = 0;
         }
         normalizeWorldNames();
         breachMaterials.clear();
@@ -404,7 +410,7 @@ public final class HavocConfig {
         if (w == null) {
             w = Bukkit.getWorlds().get(0);
         }
-        return new org.bukkit.Location(w, spawnX, spawnY, spawnZ);
+        return new org.bukkit.Location(w, spawnX, spawnY, spawnZ, (float) spawnYaw, (float) spawnPitch);
     }
 
     public Set<Material> getBreachMaterials() {

@@ -1,20 +1,26 @@
-title: "&4&lHavoc &8&l»&f Shop"
-rows: 4
-fill-empty-slots: true
+title: "Havoc Shop"
+rows: 2
+fill-empty-slots: false
 close-on-purchase: false
 refresh-after-purchase: true
 
 # Purchase/insufficient-funds chat messages are in messages.yml under shop.purchase.*
+#
+# Per-item options (under items.<id>):
+#   commands: optional list of console commands run on purchase
+#   give-item: whether to also give the configured material stack (default: true when no commands, false when commands are set)
+# Command placeholders: {player}, {uuid}, {amount}, {price}, {name}
 item-extra-lore:
-  price-line: "&7Price: &6{price} &eSalvage"
-  balance-line: "&7Your Balance: &f{balance}"
+  price-line: "&fPrice: &7{price} Salvage"
+  balance-line: "&fYour Balance: &7{balance}"
+  empty-line: "&f"
   can-afford-line: "&aClick to purchase."
   cannot-afford-line: "&cYou cannot afford this."
 
 filler-item:
   enabled: true
   material: STAINED_GLASS_PANE
-  data: 15
+  data: 7
   amount: 1
   display-name: "&8"
   lore: []
@@ -30,42 +36,83 @@ balance-item:
     - "&7Current Balance:"
     - "&6{balance}"
     - "&8&m--------------------"
-    - "&7Earn Salvage by breaching Havoc bases."
+    - "&7Earn Salvage by breaching Havoc bases. The"
+    - "&7higher difficulty bases reward more Salvage."
 
 items:
-  gapple:
-    slot: 10
-    material: GOLDEN_APPLE
+  silverfish_spawner:
+    slot: 11
+    material: MOB_SPAWNER
     data: 0
-    amount: 1
-    price: 50
-    display-name: "&6Golden Apple"
+    amount: 3
+    price: 300
+    display-name: "&eSilverfish &fSpawner"
     lore:
-      - "&7A classic raid sustain item."
-  pearls:
+    # give-item: false
+    commands:
+       - "silkspawners give {player} silverfish 3"
+
+  lucky_creeper:
     slot: 12
-    material: ENDER_PEARL
+    material: CREEPER
     data: 0
-    amount: 4
-    price: 80
-    display-name: "&dEnder Pearl x4"
-    lore:
-      - "&7Mobility and chase potential."
-  pots:
-    slot: 14
-    material: POTION
-    data: 16421
     amount: 1
-    price: 120
-    display-name: "&bSplash Healing II"
+    price: 100
+    display-name: "&a&lLucky &2&lCreeper Egg"
     lore:
-      - "&7Instant pressure relief."
-  tnt:
-    slot: 16
-    material: TNT
+      - "&7"
+      - "&7This creeper has a 100%"
+      - "&7chance of dropping spawners."
+      - "&7"
+
+    # give-item: false
+    commands:
+       - "customcreeper {player} lucky 1"
+  
+  collection_creeper:
+    slot: 13
+    material: CREEPER
+    data: 1
+    amount: 1
+    price: 100
+    display-name: "&e&lCollection &2&lCreeper Egg"
+    lore:
+      - "&7"
+      - "&7This creeper will make nearby
+      - "&7collection chests accesible"
+      - "&7to everyone for a limited time."
+      - "&7"
+
+    # give-item: false
+    commands:
+       - "customcreeper {player} collection 1"
+  
+  colossal:
+    slot: 14
+    material: CREEPER
+    data: 1
+    amount: 1
+    price: 100
+    display-name: "&b&lColossal &2&lCreeper Egg"
+    lore:
+      - "&7"
+      - "&7This creeper has a large
+      - "&7explosion radius causing"
+      - "&7mass amounts of damage."
+      - "&7"
+
+    # give-item: false
+    commands:
+       - "customcreeper {player} colossal 1"
+
+  creeper_spawner:
+    slot: 15
+    material: MOB_SPAWNER
     data: 0
     amount: 16
-    price: 140
-    display-name: "&cTNT x16"
+    price: 200
+    display-name: "&eCreeper &fSpawner"
     lore:
-      - "&7Breach kit staple."
+    # give-item: false
+    commands:
+       - "silkspawners give {player} creeper 16"

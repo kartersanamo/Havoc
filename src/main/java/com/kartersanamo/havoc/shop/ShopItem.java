@@ -2,6 +2,7 @@ package com.kartersanamo.havoc.shop;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
@@ -18,8 +19,11 @@ public final class ShopItem {
     private final int price;
     private final String displayName;
     private final List<String> lore;
+    private final List<String> commands;
+    private final boolean giveItem;
 
-    public ShopItem(int slot, Material material, short data, int amount, int price, String displayName, List<String> lore) {
+    public ShopItem(int slot, Material material, short data, int amount, int price, String displayName,
+                    List<String> lore, List<String> commands, boolean giveItem) {
         this.slot = slot;
         this.material = material;
         this.data = data;
@@ -27,6 +31,8 @@ public final class ShopItem {
         this.price = price;
         this.displayName = displayName;
         this.lore = lore == null ? Collections.<String>emptyList() : lore;
+        this.commands = commands == null ? Collections.<String>emptyList() : commands;
+        this.giveItem = giveItem;
     }
 
     public int getSlot() {
@@ -43,6 +49,24 @@ public final class ShopItem {
 
     public String getDisplayName() {
         return displayName;
+    }
+
+    public List<String> getCommands() {
+        return commands;
+    }
+
+    public boolean shouldGiveItem() {
+        return giveItem;
+    }
+
+    public String resolveCommand(String command, Player player) {
+        String playerName = player.getName() == null ? "" : player.getName();
+        return command
+                .replace("{player}", playerName)
+                .replace("{uuid}", player.getUniqueId().toString())
+                .replace("{price}", String.valueOf(price))
+                .replace("{amount}", String.valueOf(amount))
+                .replace("{name}", ChatColor.stripColor(displayName));
     }
 
     public ItemStack createDisplayStack(int balance, String priceLine, String balanceLine, String canAffordLine, String cannotAffordLine) {

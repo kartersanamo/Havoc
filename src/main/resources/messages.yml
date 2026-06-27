@@ -1,4 +1,4 @@
-prefix: "&4&lHavoc &8&l»&f "
+prefix: "&4&lHavoc &8&l»&7 "
 
 command:
   help:
@@ -23,12 +23,12 @@ command:
   unknown-subcommand: "&cUnknown subcommand."
 
 menu:
-  warp-success: "&fWarped to Havoc spawn."
+  warp-success: "&7Warped to Havoc spawn."
   warp-failed: "&cHavoc spawn world is not loaded."
 
 stats:
-  unknown-player: "&cUnknown player: &f{player}"
-  header: "&4&lHavoc Stats: &r&f{player}"
+  unknown-player: "&cUnknown player: &7{player}"
+  header: "&4&lHavoc Stats: &r&7{player}"
   breaches-participated: "&7  - Breaches Participated: &b{value}"
   breaches-triggered: "&7  - Breaches Triggered: &b{value}"
   salvage-earned: "&7  - Salvage Earned: &6{value}"
@@ -37,47 +37,47 @@ admin:
   list:
     empty: "&7No bases loaded."
     header: "&6Bases (&e{count}&6):"
-    line: "&f- &b{difficulty} &7({state}) &f{world} &e{x}, {y}, {z} &8[~{id}] &8({claims} chunks)"
+    line: "&7- &b{difficulty} &7({state}) &7{world} &e{x}, {y}, {z} &8[~{id}] &8({claims} chunks)"
     base-missing: "&cThat base no longer exists."
     world-not-loaded: "&cBase world is not loaded."
-    teleport-success: "&fTeleported to base &e{id}&f."
+    teleport-success: "&7Teleported to base &e{id}&7."
   reload:
-    success: "&fConfig, shop.yml, and messages.yml reloaded."
+    success: "&7Config, shop.yml, and messages.yml reloaded."
   spawn:
     usage: "&7Usage: /havoc admin spawn <EASY|MEDIUM|HARD>"
     invalid-tier: "&cInvalid tier."
-    confirm: "&eRun the same spawn command again within &f{seconds}&es to confirm."
-    cooldown: "&cPlease wait &f{seconds}&cs before spawning another base."
-    success: "&fSpawned one {difficulty} base."
+    confirm: "&eRun the same spawn command again within &7{seconds}&es to confirm."
+    cooldown: "&cPlease wait &7{seconds}&cs before spawning another base."
+    success: "&7Spawned one {difficulty} base."
     failed: "&cSpawn failed (see console)."
   force-restore:
-    confirm: "&eClick Force Restore again within &f{seconds}&es to confirm."
-    cooldown: "&cPlease wait &f{seconds}&cs before force-restoring another base."
+    confirm: "&eClick Force Restore again within &7{seconds}&es to confirm."
+    cooldown: "&cPlease wait &7{seconds}&cs before force-restoring another base."
     already-restoring: "&cBase is already restoring."
-    success: "&fForced restore for base &e{id}&f."
+    success: "&7Forced restore for base &e{id}&7."
     failed: "&cCould not force restore that base."
   logs:
     usage: "&7Usage: /havoc admin logs [page]"
     empty: "&7No logs found."
-    header: "&6Logs &7Page &f{page}&7/&f{pages} &8(&7{count} total&8)"
+    header: "&6Logs &7Page &7{page}&7/&7{pages} &8(&7{count} total&8)"
   salvage:
     usage: "&7Usage: /havoc admin salvage <add|set|show> <player> [amount]"
     invalid-action: "&cInvalid salvage action. Use add, set, or show."
-    player-not-found: "&cPlayer not found: &f{player}"
+    player-not-found: "&cPlayer not found: &7{player}"
     amount-required: "&cAmount is required for add/set."
     invalid-amount: "&cInvalid amount."
     show: "&e{player}&7 has &6{balance}&7 Salvage."
-    add-success: "&fAdded &e{amount}&f Salvage to &e{player}&f. New balance: &e{balance}&f."
-    set-success: "&fSet &e{player}&f Salvage to &e{balance}&f."
+    add-success: "&7Added &e{amount}&7 Salvage to &e{player}&7. New balance: &e{balance}&7."
+    set-success: "&7Set &e{player}&7 Salvage to &e{balance}&7."
   perf:
     header: "&6Perf &7(spawn worker)"
-    queue: "&7Queue size: &f{count}"
-    active: "&7Active task: &f{difficulty} &8/ &f{phase}"
-    spawn-worker: "&7Avg ms/tick: &f{avg_ms} &8(&7samples: &f{samples}&8)"
+    queue: "&7Queue size: &7{count}"
+    active: "&7Active task: &7{difficulty} &8/ &7{phase}"
+    spawn-worker: "&7Avg ms/tick: &7{avg_ms} &8(&7samples: &7{samples}&8)"
 
 shop:
   purchase:
-    success: "&fPurchased &e{amount}x {name} &ffor &e{price} Salvage&f. &7(New balance: &f{balance}&7)"
+    success: "&7Purchased &e{amount}x {name} &7for &e{price} Salvage&7. &7(New balance: &7{balance}&7)"
     insufficient-funds: "&cYou need &e{price}&c Salvage for {name}&c. You only have &e{balance}&c."
 
 raid:
@@ -86,5 +86,5 @@ raid:
     entry-denied: "&cYou cannot enter this restoring base yet."
   reward:
     salvage: "&6+{amount} Salvage &7(New balance: &e{balance}&7)"
-    next-lead: "&bNext lead (&3{difficulty}&b): &f{x}, {y}, {z}"
+    next-lead: "&bNext lead (&3{difficulty}&b): &7{x}, {y}, {z}"
     no-next-lead: "&7No active {difficulty} base to point you to yet."

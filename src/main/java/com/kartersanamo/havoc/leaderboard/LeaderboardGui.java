@@ -1,8 +1,10 @@
 package com.kartersanamo.havoc.leaderboard;
 
-import com.kartersanamo.havoc.Havoc;
-import com.kartersanamo.havoc.stats.PlayerStats;
-import com.kartersanamo.havoc.stats.PlayerStatsStore;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -13,10 +15,9 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import com.kartersanamo.havoc.Havoc;
+import com.kartersanamo.havoc.stats.PlayerStats;
+import com.kartersanamo.havoc.stats.PlayerStatsStore;
 
 public final class LeaderboardGui {
 
@@ -92,7 +93,7 @@ public final class LeaderboardGui {
         if (meta != null) {
             meta.setDisplayName(lightColor + metric.label + " Leaderboard");
             List<String> lore = new ArrayList<String>();
-            lore.add(ChatColor.WHITE + "" + ChatColor.STRIKETHROUGH + "─────────────────");
+            lore.add(ChatColor.WHITE + "" + ChatColor.STRIKETHROUGH + "--------------------");
             if (rows.isEmpty()) {
                 lore.add(ChatColor.GREEN + "No entries yet.");
             } else {
