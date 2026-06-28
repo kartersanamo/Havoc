@@ -250,6 +250,30 @@ public final class BaseService {
         return basesById.get(id);
     }
 
+    /**
+     * Player faction claim in the Havoc world where raid cannons may use virtual TNT (not wilderness or Havoc).
+     */
+    public Object resolveRaidCannonFaction(Location location) {
+        if (location == null || location.getWorld() == null) {
+            return null;
+        }
+        if (!location.getWorld().getName().equals(plugin.getHavocConfig().getWorldName())) {
+            return null;
+        }
+        try {
+            Object faction = plugin.getFactionsBridge().getFactionAtLocation(location);
+            if (faction == null || plugin.getFactionsBridge().isWilderness(faction)) {
+                return null;
+            }
+            if (havocFaction != null && plugin.getFactionsBridge().factionsEqual(faction, havocFaction)) {
+                return null;
+            }
+            return faction;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     public ActiveHavocBase findAffectingBase(org.bukkit.Location location) {
         if (location == null || location.getWorld() == null) {
             return null;

@@ -4,14 +4,13 @@ import com.kartersanamo.havoc.Havoc;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import com.kartersanamo.havoc.raid.DispenserVirtualTnt;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.block.BlockDispenseEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntitySpawnEvent;
-import org.bukkit.material.Dispenser;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -37,19 +36,18 @@ public final class TntAttributionTracker {
         if (event.getItem() == null || event.getItem().getType() != Material.TNT) {
             return;
         }
-        Dispenser dispenser = (Dispenser) event.getBlock().getState().getData();
-        BlockFace face = dispenser.getFacing();
-        Block dispenserBlock = event.getBlock();
-        Location birthEstimate = dispenserBlock.getRelative(face).getLocation().add(0.5, 0.5, 0.5);
-        Object factionAtDispenser;
-        try {
-            factionAtDispenser = plugin.getFactionsBridge().getFactionAtLocation(dispenserBlock.getLocation());
-            if (factionAtDispenser == null || plugin.getFactionsBridge().isWilderness(factionAtDispenser)) {
-                return;
-            }
-        } catch (Exception e) {
+        registerDispenserActivation(event.getBlock());
+    }
+
+    public void registerDispenserActivation(Block dispenserBlock) {
+        if (dispenserBlock == null || dispenserBlock.getType() != Material.DISPENSER) {
             return;
         }
+        Object factionAtDispenser = plugin.getBaseService().resolveRaidCannonFaction(dispenserBlock.getLocation());
+        if (factionAtDispenser == null) {
+            return;
+        }
+        Location birthEstimate = DispenserVirtualTnt.dispenseLocation(dispenserBlock);
         synchronized (pendingDispenses) {
             pruneExpiredPending();
             pendingDispenses.add(new PendingDispense(System.currentTimeMillis(), birthEstimate, factionAtDispenser));
