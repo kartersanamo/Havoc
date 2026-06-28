@@ -9,9 +9,6 @@ import org.bukkit.entity.TNTPrimed;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.material.Dispenser;
-import org.bukkit.util.Vector;
-
-import java.util.concurrent.ThreadLocalRandom;
 
 public final class DispenserVirtualTnt {
 
@@ -46,22 +43,6 @@ public final class DispenserVirtualTnt {
         if (world == null) {
             return null;
         }
-        Dispenser data = (Dispenser) dispenserBlock.getState().getData();
-        BlockFace face = data.getFacing();
-        Location birth = dispenseLocation(dispenserBlock);
-        TNTPrimed tnt = world.spawn(birth, TNTPrimed.class);
-        if (tnt == null) {
-            return null;
-        }
-        ThreadLocalRandom random = ThreadLocalRandom.current();
-        double spread = 0.1D;
-        double x = face.getModX() * 0.3D + (random.nextDouble() - 0.5D) * spread;
-        double y = face.getModY() * 0.3D + (random.nextDouble() - 0.5D) * spread;
-        double z = face.getModZ() * 0.3D + (random.nextDouble() - 0.5D) * spread;
-        if (face != BlockFace.DOWN && face != BlockFace.UP) {
-            y += 0.1D;
-        }
-        tnt.setVelocity(new Vector(x, y, z));
-        return tnt;
+        return world.spawn(dispenseLocation(dispenserBlock), TNTPrimed.class);
     }
 }

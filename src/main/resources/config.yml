@@ -115,11 +115,11 @@ medium-schematic: MediumBase.schematic
 hard-schematic: HardBase.schematic
 
 salvage-reward:
-  EASY_MIN: 15
-  EASY_MAX: 45
-  MEDIUM_MIN: 40
-  MEDIUM_MAX: 120
-  HARD_MIN: 100
+  EASY_MIN: 50
+  EASY_MAX: 100
+  MEDIUM_MIN: 100
+  MEDIUM_MAX: 200
+  HARD_MIN: 200
   HARD_MAX: 300
 
 # Players within this radius (blocks) of the breach block get rewards / progression

@@ -105,7 +105,7 @@ public final class BaseAdminGui {
             lore.add(ChatColor.GRAY + "World: " + ChatColor.WHITE + b.worldName);
             lore.add(ChatColor.GRAY + "Coords: " + ChatColor.YELLOW + b.obsidianCenterX + ", " + b.obsidianCenterY + ", " + b.obsidianCenterZ);
             lore.add(ChatColor.GRAY + "Claims: " + ChatColor.WHITE + b.claimedChunks.size());
-            lore.add(ChatColor.GRAY + "Players within 300 blocks of coords: " + ChatColor.WHITE + nearbyPlayers(b));
+            lore.add(ChatColor.GRAY + "Players nearby: " + ChatColor.WHITE + nearbyPlayers(b));
             double dist = distanceFrom(viewer, b);
             lore.add(ChatColor.GRAY + "Distance: " + ChatColor.WHITE + (dist < 0 ? "N/A" : ((int) Math.round(dist) + " blocks")));
             lore.add(ChatColor.DARK_GRAY + "Click to teleport");
