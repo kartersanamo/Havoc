@@ -117,9 +117,9 @@ public final class LeaderboardGui {
         switch (metric) {
             case SALVAGE_SPENT:
                 return Material.GOLD_NUGGET;
-            case BREACHES_PARTICIPATED:
+            case RAIDS_PARTICIPATED:
                 return Material.TNT;
-            case BREACHES_TRIGGERED:
+            case BASES_BREACHED:
                 return Material.FIREBALL;
             case SHOP_PURCHASES:
                 return Material.CHEST;
@@ -133,10 +133,10 @@ public final class LeaderboardGui {
         switch (metric) {
             case SALVAGE_SPENT:
                 return stats.salvageSpent;
-            case BREACHES_PARTICIPATED:
-                return stats.breachesParticipated;
-            case BREACHES_TRIGGERED:
-                return stats.breachesTriggered;
+            case RAIDS_PARTICIPATED:
+                return stats.raidsParticipated;
+            case BASES_BREACHED:
+                return stats.basesBreached;
             case SHOP_PURCHASES:
                 return stats.shopPurchases;
             case SALVAGE_EARNED:
@@ -149,9 +149,9 @@ public final class LeaderboardGui {
         switch (metric) {
             case SALVAGE_SPENT:
                 return ChatColor.DARK_RED;
-            case BREACHES_PARTICIPATED:
+            case RAIDS_PARTICIPATED:
                 return ChatColor.DARK_AQUA;
-            case BREACHES_TRIGGERED:
+            case BASES_BREACHED:
                 return ChatColor.DARK_PURPLE;
             case SHOP_PURCHASES:
                 return ChatColor.DARK_BLUE;
@@ -166,9 +166,9 @@ public final class LeaderboardGui {
         switch (metric) {
             case SALVAGE_SPENT:
                 return ChatColor.RED;
-            case BREACHES_PARTICIPATED:
+            case RAIDS_PARTICIPATED:
                 return ChatColor.AQUA;
-            case BREACHES_TRIGGERED:
+            case BASES_BREACHED:
                 return ChatColor.LIGHT_PURPLE;
             case SHOP_PURCHASES:
                 return ChatColor.BLUE;

@@ -282,6 +282,28 @@ public final class BaseService {
         return true;
     }
 
+    public void tryRecordRaidParticipation(org.bukkit.Location location, Player preferredCredit) {
+        if (location == null || location.getWorld() == null) {
+            return;
+        }
+        ActiveHavocBase base = findByChunk(location.getChunk());
+        if (base == null || base.state != BaseState.ACTIVE) {
+            return;
+        }
+        if (!base.worldName.equals(location.getWorld().getName())) {
+            return;
+        }
+        Player player = resolveBreachCredit(base, location, preferredCredit);
+        if (player == null) {
+            return;
+        }
+        if (!base.raidParticipants.add(player.getUniqueId())) {
+            return;
+        }
+        plugin.getPlayerStatsStore().addRaidParticipation(player.getUniqueId());
+        plugin.getPlayerStatsStore().saveAsync();
+    }
+
     public boolean isInnerBreachLocation(Location location) {
         if (location == null) {
             return false;

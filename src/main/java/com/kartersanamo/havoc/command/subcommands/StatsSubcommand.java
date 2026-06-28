@@ -55,10 +55,10 @@ public final class StatsSubcommand implements HavocSubcommand {
         String targetName = target.getName() == null ? target.getUniqueId().toString().substring(0, 8) : target.getName();
         PlayerStats stats = plugin.getPlayerStatsStore().get(target.getUniqueId());
         plugin.getMessages().sendRaw(viewer, "stats.header", MessageVars.one(MessageKeys.PLAYER, targetName));
-        plugin.getMessages().sendRaw(viewer, "stats.breaches-participated",
-                MessageVars.one("value", String.valueOf(stats.breachesParticipated)));
-        plugin.getMessages().sendRaw(viewer, "stats.breaches-triggered",
-                MessageVars.one("value", String.valueOf(stats.breachesTriggered)));
+        plugin.getMessages().sendRaw(viewer, "stats.raids-participated",
+                MessageVars.one("value", String.valueOf(stats.raidsParticipated)));
+        plugin.getMessages().sendRaw(viewer, "stats.bases-breached",
+                MessageVars.one("value", String.valueOf(stats.basesBreached)));
         plugin.getMessages().sendRaw(viewer, "stats.salvage-earned",
                 MessageVars.one("value", String.valueOf(stats.salvageEarned)));
         return true;

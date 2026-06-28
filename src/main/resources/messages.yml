@@ -29,8 +29,8 @@ menu:
 stats:
   unknown-player: "&cUnknown player: &7{player}"
   header: "&4&lHavoc Stats: &r&7{player}"
-  breaches-participated: "&7  - Breaches Participated: &b{value}"
-  breaches-triggered: "&7  - Breaches Triggered: &b{value}"
+  raids-participated: "&7  - Raids Participated: &b{value}"
+  bases-breached: "&7  - Bases Breached: &b{value}"
   salvage-earned: "&7  - Salvage Earned: &6{value}"
 
 admin:
@@ -86,5 +86,5 @@ raid:
     entry-denied: "&cYou cannot enter this restoring base yet."
   reward:
     salvage: "&6+{amount} Salvage &7(New balance: &e{balance}&7)"
-    next-lead: "&bNext lead (&3{difficulty}&b): &7{x}, {y}, {z}"
+    next-lead: "&bNext lead (&3{difficulty}&b): &7{x}, {z}"
     no-next-lead: "&7No active {difficulty} base to point you to yet."

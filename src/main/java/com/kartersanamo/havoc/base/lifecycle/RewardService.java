@@ -51,24 +51,22 @@ public final class RewardService {
 
         BaseDifficulty nextTier = base.difficulty;
         if (progressionCredit != null) {
-            plugin.getPlayerStatsStore().addBreachTrigger(progressionCredit.getUniqueId());
+            plugin.getPlayerStatsStore().addBaseBreached(progressionCredit.getUniqueId());
             nextTier = prog.nextHintDifficulty(progressionCredit.getUniqueId(), base.difficulty);
         }
         final ActiveHavocBase target = picker.pick(nextTier, base.id);
         for (Player p : rewarded) {
             salvage.add(p.getUniqueId(), salvageAmt);
-            plugin.getPlayerStatsStore().addBreachParticipation(p.getUniqueId(), salvageAmt);
+            plugin.getPlayerStatsStore().addSalvageEarned(p.getUniqueId(), salvageAmt);
             java.util.Map<String, String> rewardVars = new java.util.HashMap<String, String>();
             rewardVars.put("amount", String.valueOf(salvageAmt));
             rewardVars.put("balance", String.valueOf(salvage.get(p.getUniqueId())));
             plugin.getMessages().send(p, "raid.reward.salvage", rewardVars);
             if (target != null) {
-                Location l = new Location(Bukkit.getWorld(target.worldName), target.obsidianCenterX, target.obsidianCenterY + 2, target.obsidianCenterZ);
                 java.util.Map<String, String> leadVars = new java.util.HashMap<String, String>();
                 leadVars.put("difficulty", String.valueOf(nextTier));
-                leadVars.put("x", String.valueOf(l.getBlockX()));
-                leadVars.put("y", String.valueOf(l.getBlockY()));
-                leadVars.put("z", String.valueOf(l.getBlockZ()));
+                leadVars.put("x", String.valueOf(target.obsidianCenterX));
+                leadVars.put("z", String.valueOf(target.obsidianCenterZ));
                 plugin.getMessages().send(p, "raid.reward.next-lead", leadVars);
             } else {
                 java.util.Map<String, String> noneVars = new java.util.HashMap<String, String>();

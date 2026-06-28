@@ -4,7 +4,10 @@ import com.kartersanamo.havoc.world.ColumnBoxSnapshot;
 import com.kartersanamo.havoc.world.InnerBreachRegion;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 public final class ActiveHavocBase {
@@ -32,6 +35,8 @@ public final class ActiveHavocBase {
     public InnerBreachRegion innerBreachRegion = InnerBreachRegion.empty();
 
     public final List<ChunkKey> claimedChunks = new ArrayList<ChunkKey>();
+    /** Players who already received raid participation credit for this base lifecycle. */
+    public final Set<UUID> raidParticipants = Collections.synchronizedSet(new HashSet<UUID>());
 
     public BaseState state = BaseState.ACTIVE;
     public ColumnBoxSnapshot terrainSnapshot;

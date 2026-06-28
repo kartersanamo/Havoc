@@ -28,8 +28,8 @@ public final class PlayerStatsStore {
     public enum LeaderboardMetric {
         SALVAGE_EARNED("Salvage Earned"),
         SALVAGE_SPENT("Salvage Spent"),
-        BREACHES_PARTICIPATED("Breaches Participated"),
-        BREACHES_TRIGGERED("Breaches Triggered"),
+        RAIDS_PARTICIPATED("Raids Participated"),
+        BASES_BREACHED("Bases Breached"),
         SHOP_PURCHASES("Shop Purchases");
 
         public final String label;
@@ -110,19 +110,27 @@ public final class PlayerStatsStore {
         return copy(stats);
     }
 
-    public synchronized void addBreachParticipation(UUID playerId, int salvageAmount) {
+    public synchronized void addRaidParticipation(UUID playerId) {
         ensureRollingWindowsCurrent();
-        addBreachParticipation(getMutable(lifetimeStatsByPlayer, playerId), salvageAmount);
-        addBreachParticipation(getMutable(weeklyStatsByPlayer, playerId), salvageAmount);
-        addBreachParticipation(getMutable(monthlyStatsByPlayer, playerId), salvageAmount);
+        addRaidParticipation(getMutable(lifetimeStatsByPlayer, playerId));
+        addRaidParticipation(getMutable(weeklyStatsByPlayer, playerId));
+        addRaidParticipation(getMutable(monthlyStatsByPlayer, playerId));
         dirty = true;
     }
 
-    public synchronized void addBreachTrigger(UUID playerId) {
+    public synchronized void addBaseBreached(UUID playerId) {
         ensureRollingWindowsCurrent();
-        addBreachTrigger(getMutable(lifetimeStatsByPlayer, playerId));
-        addBreachTrigger(getMutable(weeklyStatsByPlayer, playerId));
-        addBreachTrigger(getMutable(monthlyStatsByPlayer, playerId));
+        addBaseBreached(getMutable(lifetimeStatsByPlayer, playerId));
+        addBaseBreached(getMutable(weeklyStatsByPlayer, playerId));
+        addBaseBreached(getMutable(monthlyStatsByPlayer, playerId));
+        dirty = true;
+    }
+
+    public synchronized void addSalvageEarned(UUID playerId, int salvageAmount) {
+        ensureRollingWindowsCurrent();
+        addSalvageEarned(getMutable(lifetimeStatsByPlayer, playerId), salvageAmount);
+        addSalvageEarned(getMutable(weeklyStatsByPlayer, playerId), salvageAmount);
+        addSalvageEarned(getMutable(monthlyStatsByPlayer, playerId), salvageAmount);
         dirty = true;
     }
 
@@ -237,13 +245,16 @@ public final class PlayerStatsStore {
         return stats;
     }
 
-    private static void addBreachParticipation(PlayerStats stats, int salvageAmount) {
-        stats.breachesParticipated += 1;
-        stats.salvageEarned += Math.max(0, salvageAmount);
+    private static void addRaidParticipation(PlayerStats stats) {
+        stats.raidsParticipated += 1;
     }
 
-    private static void addBreachTrigger(PlayerStats stats) {
-        stats.breachesTriggered += 1;
+    private static void addBaseBreached(PlayerStats stats) {
+        stats.basesBreached += 1;
+    }
+
+    private static void addSalvageEarned(PlayerStats stats, int salvageAmount) {
+        stats.salvageEarned += Math.max(0, salvageAmount);
     }
 
     private static void addShopPurchase(PlayerStats stats, int spentAmount) {
@@ -253,8 +264,8 @@ public final class PlayerStatsStore {
 
     private static PlayerStats copy(PlayerStats src) {
         PlayerStats out = new PlayerStats();
-        out.breachesParticipated = src.breachesParticipated;
-        out.breachesTriggered = src.breachesTriggered;
+        out.raidsParticipated = src.raidsParticipated;
+        out.basesBreached = src.basesBreached;
         out.salvageEarned = src.salvageEarned;
         out.salvageSpent = src.salvageSpent;
         out.shopPurchases = src.shopPurchases;
@@ -265,10 +276,10 @@ public final class PlayerStatsStore {
         switch (metric) {
             case SALVAGE_SPENT:
                 return stats.salvageSpent;
-            case BREACHES_PARTICIPATED:
-                return stats.breachesParticipated;
-            case BREACHES_TRIGGERED:
-                return stats.breachesTriggered;
+            case RAIDS_PARTICIPATED:
+                return stats.raidsParticipated;
+            case BASES_BREACHED:
+                return stats.basesBreached;
             case SHOP_PURCHASES:
                 return stats.shopPurchases;
             case SALVAGE_EARNED:
@@ -362,8 +373,8 @@ public final class PlayerStatsStore {
                 try {
                     UUID id = UUID.fromString(rs.getString(1));
                     PlayerStats stats = new PlayerStats();
-                    stats.breachesParticipated = Math.max(0, rs.getInt(2));
-                    stats.breachesTriggered = Math.max(0, rs.getInt(3));
+                    stats.raidsParticipated = Math.max(0, rs.getInt(2));
+                    stats.basesBreached = Math.max(0, rs.getInt(3));
                     stats.salvageEarned = Math.max(0, rs.getInt(4));
                     stats.salvageSpent = Math.max(0, rs.getInt(5));
                     stats.shopPurchases = Math.max(0, rs.getInt(6));
@@ -385,8 +396,8 @@ public final class PlayerStatsStore {
             for (Map.Entry<UUID, PlayerStats> e : snapshot.entrySet()) {
                 PlayerStats stats = e.getValue();
                 up.setString(1, e.getKey().toString());
-                up.setInt(2, Math.max(0, stats.breachesParticipated));
-                up.setInt(3, Math.max(0, stats.breachesTriggered));
+                up.setInt(2, Math.max(0, stats.raidsParticipated));
+                up.setInt(3, Math.max(0, stats.basesBreached));
                 up.setInt(4, Math.max(0, stats.salvageEarned));
                 up.setInt(5, Math.max(0, stats.salvageSpent));
                 up.setInt(6, Math.max(0, stats.shopPurchases));
@@ -414,8 +425,10 @@ public final class PlayerStatsStore {
                 UUID id = UUID.fromString(key);
                 PlayerStats stats = new PlayerStats();
                 String root = key + ".";
-                stats.breachesParticipated = Math.max(0, section.getInt(root + "breaches-participated", 0));
-                stats.breachesTriggered = Math.max(0, section.getInt(root + "breaches-triggered", 0));
+                stats.raidsParticipated = Math.max(0, section.getInt(root + "raids-participated",
+                        section.getInt(root + "breaches-participated", 0)));
+                stats.basesBreached = Math.max(0, section.getInt(root + "bases-breached",
+                        section.getInt(root + "breaches-triggered", 0)));
                 stats.salvageEarned = Math.max(0, section.getInt(root + "salvage-earned", 0));
                 stats.salvageSpent = Math.max(0, section.getInt(root + "salvage-spent", 0));
                 stats.shopPurchases = Math.max(0, section.getInt(root + "shop-purchases", 0));
@@ -432,8 +445,8 @@ public final class PlayerStatsStore {
         for (Map.Entry<UUID, PlayerStats> e : data.entrySet()) {
             String root = section + "." + e.getKey().toString() + ".";
             PlayerStats stats = e.getValue();
-            out.set(root + "breaches-participated", Math.max(0, stats.breachesParticipated));
-            out.set(root + "breaches-triggered", Math.max(0, stats.breachesTriggered));
+            out.set(root + "raids-participated", Math.max(0, stats.raidsParticipated));
+            out.set(root + "bases-breached", Math.max(0, stats.basesBreached));
             out.set(root + "salvage-earned", Math.max(0, stats.salvageEarned));
             out.set(root + "salvage-spent", Math.max(0, stats.salvageSpent));
             out.set(root + "shop-purchases", Math.max(0, stats.shopPurchases));
