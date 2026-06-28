@@ -1,10 +1,9 @@
 package com.kartersanamo.havoc.shop;
 
-import com.kartersanamo.havoc.Havoc;
-import com.kartersanamo.havoc.message.MessageKeys;
-import com.kartersanamo.havoc.message.MessageVars;
-import com.kartersanamo.havoc.permission.PermissionNodes;
-import com.kartersanamo.havoc.storage.SalvageStore;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -12,9 +11,11 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import com.kartersanamo.havoc.Havoc;
+import com.kartersanamo.havoc.message.MessageKeys;
+import com.kartersanamo.havoc.message.MessageVars;
+import com.kartersanamo.havoc.permission.PermissionNodes;
+import com.kartersanamo.havoc.storage.SalvageStore;
 
 public final class SalvageShop {
 
@@ -116,7 +117,7 @@ public final class SalvageShop {
         if (meta != null) {
             meta.setDisplayName(replace(spec.displayName, null, balance));
             if (spec.lore != null && !spec.lore.isEmpty()) {
-                List<String> lore = new ArrayList<String>(spec.lore.size());
+                List<String> lore = new ArrayList<>(spec.lore.size());
                 for (String line : spec.lore) {
                     lore.add(replace(line, null, balance));
                 }

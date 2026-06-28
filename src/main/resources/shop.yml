@@ -54,8 +54,8 @@ items:
 
   lucky_creeper:
     slot: 12
-    material: CREEPER
-    data: 0
+    material: MONSTER_EGG
+    data: 50
     amount: 1
     price: 100
     display-name: "&a&lLucky &2&lCreeper Egg"
@@ -71,8 +71,8 @@ items:
   
   collection_creeper:
     slot: 13
-    material: CREEPER
-    data: 1
+    material: MONSTER_EGG
+    data: 50
     amount: 1
     price: 100
     display-name: "&e&lCollection &2&lCreeper Egg"
@@ -89,8 +89,8 @@ items:
   
   colossal:
     slot: 14
-    material: CREEPER
-    data: 1
+    material: MONSTER_EGG
+    data: 50
     amount: 1
     price: 100
     display-name: "&b&lColossal &2&lCreeper Egg"

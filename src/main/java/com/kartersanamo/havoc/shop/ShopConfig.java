@@ -13,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 public final class ShopConfig {
 
@@ -154,11 +155,14 @@ public final class ShopConfig {
                 continue;
             }
             int slot = i.getInt("slot", 0);
-            Material mat = parseMaterial(i.getString("material"), Material.STONE, "items." + key + ".material");
-            short data = (short) i.getInt("data", 0);
+            MaterialResolution material = resolveMaterial(i.getString("material"), Material.STONE, "items." + key + ".material");
+            short data = i.contains("data") ? (short) i.getInt("data") : material.defaultDataOr((short) 0);
+            if (material.defaultData != MaterialResolution.NO_DEFAULT && data == 0) {
+                data = material.defaultData;
+            }
             int amount = clampAmount(i.getInt("amount", 1));
             int price = Math.max(0, i.getInt("price", 0));
-            String name = color(i.getString("display-name", "&7" + mat.name()));
+            String name = color(i.getString("display-name", "&7" + material.material.name()));
             List<String> lore = colorList(i.getStringList("lore"));
             List<String> commands = i.getStringList("commands");
             if (commands == null) {
@@ -167,7 +171,7 @@ public final class ShopConfig {
             boolean giveItem = i.contains("give-item")
                     ? i.getBoolean("give-item")
                     : commands.isEmpty();
-            parsed.add(new ShopItem(slot, mat, data, amount, price, name, lore, commands, giveItem));
+            parsed.add(new ShopItem(slot, material.material, data, amount, price, name, lore, commands, giveItem));
         }
         return parsed;
     }
@@ -274,7 +278,7 @@ public final class ShopConfig {
             return null;
         }
         int slot = sec.getInt("slot", defSlot);
-        Material mat = parseMaterial(sec.getString("material"), defMat, sec.getCurrentPath() + ".material");
+        Material mat = resolveMaterial(sec.getString("material"), defMat, sec.getCurrentPath() + ".material").material;
         short data = (short) sec.getInt("data", defData);
         int amount = clampAmount(sec.getInt("amount", defAmount));
         String name = color(sec.getString("display-name", defName));
@@ -282,15 +286,51 @@ public final class ShopConfig {
         return new ShopDisplayItem(slot, mat, data, amount, name, lore);
     }
 
-    private Material parseMaterial(String raw, Material def, String path) {
+    private MaterialResolution resolveMaterial(String raw, Material def, String path) {
         if (raw == null || raw.trim().isEmpty()) {
-            return def;
+            return MaterialResolution.of(def);
+        }
+        String normalized = raw.trim().toUpperCase(Locale.ROOT).replace("-", "_");
+        MaterialResolution aliased = resolveMaterialAlias(normalized);
+        if (aliased != null) {
+            return aliased;
         }
         try {
-            return Material.valueOf(raw.trim().toUpperCase());
+            return MaterialResolution.of(Material.valueOf(normalized));
         } catch (IllegalArgumentException e) {
             plugin.getLogger().warning("Invalid material in shop.yml at " + path + ": " + raw + " (using " + def.name() + ")");
-            return def;
+            return MaterialResolution.of(def);
+        }
+    }
+
+    private static MaterialResolution resolveMaterialAlias(String normalized) {
+        switch (normalized) {
+            case "CREEPER":
+            case "CREEPER_EGG":
+            case "CREEPEREGG":
+                return new MaterialResolution(Material.MONSTER_EGG, (short) 50);
+            default:
+                return null;
+        }
+    }
+
+    private static final class MaterialResolution {
+        static final short NO_DEFAULT = Short.MIN_VALUE;
+
+        final Material material;
+        final short defaultData;
+
+        MaterialResolution(Material material, short defaultData) {
+            this.material = material;
+            this.defaultData = defaultData;
+        }
+
+        static MaterialResolution of(Material material) {
+            return new MaterialResolution(material, NO_DEFAULT);
+        }
+
+        short defaultDataOr(short fallback) {
+            return defaultData == NO_DEFAULT ? fallback : defaultData;
         }
     }
 

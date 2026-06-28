@@ -116,7 +116,7 @@ public final class Havoc extends JavaPlugin {
         baseService = new BaseService(this, eventBus);
         registerBaseLifecycleSubscribers();
         baseService.start();
-        
+
         baseAdminGui = new BaseAdminGui(this);
         salvageShop = new SalvageShop(this);
         leaderboardGui = new LeaderboardGui(this);
