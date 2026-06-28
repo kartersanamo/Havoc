@@ -18,7 +18,7 @@ public final class BlockPlaceListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPlace(BlockPlaceEvent event) {
-        if (plugin.getBaseService().shouldCancelBlockChange(event.getBlock().getLocation())) {
+        if (plugin.getBaseService().shouldCancelBlockChange(event.getBlock().getLocation(), event.getPlayer())) {
             event.setCancelled(true);
             raidLockNotifier.notifyLocked(event.getPlayer(), "raid.locked.block-change");
         }

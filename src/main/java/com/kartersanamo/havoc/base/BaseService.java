@@ -10,6 +10,7 @@ import com.kartersanamo.havoc.event.BaseBreachedEvent;
 import com.kartersanamo.havoc.event.BaseSpawnedEvent;
 import com.kartersanamo.havoc.event.InternalEventBus;
 import com.kartersanamo.havoc.faction.FactionsBridge;
+import com.kartersanamo.havoc.permission.PermissionNodes;
 import com.kartersanamo.havoc.world.ColumnBoxSnapshot;
 import com.kartersanamo.havoc.world.InnerBreachRegion;
 import com.kartersanamo.havoc.world.SchematicAnalysis;
@@ -359,10 +360,11 @@ public final class BaseService {
             if (block == null || block.getType() != Material.OBSIDIAN) {
                 continue;
             }
-            if (!isInnerBreachLocation(block.getLocation())) {
+            Location location = block.getLocation();
+            if (!isInnerBreachLocation(location)) {
                 continue;
             }
-            innerObsidianBreaks.add(block.getLocation().clone());
+            innerObsidianBreaks.add(location.clone());
         }
         if (innerObsidianBreaks.isEmpty()) {
             return;
@@ -495,6 +497,13 @@ public final class BaseService {
     }
 
     public boolean shouldCancelBlockChange(Location loc) {
+        return shouldCancelBlockChange(loc, null);
+    }
+
+    public boolean shouldCancelBlockChange(Location loc, Player player) {
+        if (player != null && player.hasPermission(PermissionNodes.ADMIN)) {
+            return false;
+        }
         return isRestoringFootprint(loc) || isSatelliteLocked(loc);
     }
 
@@ -510,6 +519,13 @@ public final class BaseService {
     }
 
     public boolean shouldDenyEnter(Location from, Location to) {
+        return shouldDenyEnter(from, to, null);
+    }
+
+    public boolean shouldDenyEnter(Location from, Location to, Player player) {
+        if (player != null && player.hasPermission(PermissionNodes.ADMIN)) {
+            return false;
+        }
         if (from.getWorld() == null || to.getWorld() == null || !from.getWorld().equals(to.getWorld())) {
             return false;
         }

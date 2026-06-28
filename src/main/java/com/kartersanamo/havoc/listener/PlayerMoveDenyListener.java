@@ -23,7 +23,7 @@ public final class PlayerMoveDenyListener implements Listener {
                 && event.getFrom().getBlockZ() == event.getTo().getBlockZ()) {
             return;
         }
-        if (plugin.getBaseService().shouldDenyEnter(event.getFrom(), event.getTo())) {
+        if (plugin.getBaseService().shouldDenyEnter(event.getFrom(), event.getTo(), event.getPlayer())) {
             event.setCancelled(true);
             raidLockNotifier.notifyLocked(event.getPlayer(), "raid.locked.entry-denied");
         }
