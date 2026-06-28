@@ -5,13 +5,13 @@ world-name: Havoc
 havoc-faction-tag: Havoc
 
 # World border is centered at 0,0 with total edge length = 2 * border-half-size (default 5000 => +/- 2500)
-border-half-size: 2500
+border-half-size: 5000
 
 # How many active bases to keep per difficulty (respawns after one is fully restored)
 bases-per-difficulty:
   EASY: 10
-  MEDIUM: 5
-  HARD: 3
+  MEDIUM: 10
+  HARD: 10
 
 # Minimum chunk Chebyshev distance between center chunks, plus each base's schematic chunk radius
 min-center-separation-chunks: 20
