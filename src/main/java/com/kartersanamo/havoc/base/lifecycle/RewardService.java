@@ -65,14 +65,11 @@ public final class RewardService {
             plugin.getMessages().send(p, "raid.reward.salvage", rewardVars);
             if (target != null) {
                 java.util.Map<String, String> leadVars = new java.util.HashMap<String, String>();
-                leadVars.put("difficulty", String.valueOf(nextTier));
                 leadVars.put("x", LeadCoordinateFormat.obfuscateFirstDigit(target.obsidianCenterX));
                 leadVars.put("z", LeadCoordinateFormat.obfuscateFirstDigit(target.obsidianCenterZ));
                 plugin.getMessages().send(p, "raid.reward.next-lead", leadVars);
             } else {
-                java.util.Map<String, String> noneVars = new java.util.HashMap<String, String>();
-                noneVars.put("difficulty", String.valueOf(nextTier));
-                plugin.getMessages().send(p, "raid.reward.no-next-lead", noneVars);
+                plugin.getMessages().send(p, "raid.reward.no-next-lead");
             }
         }
         salvage.saveAsync();

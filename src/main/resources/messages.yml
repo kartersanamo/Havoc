@@ -86,5 +86,5 @@ raid:
     entry-denied: "&cYou cannot enter this restoring base yet."
   reward:
     salvage: "&6+{amount} Salvage &7(New balance: &e{balance}&7)"
-    next-lead: "&bNext lead (&3{difficulty}&b): &7{x}, {z}"
-    no-next-lead: "&7No active {difficulty} base to point you to yet."
+    next-lead: "&bNext lead: &7{x}, {z}"
+    no-next-lead: "&7No active base to point you to yet."
