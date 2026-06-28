@@ -338,6 +338,8 @@ final class SpawnPlan implements SpawnPlanner.SpawnTask {
         snapshot.captureColumns(world, snapshotColumnCursor, count);
         snapshotColumnCursor += count;
         if (snapshotColumnCursor >= totalCols) {
+            base.satellite = SatelliteRing.captureAtSpawn(world, base.centerChunkX, base.centerChunkZ,
+                    plugin.getHavocConfig().getWatchChunkRadius(), sortedClaims);
             phase = PHASE_PASTE;
         }
         return false;

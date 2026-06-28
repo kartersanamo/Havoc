@@ -14,6 +14,7 @@ import com.kartersanamo.havoc.listener.ExplosionBreachListener;
 import com.kartersanamo.havoc.listener.ExplosionLockListener;
 import com.kartersanamo.havoc.listener.InventoryClickRouterListener;
 import com.kartersanamo.havoc.listener.PlayerMoveDenyListener;
+import com.kartersanamo.havoc.listener.RaidAffectedChunkListener;
 import com.kartersanamo.havoc.listener.RaidLockNotifier;
 import com.kartersanamo.havoc.listener.TntAttributionTracker;
 import com.kartersanamo.havoc.listener.TntDispenseListener;
@@ -128,6 +129,7 @@ public final class Havoc extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(new TntDispenseListener(tntAttributionTracker), this);
         Bukkit.getPluginManager().registerEvents(new TntSpawnListener(tntAttributionTracker), this);
         Bukkit.getPluginManager().registerEvents(new ExplosionLockListener(this), this);
+        Bukkit.getPluginManager().registerEvents(new RaidAffectedChunkListener(this), this);
         Bukkit.getPluginManager().registerEvents(new BlockBreakListener(this, raidLockNotifier), this);
         Bukkit.getPluginManager().registerEvents(new BlockPlaceListener(this, raidLockNotifier), this);
         Bukkit.getPluginManager().registerEvents(new PlayerMoveDenyListener(this, raidLockNotifier), this);

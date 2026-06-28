@@ -27,7 +27,8 @@ timers:
   lock-notify-cooldown-ms: 1500
   progression-reset-timezone: "America/New_York"
 
-# Chunks around each base (Manhattan radius from each base chunk) snapshotted at breach for later reset
+# Chunks around each base (Chebyshev radius from center chunk) snapshotted at spawn and restored
+# after cleanup — removes cannons and other raid builds in that area.
 watch-chunk-radius: 5
 
 # Breach: restore and rewards begin only after an inner obsidian shell block is destroyed.
@@ -37,7 +38,7 @@ breach-materials:
   - STATIONARY_WATER
   - WATER
 
-# Seconds until base blocks are fully restored and satellite chunks reset / unclaimed
+# Seconds until base blocks are fully restored and all affected chunks are reset / unclaimed
 restore-seconds: 120
 
 placement:

@@ -30,6 +30,8 @@ public final class BaseAdminGui {
     private static final int LIST_SIZE = LIST_ROWS * 9;
     private static final int LIST_CAPACITY = LIST_SIZE;
 
+    private static final int NEARBY_PLAYER_RADIUS_BLOCKS = 300;
+
     private final Havoc plugin;
 
     public BaseAdminGui(Havoc plugin) {
@@ -103,7 +105,7 @@ public final class BaseAdminGui {
             lore.add(ChatColor.GRAY + "World: " + ChatColor.WHITE + b.worldName);
             lore.add(ChatColor.GRAY + "Coords: " + ChatColor.YELLOW + b.obsidianCenterX + ", " + b.obsidianCenterY + ", " + b.obsidianCenterZ);
             lore.add(ChatColor.GRAY + "Claims: " + ChatColor.WHITE + b.claimedChunks.size());
-            lore.add(ChatColor.GRAY + "Players Nearby: " + ChatColor.WHITE + nearbyPlayers(b));
+            lore.add(ChatColor.GRAY + "Players within 300 blocks of coords: " + ChatColor.WHITE + nearbyPlayers(b));
             double dist = distanceFrom(viewer, b);
             lore.add(ChatColor.GRAY + "Distance: " + ChatColor.WHITE + (dist < 0 ? "N/A" : ((int) Math.round(dist) + " blocks")));
             lore.add(ChatColor.DARK_GRAY + "Click to teleport");
@@ -157,8 +159,7 @@ public final class BaseAdminGui {
             return 0;
         }
         int n = 0;
-        double r = plugin.getHavocConfig().getRewardRadius();
-        double rsq = r * r;
+        double rsq = (double) NEARBY_PLAYER_RADIUS_BLOCKS * NEARBY_PLAYER_RADIUS_BLOCKS;
         Location center = new Location(w, b.obsidianCenterX + 0.5, b.obsidianCenterY + 0.5, b.obsidianCenterZ + 0.5);
         for (Player p : w.getPlayers()) {
             if (p.getLocation().distanceSquared(center) <= rsq) {

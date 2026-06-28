@@ -3,6 +3,7 @@ package com.kartersanamo.havoc.base.lifecycle;
 import com.kartersanamo.havoc.Havoc;
 import com.kartersanamo.havoc.base.ActiveHavocBase;
 import com.kartersanamo.havoc.base.BaseDifficulty;
+import com.kartersanamo.havoc.message.LeadCoordinateFormat;
 import com.kartersanamo.havoc.storage.ProgressionStore;
 import com.kartersanamo.havoc.storage.SalvageStore;
 import org.bukkit.Bukkit;
@@ -65,8 +66,8 @@ public final class RewardService {
             if (target != null) {
                 java.util.Map<String, String> leadVars = new java.util.HashMap<String, String>();
                 leadVars.put("difficulty", String.valueOf(nextTier));
-                leadVars.put("x", String.valueOf(target.obsidianCenterX));
-                leadVars.put("z", String.valueOf(target.obsidianCenterZ));
+                leadVars.put("x", LeadCoordinateFormat.obfuscateFirstDigit(target.obsidianCenterX));
+                leadVars.put("z", LeadCoordinateFormat.obfuscateFirstDigit(target.obsidianCenterZ));
                 plugin.getMessages().send(p, "raid.reward.next-lead", leadVars);
             } else {
                 java.util.Map<String, String> noneVars = new java.util.HashMap<String, String>();

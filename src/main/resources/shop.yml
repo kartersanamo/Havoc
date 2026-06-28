@@ -46,7 +46,7 @@ items:
     material: MOB_SPAWNER
     data: 0
     amount: 3
-    price: 300
+    price: 750
     display-name: "&eSilverfish &fSpawner"
     lore: []
     commands:

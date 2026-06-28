@@ -7,12 +7,16 @@ import org.bukkit.ChunkSnapshot;
 import org.bukkit.Location;
 import org.bukkit.World;
 
-import java.util.HashMap;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Snapshots of chunks around a base (excluding the 3x3 footprint) taken at breach time.
- * On cleanup we restore every snapshotted chunk and unclaim it (MVP: full ring reset).
+ * Pre-raid chunk snapshots for every chunk that can be affected by a base (claims + watch radius),
+ * plus any extra chunks touched during the raid. Restored to this state on cleanup so cannons and
+ * other raid builds are removed.
  */
 public final class SatelliteRing {
 
@@ -20,7 +24,7 @@ public final class SatelliteRing {
     private final int centerChunkX;
     private final int centerChunkZ;
     private final int watchRadius;
-    private final Map<ChunkKey, ChunkSnapshot> snapshots = new HashMap<ChunkKey, ChunkSnapshot>();
+    private final Map<ChunkKey, ChunkSnapshot> snapshots = new ConcurrentHashMap<ChunkKey, ChunkSnapshot>();
 
     private SatelliteRing(String worldName, int centerChunkX, int centerChunkZ, int watchRadius) {
         this.worldName = worldName;
@@ -29,23 +33,48 @@ public final class SatelliteRing {
         this.watchRadius = watchRadius;
     }
 
-    public static SatelliteRing capture(World world, int centerChunkX, int centerChunkZ, int watchRadius) {
+    public static SatelliteRing captureAtSpawn(World world, int centerChunkX, int centerChunkZ, int watchRadius,
+            Collection<ChunkKey> claimedChunks) {
         SatelliteRing ring = new SatelliteRing(world.getName(), centerChunkX, centerChunkZ, watchRadius);
-        for (int dcx = -watchRadius; dcx <= watchRadius; dcx++) {
-            for (int dcz = -watchRadius; dcz <= watchRadius; dcz++) {
-                if (Math.abs(dcx) <= 1 && Math.abs(dcz) <= 1) {
-                    continue;
+        Set<ChunkKey> keys = new HashSet<ChunkKey>();
+        if (claimedChunks != null) {
+            for (ChunkKey key : claimedChunks) {
+                if (key != null && world.getName().equals(key.getWorld())) {
+                    keys.add(key);
                 }
-                int cx = centerChunkX + dcx;
-                int cz = centerChunkZ + dcz;
-                Chunk ch = world.getChunkAt(cx, cz);
-                if (!ch.isLoaded()) {
-                    ch.load();
-                }
-                ring.snapshots.put(ChunkKey.of(ch), ChunkSnapshotUtil.snap(ch));
             }
         }
+        for (int dcx = -watchRadius; dcx <= watchRadius; dcx++) {
+            for (int dcz = -watchRadius; dcz <= watchRadius; dcz++) {
+                if (Math.max(Math.abs(dcx), Math.abs(dcz)) > watchRadius) {
+                    continue;
+                }
+                keys.add(new ChunkKey(world.getName(), centerChunkX + dcx, centerChunkZ + dcz));
+            }
+        }
+        for (ChunkKey key : keys) {
+            ring.snapshotChunk(world, key);
+        }
         return ring;
+    }
+
+    public void ensureSnapshotBeforeChange(World world, Chunk chunk) {
+        if (world == null || chunk == null || !world.getName().equals(worldName)) {
+            return;
+        }
+        ChunkKey key = ChunkKey.of(chunk);
+        if (snapshots.containsKey(key)) {
+            return;
+        }
+        snapshotChunk(world, key);
+    }
+
+    private void snapshotChunk(World world, ChunkKey key) {
+        Chunk ch = world.getChunkAt(key.getX(), key.getZ());
+        if (!ch.isLoaded()) {
+            ch.load();
+        }
+        snapshots.put(key, ChunkSnapshotUtil.snap(ch));
     }
 
     public boolean isInWatch(Location loc) {
@@ -62,21 +91,31 @@ public final class SatelliteRing {
         return Math.max(Math.abs(dcx), Math.abs(dcz)) <= watchRadius;
     }
 
-    public boolean isInFootprint(Location loc) {
+    public boolean isWithinWatchRadius(Location loc) {
         if (loc.getWorld() == null || !loc.getWorld().getName().equals(worldName)) {
             return false;
         }
-        int cx = loc.getChunk().getX();
-        int cz = loc.getChunk().getZ();
-        int dcx = cx - centerChunkX;
-        int dcz = cz - centerChunkZ;
-        return Math.abs(dcx) <= 1 && Math.abs(dcz) <= 1;
+        int dcx = loc.getChunk().getX() - centerChunkX;
+        int dcz = loc.getChunk().getZ() - centerChunkZ;
+        return Math.max(Math.abs(dcx), Math.abs(dcz)) <= watchRadius;
     }
 
-    public void restoreAndUnclaimAll(World world, FactionsBridge factions) throws Exception {
-        for (Map.Entry<ChunkKey, ChunkSnapshot> e : snapshots.entrySet()) {
-            ChunkKey key = e.getKey();
-            ChunkSnapshotUtil.restore(world, key.getX(), key.getZ(), e.getValue());
+    public void restoreAll(World world) {
+        for (Map.Entry<ChunkKey, ChunkSnapshot> entry : snapshots.entrySet()) {
+            ChunkKey key = entry.getKey();
+            if (!key.getWorld().equals(world.getName())) {
+                continue;
+            }
+            ChunkSnapshotUtil.restore(world, key.getX(), key.getZ(), entry.getValue());
+        }
+    }
+
+    public void unclaimExtraChunks(World world, FactionsBridge factions, Set<ChunkKey> claimedChunks) throws Exception {
+        Set<ChunkKey> claimed = claimedChunks == null ? new HashSet<ChunkKey>() : claimedChunks;
+        for (ChunkKey key : snapshots.keySet()) {
+            if (!key.getWorld().equals(world.getName()) || claimed.contains(key)) {
+                continue;
+            }
             factions.unclaimChunk(world.getChunkAt(key.getX(), key.getZ()));
         }
     }

@@ -133,6 +133,10 @@ public final class BaseService {
                 HavocDebug.announce(plugin, "Restoring pre-base terrain for " + shortId(b.id) + " (" + b.difficulty + ") …");
                 b.terrainSnapshot.applyAll(w);
             }
+            if (w != null && b.satellite != null) {
+                HavocDebug.announce(plugin, "Restoring affected chunks for " + shortId(b.id) + " …");
+                b.satellite.restoreAll(w);
+            }
             if (w != null) {
                 for (ChunkKey key : b.claimedChunks) {
                     if (!key.getWorld().equals(w.getName())) {
@@ -244,6 +248,39 @@ public final class BaseService {
             return null;
         }
         return basesById.get(id);
+    }
+
+    public ActiveHavocBase findAffectingBase(org.bukkit.Location location) {
+        if (location == null || location.getWorld() == null) {
+            return null;
+        }
+        ActiveHavocBase claimed = findByChunk(location.getChunk());
+        if (claimed != null && (claimed.state == BaseState.ACTIVE || claimed.state == BaseState.RESTORING)) {
+            return claimed;
+        }
+        for (ActiveHavocBase base : basesById.values()) {
+            if (base.state != BaseState.ACTIVE && base.state != BaseState.RESTORING) {
+                continue;
+            }
+            if (!base.worldName.equals(location.getWorld().getName())) {
+                continue;
+            }
+            if (base.satellite != null && base.satellite.isWithinWatchRadius(location)) {
+                return base;
+            }
+        }
+        return null;
+    }
+
+    public void trackAffectedChunk(org.bukkit.Location location) {
+        ActiveHavocBase base = findAffectingBase(location);
+        if (base == null || base.satellite == null) {
+            return;
+        }
+        if (base.state != BaseState.ACTIVE && base.state != BaseState.RESTORING) {
+            return;
+        }
+        base.satellite.ensureSnapshotBeforeChange(location.getWorld(), location.getChunk());
     }
 
     public List<ActiveHavocBase> listAllBasesSorted() {
@@ -428,9 +465,8 @@ public final class BaseService {
                 + " block " + breachLoc.getBlockX() + "," + breachLoc.getBlockY() + "," + breachLoc.getBlockZ());
         long now = System.currentTimeMillis();
         base.raidEndMs = now + cfg.getRestoreSeconds() * 1000L;
-        base.satellite = SatelliteRing.capture(world, base.centerChunkX, base.centerChunkZ, cfg.getWatchChunkRadius());
         base.restoreCursor = 0;
-        HavocDebug.announce(plugin, "Satellite ring snapshot saved (watch radius " + cfg.getWatchChunkRadius() + " chunks).");
+        HavocDebug.announce(plugin, "Terrain restore started (" + cfg.getRestoreSeconds() + "s); affected chunks reset when restore completes.");
 
         Location spawn = cfg.getSpawnLocation();
         int tp = 0;
@@ -452,25 +488,6 @@ public final class BaseService {
         }
 
         eventBus.publish(new BaseBreachedEvent(base, breachLoc, progressionCredit, havocFaction));
-
-        long delay = cfg.getRestoreSeconds() * 20L;
-        final ActiveHavocBase ref = base;
-        base.satelliteTaskId = Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
-            @Override
-            public void run() {
-                ref.satelliteTaskId = -1;
-                if (ref.satellite != null) {
-                    try {
-                        HavocDebug.announce(plugin, "Satellite reset firing for base ~" + shortId(ref.id));
-                        ref.satellite.restoreAndUnclaimAll(world, plugin.getFactionsBridge());
-                    } catch (Exception e) {
-                        plugin.getLogger().warning("Satellite reset failed: " + e.getMessage());
-                        HavocDebug.announce(plugin, "Satellite reset FAILED: " + e.getMessage());
-                    }
-                }
-            }
-        }, delay);
-        HavocDebug.announce(plugin, "Terrain restore started (" + cfg.getRestoreSeconds() + "s); satellite reset scheduled same delay.");
     }
 
     public ActiveHavocBase pickRandomActiveForEvent(BaseDifficulty d, UUID exclude) {
@@ -752,6 +769,8 @@ public final class BaseService {
         int worldH = world.getMaxHeight();
         ColumnBoxSnapshot snap = ColumnBoxSnapshot.capture(world, ox, oz, w, len, worldH);
         base.terrainSnapshot = snap;
+        base.satellite = SatelliteRing.captureAtSpawn(world, base.centerChunkX, base.centerChunkZ,
+                plugin.getHavocConfig().getWatchChunkRadius(), sortedClaims);
 
         try {
             HavocDebug.announce(plugin, "Placing " + d + " block-by-block at origin " + ox + "," + oy + "," + oz

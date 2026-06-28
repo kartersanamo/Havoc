@@ -12,7 +12,9 @@ import org.bukkit.Location;
 import org.bukkit.World;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 public final class RestoreEngine {
@@ -32,7 +34,8 @@ public final class RestoreEngine {
             b.terrainSnapshot.applyPartial(w, b.restoreCursor, perTick);
             b.restoreCursor += perTick;
             if (b.restoreCursor >= vol) {
-                HavocDebug.announce(plugin, "Terrain restore DONE for ~" + shortId(b.id) + " — unclaiming " + b.claimedChunks.size() + " chunk(s).");
+                HavocDebug.announce(plugin, "Terrain restore DONE for ~" + shortId(b.id) + " — restoring affected chunks and unclaiming "
+                        + b.claimedChunks.size() + " chunk(s).");
                 int claimsCount = b.claimedChunks.size();
                 eventBus.publish(new BaseRestoredEvent(b,
                         new Location(w, b.obsidianCenterX, b.obsidianCenterY, b.obsidianCenterZ),
@@ -45,6 +48,15 @@ public final class RestoreEngine {
     }
 
     private void finishRestore(Havoc plugin, ActiveHavocBase b, World w) {
+        if (b.satellite != null) {
+            try {
+                b.satellite.restoreAll(w);
+                Set<ChunkKey> claimed = new HashSet<ChunkKey>(b.claimedChunks);
+                b.satellite.unclaimExtraChunks(w, plugin.getFactionsBridge(), claimed);
+            } catch (Exception e) {
+                plugin.getLogger().warning("Affected chunk restore failed: " + e.getMessage());
+            }
+        }
         try {
             for (ChunkKey key : b.claimedChunks) {
                 if (!key.getWorld().equals(w.getName())) {
