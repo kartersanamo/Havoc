@@ -102,6 +102,8 @@ public final class HavocMenuGui {
                         + (snapshot.restoring == 1 ? "" : "s") + ChatColor.GRAY + " currently restoring");
             }
             lore.add(ChatColor.GRAY + "- " + ChatColor.WHITE + "Salvage shop, stats, and leaderboards via /havoc");
+            lore.add(ChatColor.GRAY + "- " + ChatColor.WHITE + "Custom enchants/pets/star items, etc.");
+            lore.add(ChatColor.GRAY + "  " + ChatColor.WHITE + "all do not work here. Protection 4, pot PvP only.");
             lore.add(" ");
             lore.add(ChatColor.DARK_RED + "" + ChatColor.BOLD + "Status:");
             lore.add(ChatColor.GRAY + "- " + ChatColor.GREEN + "" + ChatColor.BOLD + "OPEN "
