@@ -2,7 +2,9 @@ package com.kartersanamo.havoc.config;
 
 import com.kartersanamo.havoc.base.BaseDifficulty;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -300,6 +302,14 @@ public final class HavocConfig {
 
     public String getWorldName() {
         return worldName;
+    }
+
+    public boolean isHavocWorld(World world) {
+        return world != null && worldName.equals(world.getName());
+    }
+
+    public boolean isHavocWorld(Location location) {
+        return location != null && isHavocWorld(location.getWorld());
     }
 
     public String getHavocFactionTag() {

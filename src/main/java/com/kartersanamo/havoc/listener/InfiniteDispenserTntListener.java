@@ -37,10 +37,7 @@ public final class InfiniteDispenserTntListener implements Listener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onDispense(BlockDispenseEvent event) {
         Block block = event.getBlock();
-        if (block.getType() != Material.DISPENSER) {
-            return;
-        }
-        if (plugin.getBaseService().resolveRaidCannonFaction(block.getLocation()) == null) {
+        if (block.getType() != Material.DISPENSER || !isRaidCannonDispenser(block.getLocation())) {
             return;
         }
         if (event.getItem() == null || event.getItem().getType() != Material.TNT) {
@@ -53,10 +50,7 @@ public final class InfiniteDispenserTntListener implements Listener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onDispenserPhysics(BlockPhysicsEvent event) {
         Block block = event.getBlock();
-        if (block.getType() != Material.DISPENSER) {
-            return;
-        }
-        if (plugin.getBaseService().resolveRaidCannonFaction(block.getLocation()) == null) {
+        if (block.getType() != Material.DISPENSER || !isRaidCannonDispenser(block.getLocation())) {
             return;
         }
         boolean powered = block.getBlockPower() > 0 || block.isBlockIndirectlyPowered();
@@ -78,7 +72,7 @@ public final class InfiniteDispenserTntListener implements Listener {
         if (entity == null || entity.getItemStack().getType() != Material.TNT) {
             return;
         }
-        if (plugin.getBaseService().resolveRaidCannonFaction(entity.getLocation()) == null) {
+        if (!isRaidCannonDispenser(entity.getLocation())) {
             return;
         }
         event.setCancelled(true);
@@ -96,7 +90,7 @@ public final class InfiniteDispenserTntListener implements Listener {
             return;
         }
         Location loc = dispenserLocation(source);
-        if (loc == null || plugin.getBaseService().resolveRaidCannonFaction(loc) == null) {
+        if (loc == null || !isRaidCannonDispenser(loc)) {
             return;
         }
         event.setCancelled(true);
@@ -114,12 +108,19 @@ public final class InfiniteDispenserTntListener implements Listener {
             return;
         }
         Location loc = dispenserLocation(top);
-        if (loc == null || plugin.getBaseService().resolveRaidCannonFaction(loc) == null) {
+        if (loc == null || !isRaidCannonDispenser(loc)) {
             return;
         }
         if (event.getRawSlot() < top.getSize()) {
             event.setCancelled(true);
         }
+    }
+
+    private boolean isRaidCannonDispenser(Location location) {
+        if (!plugin.getHavocConfig().isHavocWorld(location)) {
+            return false;
+        }
+        return plugin.getBaseService().resolveRaidCannonFaction(location) != null;
     }
 
     private void tryVirtualDispense(Block dispenserBlock) {

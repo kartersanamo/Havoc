@@ -30,6 +30,9 @@ public final class TntAttributionTracker {
     }
 
     void onBlockDispense(BlockDispenseEvent event) {
+        if (!plugin.getHavocConfig().isHavocWorld(event.getBlock().getLocation())) {
+            return;
+        }
         if (event.getBlock().getType() != Material.DISPENSER) {
             return;
         }
@@ -41,6 +44,9 @@ public final class TntAttributionTracker {
 
     public void registerDispenserActivation(Block dispenserBlock) {
         if (dispenserBlock == null || dispenserBlock.getType() != Material.DISPENSER) {
+            return;
+        }
+        if (!plugin.getHavocConfig().isHavocWorld(dispenserBlock.getLocation())) {
             return;
         }
         Object factionAtDispenser = plugin.getBaseService().resolveRaidCannonFaction(dispenserBlock.getLocation());
@@ -55,6 +61,9 @@ public final class TntAttributionTracker {
     }
 
     void onTntSpawn(EntitySpawnEvent event) {
+        if (!plugin.getHavocConfig().isHavocWorld(event.getLocation())) {
+            return;
+        }
         if (!(event.getEntity() instanceof TNTPrimed)) {
             return;
         }

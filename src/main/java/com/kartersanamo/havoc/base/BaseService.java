@@ -257,7 +257,7 @@ public final class BaseService {
         if (location == null || location.getWorld() == null) {
             return null;
         }
-        if (!location.getWorld().getName().equals(plugin.getHavocConfig().getWorldName())) {
+        if (!plugin.getHavocConfig().isHavocWorld(location)) {
             return null;
         }
         try {
